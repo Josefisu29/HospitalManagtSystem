@@ -1,0 +1,2 @@
+# HospitalManagtSystem
+HMS Project
