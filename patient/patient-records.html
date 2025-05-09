@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>HMS – Medical Records</title>
+    <link rel="stylesheet" href="css/all.css" />
+    <link rel="stylesheet" href="css/common.css" />
+    <style>
+      :root {
+        --primary: #0052cc;
+        --accent: #00bfa5;
+        --bg: #f9fbfd;
+        --text: #333;
+        --card-bg: #fff;
+        --transition: 0.3s ease;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+      header {
+        position: sticky;
+        top: 0;
+        background: var(--card-bg);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        z-index: 100;
+        padding: 1rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .greeting {
+        margin-right: 1rem;
+      }
+      .status-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #dc3545;
+        display: inline-block;
+        margin-left: 0.5rem;
+      }
+      .status-indicator.online {
+        background: #28a745;
+      }
+      nav {
+        background: var(--primary);
+        padding: 0.5rem 2rem;
+      }
+      nav ul {
+        list-style: none;
+        display: flex;
+        gap: 1rem;
+      }
+      nav a {
+        color: white;
+        text-decoration: none;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        transition: background var(--transition);
+      }
+      nav a.active,
+      nav a:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+      main {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+      }
+      .card {
+        background: var(--card-bg);
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+      }
+      th,
+      td {
+        padding: 1rem;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+      }
+      th {
+        background: #f8f9fa;
+        font-weight: 600;
+      }
+      .btn {
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        background: var(--primary);
+        color: white;
+        text-decoration: none;
+        display: inline-block;
+        transition: background var(--transition);
+      }
+      .btn:hover {
+        background: #0047b3;
+      }
+      @media (max-width: 768px) {
+        nav ul {
+          flex-direction: column;
+        }
+        table {
+          display: block;
+          overflow-x: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>HMS Patient</h1>
+      <div style="display: flex; align-items: center">
+        <span id="greeting" class="greeting"></span>
+        <span id="statusIndicator" class="status-indicator offline"></span>
+        <button id="logoutBtn" class="btn" style="margin-left: 1rem">
+          Logout
+        </button>
+      </div>
+    </header>
+    <nav>
+      <ul>
+        <!-- <li><a href="patient.html">Dashboard</a></li> -->
+        <li><a href="patient.html" class="active">Profile</a></li>
+        <li><a href="patient-appointments.html">My Appointment</a></li>
+        <li>
+          <a href="patient-records.html" class="active">Medical Record</a>
+        </li>
+        <li><a href="patient-results.html">Lab Result</a></li>
+        <li><a href="patient-billing.html">Billing & Payment</a></li>
+      </ul>
+    </nav>
+    <main>
+      <section class="card">
+        <h2>My Medical Records</h2>
+        <div id="recordsTableContainer">
+          <table id="recordsTable">
+            <thead>
+              <tr>
+                <th>Record ID</th>
+                <th>Date</th>
+                <th>Description</th>
+                <th>Download</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Records will be loaded dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+      import {
+        getAuth,
+        onAuthStateChanged,
+        signOut,
+      } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+      import {
+        getFirestore,
+        doc,
+        getDoc,
+        collection,
+        query,
+        where,
+        getDocs,
+      } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+      import {
+        getStorage,
+        ref,
+        getDownloadURL,
+      } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-storage.js";
+      import {
+        showLoading,
+        hideLoading,
+        showError,
+        showSuccess,
+        setupTableSorting,
+        setupTableFiltering,
+      } from "./js/common.js";
+
+      // Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
+        authDomain: "hospitalmanagtsystem.firebaseapp.com",
+        projectId: "hospitalmanagtsystem",
+        storageBucket: "hospitalmanagtsystem.firsebasestorage.app",
+        messagingSenderId: "771158568788",
+        appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
+      };
+
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+      const storage = getStorage(app);
+
+      // Check authentication state
+      onAuthStateChanged(auth, async (user) => {
+        if (user) {
+          try {
+            showLoading();
+            // Get user data
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              // Update greeting
+              const greetEl = document.getElementById("greeting");
+              const hour = new Date().getHours();
+              const sal =
+                hour < 12
+                  ? "Good Morning"
+                  : hour < 18
+                  ? "Good Afternoon"
+                  : "Good Evening";
+              greetEl.textContent = `${sal}, ${userData.firstName}`;
+
+              // Load medical records
+              await loadMedicalRecords(user.uid);
+            }
+          } catch (error) {
+            console.error("Error loading user data:", error);
+            showError("Failed to load user data. Please try again.");
+          } finally {
+            hideLoading();
+          }
+        } else {
+          window.location.href = "/index.html";
+        }
+      });
+
+      // Load medical records
+      async function loadMedicalRecords(userId) {
+        try {
+          showLoading();
+          const recordsRef = collection(db, "medicalRecords");
+          const q = query(recordsRef, where("patientId", "==", userId));
+          const querySnapshot = await getDocs(q);
+
+          const tbody = document
+            .getElementById("recordsTable")
+            .querySelector("tbody");
+          tbody.innerHTML = "";
+
+          if (querySnapshot.empty) {
+            const container = document.getElementById("recordsTableContainer");
+            container.innerHTML = `
+              <div class="empty-state">
+                <i class="fas fa-file-medical"></i>
+                <p>No medical records found.</p>
+              </div>
+            `;
+            return;
+          }
+
+          for (const doc of querySnapshot.docs) {
+            const record = doc.data();
+            const downloadUrl = await getDownloadURL(
+              ref(storage, record.filePath)
+            );
+
+            const row = document.createElement("tr");
+            row.innerHTML = `
+              <td>${record.recordId}</td>
+              <td>${record.date}</td>
+              <td>${record.description}</td>
+              <td>
+                <a href="${downloadUrl}" class="btn" target="_blank">Download</a>
+              </td>
+            `;
+            tbody.appendChild(row);
+          }
+
+          // Setup table sorting and filtering
+          setupTableSorting("recordsTable", [0, 1, 2]); // Sortable columns: Record ID, Date, Description
+          setupTableFiltering("recordsTable", [1, 2]); // Filterable columns: Date, Description
+        } catch (error) {
+          console.error("Error loading medical records:", error);
+          showError("Failed to load medical records. Please try again.");
+        } finally {
+          hideLoading();
+        }
+      }
+
+      // Logout functionality
+      document
+        .getElementById("logoutBtn")
+        .addEventListener("click", async () => {
+          try {
+            showLoading();
+            await signOut(auth);
+            window.location.href = "/index.html";
+          } catch (error) {
+            console.error("Error signing out:", error);
+            showError("Failed to sign out. Please try again.");
+          } finally {
+            hideLoading();
+          }
+        });
+
+      // Status indicator
+      const statusDot = document.getElementById("statusIndicator");
+      async function updateStatus() {
+        try {
+          const res = await fetch("/api/system-status");
+          const { status } = await res.json();
+          statusDot.className = "status-indicator " + (status || "offline");
+        } catch {
+          statusDot.className = "status-indicator offline";
+        }
+      }
+      setInterval(updateStatus, 10000);
+      updateStatus();
+    </script>
+  </body>
+</html>

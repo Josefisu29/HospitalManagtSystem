@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>HMS</title>
 
     <!-- AOS animations -->
@@ -17,9 +17,16 @@
       type="module"
       src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js"
     ></script>
+    <script
+      type="module"
+      src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js"
+    ></script>
+    <script
+      type="module"
+      src="https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics.js"
+    ></script>
 
     <style>
-      /* Your existing CSS here... */
       :root {
         --primary: #0052cc;
         --accent: #00bfa5;
@@ -39,7 +46,6 @@
         font-family: Inter, sans-serif;
         background: var(--bg);
         color: var(--text);
-        /* height: 100px; */
       }
       a {
         text-decoration: none;
@@ -80,23 +86,14 @@
 
       /* Hero */
       .hero {
-        margin-top: 200px;
-        /* height: 100vh; */
-        /* display: flex; */
+        margin-top: 80px;
+        display: flex;
         align-items: center;
         justify-content: center;
         text-align: center;
         position: relative;
         overflow: hidden;
-        padding: 0 1rem;
-      }
-      .hero video {
-        position: absolute;
-        inset: 0;
-        /* width: 100%; */
-        /* height: 100%; */
-        object-fit: cover;
-        opacity: 0.3;
+        padding: 4rem 1rem;
       }
       .hero .content {
         position: relative;
@@ -148,6 +145,7 @@
         width: 90%;
         max-width: 500px;
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+        position: relative;
       }
       #close-auth {
         position: absolute;
@@ -175,6 +173,7 @@
       }
       .panel {
         display: flex;
+        width: 200%;
         transition: transform var(--transition);
       }
       form {
@@ -192,6 +191,7 @@
       }
       form input:focus {
         border-color: var(--primary);
+        outline: none;
       }
       form button {
         padding: 0.75rem;
@@ -203,12 +203,19 @@
         transition: background var(--transition);
       }
       form button:hover {
-        /* background: darken(var(--accent), 10%); */
+        background: #009c8a;
       }
       .error {
         color: #e53935;
         font-size: 0.9rem;
         display: none;
+        padding: 0.5rem;
+        border-radius: 4px;
+        background-color: #ffebee;
+        margin: 0.5rem 0;
+      }
+      .error.show {
+        display: block;
       }
 
       /* Footer */
@@ -216,6 +223,52 @@
         text-align: center;
         padding: 2rem 1rem;
         color: #666;
+      }
+
+      /* Form Options */
+      .form-options {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.9rem;
+        margin: -0.5rem 0;
+      }
+      .remember-me {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+      }
+      .remember-me input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+      }
+      .forgot-link {
+        color: var(--primary);
+        text-decoration: none;
+        transition: color var(--transition);
+      }
+      .forgot-link:hover {
+        color: var(--accent);
+      }
+
+      /* Loading State */
+      .loading {
+        position: relative;
+        pointer-events: none;
+      }
+      .loading::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .loading button {
+        opacity: 0.7;
       }
 
       @media (max-width: 768px) {
@@ -253,67 +306,9 @@
           font-size: 0.9rem;
         }
       }
-
-      /* Form Options */
-      .form-options {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 0.9rem;
-        margin: -0.5rem 0;
-      }
-      .remember-me {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        cursor: pointer;
-      }
-      .remember-me input[type="checkbox"] {
-        width: 16px;
-        height: 16px;
-        cursor: pointer;
-      }
-      .forgot-link {
-        color: var(--primary);
-        text-decoration: none;
-        transition: color var(--transition);
-      }
-      .forgot-link:hover {
-        color: var(--accent);
-      }
-      /* Error Messages */
-      .error {
-        color: #e53935;
-        font-size: 0.9rem;
-        display: none;
-        padding: 0.5rem;
-        border-radius: 4px;
-        background-color: #ffebee;
-        margin: 0.5rem 0;
-      }
-      .error.show {
-        display: block;
-      }
-      /* Loading State */
-      .loading {
-        position: relative;
-        pointer-events: none;
-      }
-      .loading::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: rgba(255, 255, 255, 0.8);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-      }
-      .loading button {
-        opacity: 0.7;
-      }
     </style>
   </head>
-  <body >
+  <body>
     <header data-aos="fade-down">
       <h1>HMS</h1>
       <nav>
@@ -322,123 +317,166 @@
       </nav>
     </header>
 
-    <section class="hero" id="hero">
-      <!-- <video autoplay muted loop>
-        <source
-          src="https://www.example.com/healthcare-bg.mp4"
-          type="video/mp4"
-        />
-      </video>
-      <div class="content" data-aos="fade-up"> -->
+    <section class="hero" id="hero" data-aos="fade-up">
+      <div class="content">
         <h2>Manage Your Health Effortlessly</h2>
         <p>
           One secure portal for appointments, records, and emergency alerts.
         </p>
         <div class="btn-group">
-          <button class="btn btn-primary" id="btn-login">Login</button>
-          <button class="btn btn-accent" id="btn-signup">Sign Up</button>
+          <button
+            class="btn btn-primary"
+            id="btn-login"
+            aria-label="Open login form"
+          >
+            Login
+          </button>
+          <button
+            class="btn btn-accent"
+            id="btn-signup"
+            aria-label="Open sign-up form"
+          >
+            Sign Up
+          </button>
         </div>
       </div>
     </section>
-    <!-- Hero content omitted for brevity -->
 
     <!-- AUTH OVERLAY -->
     <section id="auth-overlay">
       <div id="auth-container">
-        <button id="close-auth">×</button>
+        <button id="close-auth" aria-label="Close authentication form">
+          ×
+        </button>
         <div class="tabs">
           <div id="tab-login" class="active">Login</div>
           <div id="tab-signup">Sign Up</div>
         </div>
         <div class="panel" id="panel">
           <!-- Login Form -->
-          <form id="login-form" style="width: 600px; ">
-            <input type="email" id="login-email" placeholder="Email" required />
+          <form id="login-form">
+            <input
+              type="email"
+              id="login-email"
+              placeholder="Email"
+              required
+              aria-label="Email address"
+            />
             <input
               type="password"
               id="login-password"
               placeholder="Password"
               required
+              aria-label="Password"
             />
             <div class="form-options">
-              <label class="remember-me">
-                <input type="checkbox" id="remember-me" />
+              <label classma="remember-me">
+                <input
+                  type="checkbox"
+                  id="remember-me"
+                  aria-label="Remember me"
+                />
                 <span>Remember Me</span>
               </label>
               <a href="#" id="forgot-password" class="forgot-link"
                 >Forgot Password?</a
               >
             </div>
-            <button type="submit" class="btn btn-primary">Login</button>
+            <button
+              type="submit"
+              class="btn btn-primary"
+              aria-label="Submit login form"
+            >
+              Login
+            </button>
             <p id="login-error" class="error">Invalid credentials.</p>
-            <button type="button" id="btn-google-login" class="btn btn-accent">
+            <button
+              type="button"
+              id="btn-google-login"
+              class="btn btn-accent"
+              aria-label="Sign in with Google"
+            >
               Continue with Google
             </button>
           </form>
           <!-- Sign-Up Form -->
-          <form id="signup-form" style="margin-left: 220px">
+          <form id="signup-form">
             <input
               type="text"
               id="signup-first"
               placeholder="First Name"
               required
+              aria-label="First name"
             />
             <input
               type="text"
               id="signup-last"
               placeholder="Last Name"
               required
+              aria-label="Last name"
             />
             <input
               type="email"
               id="signup-email"
               placeholder="Email"
               required
+              aria-label="Email address"
             />
             <input
               type="password"
               id="signup-password"
               placeholder="Password"
               required
+              aria-label="Password"
             />
             <input
               type="password"
               id="signup-confirm"
               placeholder="Confirm Password"
               required
+              aria-label="Confirm password"
             />
-            <p>
-              Lorem ipsum dolor sit amet consectetur adipisicing elit. Minima
-              quos laborum iure ad.
-            </p>
-            <button type="submit" class="btn btn-accent">Sign Up</button>
+            <p>By signing up, you agree to our terms and conditions.</p>
+            <button
+              type="submit"
+              class="btn btn-accent"
+              aria-label="Submit sign-up form"
+            >
+              Sign Up
+            </button>
             <p id="signup-error" class="error"></p>
           </form>
         </div>
       </div>
     </section>
 
-    <!-- <footer data-aos="">© 2025 HMS. All rights reserved.</footer> -->
+    <footer>
+      <p>&copy; 2025 Hospital Management System. All rights reserved.</p>
+    </footer>
 
-    <!-- AOS & Your existing scripts -->
-    <script src="index.js"></script>
-    <script src="server.js"></script>
-    <script src="/patient/js/security.js"></script>
-    <script src="/patient/js/common.js"></script>
-    <script src="/patient/js/securityLogger.js"></script>
-    <script src="/patient/js/securityMiddleware.js"></script>
+    <!-- AOS -->
     <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+    <script>
+      AOS.init({
+        duration: 800,
+        once: true,
+      });
+    </script>
+
     <script type="module">
+      // Import the SDKs
       import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
       import {
         getAuth,
         signInWithEmailAndPassword,
+        createUserWithEmailAndPassword,
         sendPasswordResetEmail,
         setPersistence,
         browserLocalPersistence,
         browserSessionPersistence,
         onAuthStateChanged,
-        signOut,
+        signInWithPopup,
+        GoogleAuthProvider,
       } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
       import {
         getFirestore,
@@ -447,21 +485,41 @@
         setDoc,
         serverTimestamp,
       } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+      import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics.js";
 
       // Firebase configuration
       const firebaseConfig = {
         apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
         authDomain: "hospitalmanagtsystem.firebaseapp.com",
+        databaseURL:
+          "https://hospitalmanagtsystem-default-rtdb.europe-west1.firebasedatabase.app",
         projectId: "hospitalmanagtsystem",
-        storageBucket: "hospitalmanagtsystem.firsebasestorage.app",
+        storageBucket: "hospitalmanagtsystem.firebasestorage.app",
         messagingSenderId: "771158568788",
-        appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
+        appId: "1:771158568788:web:ccb385ad3f8140398762c1",
+        measurementId: "G-N7MD4MC11Y",
       };
 
       // Initialize Firebase
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app);
       const db = getFirestore(app);
+      const analytics = getAnalytics(app);
+      const provider = new GoogleAuthProvider();
+
+      // Role-based redirection
+      const rolePages = {
+        admin: "/admin/admin.html",
+        doctor: "/doctor/doctor.html",
+        nurse: "/nurse/nurse.html",
+        pharmacist: "/pharmacist/pharmacist.html",
+        labAttendant: "/lab/lab.html",
+        receptionist: "/reception/reception.html",
+        firstResponder: "/responder/responder.html",
+        recordClerk: "/records/records.html",
+        hospitalStaff: "/hospital/hospital.html",
+        patient: "patient.html",
+      };
 
       // Security checks
       const securityChecks = {
@@ -505,7 +563,6 @@
           const now = Date.now();
 
           if (attempts >= 5 && now - lastAttempt < 300000) {
-            // 5 minutes
             return {
               blocked: true,
               remainingTime: Math.ceil((300000 - (now - lastAttempt)) / 1000),
@@ -640,40 +697,30 @@
               return;
             }
 
-            // Redirect based on role
-            const rolePages = {
-              admin: "/admin/admin.html",
-              doctor: "/doctor/doctor.html",
-              nurse: "/nurse/nurse.html",
-              pharmacist: "/pharmacist/pharmacist.html",
-              labAttendant: "/lab/lab.html",
-              receptionist: "/reception/reception.html",
-              firstResponder: "/responder/responder.html",
-              recordClerk: "/records/records.html",
-              hospitalStaff: "/hospital/hospital.html",
-              patient: "/patient/patient.html",
-            };
-
             // Update last login
+            let lastLoginIP = "Unknown";
+            try {
+              const response = await fetch("https://api.ipify.org?format=json");
+              if (response.ok) {
+                const data = await response.json();
+                lastLoginIP = data.ip;
+              }
+            } catch (ipError) {
+              console.error("Failed to fetch IP:", ipError);
+            }
+
             await setDoc(
               doc(db, "users", user.uid),
               {
                 ...userData,
                 lastLogin: serverTimestamp(),
-                lastLoginIP: await fetch("https://api.ipify.org?format=json")
-                  .then((r) => r.json())
-                  .then((data) => data.ip),
+                lastLoginIP,
               },
               { merge: true }
             );
 
-            if (userData.role === "patient") {
-              window.location.href = "confirm.html";
-            } else if (userData.role === "doctor") {
-              window.location.href = "confirm.html";
-            } else if (userData.role === "admin") {
-              window.location.href = "confirm.html";
-            }
+            // Redirect based on role
+            window.location.href = rolePages[role];
           } catch (error) {
             console.error("Login error:", error);
             securityChecks.updateLoginAttempts();
@@ -723,7 +770,7 @@
         }
       });
 
-      // Overlay UI logic (unchanged)
+      // Overlay UI logic
       const overlay = document.getElementById("auth-overlay");
       const btnLogin = document.getElementById("btn-login");
       const btnSignup = document.getElementById("btn-signup");
@@ -739,6 +786,7 @@
         tabSignup.classList.toggle("active", signup);
         panel.style.transform = signup ? "translateX(-50%)" : "translateX(0)";
       }
+
       [btnLogin, btnSignup, navGet].forEach((el, i) =>
         el.addEventListener("click", (e) => {
           e.preventDefault();
@@ -764,14 +812,23 @@
           const confirm = document.getElementById("signup-confirm").value;
 
           if (pass !== confirm) {
-            const err = document.getElementById("signup-error");
-            err.textContent = "Passwords must match.";
-            err.style.display = "block";
+            showError("Passwords must match.", "signup-error");
+            return;
+          }
+
+          const passwordStrength = securityChecks.checkPasswordStrength(pass);
+          if (!passwordStrength.isValid) {
+            showError(passwordStrength.errors.join(", "), "signup-error");
+            return;
+          }
+
+          if (!securityChecks.checkEmailFormat(email)) {
+            showError("Please enter a valid email address", "signup-error");
             return;
           }
 
           try {
-            // Create user account
+            showLoading("signup-form");
             const userCredential = await createUserWithEmailAndPassword(
               auth,
               email,
@@ -779,7 +836,6 @@
             );
             const user = userCredential.user;
 
-            // Store additional user data in Firestore
             await setDoc(doc(db, "users", user.uid), {
               firstName: first,
               lastName: last,
@@ -788,12 +844,12 @@
               createdAt: serverTimestamp(),
             });
 
-            // Redirect to patient portal
-            window.location.href = "confirm.html";
+            // window.location.href = "confirm.html";
           } catch (error) {
-            const err = document.getElementById("signup-error");
-            err.textContent = error.message;
-            err.style.display = "block";
+            console.error("Sign-up error:", error);
+            showError(error.message, "signup-error");
+          } finally {
+            hideLoading("signup-form");
           }
         });
 
@@ -802,14 +858,12 @@
         .getElementById("btn-google-login")
         .addEventListener("click", async () => {
           try {
+            showLoading("login-form");
             const result = await signInWithPopup(auth, provider);
             const user = result.user;
 
-            // Check if user exists in Firestore
             const userDoc = await getDoc(doc(db, "users", user.uid));
-
             if (!userDoc.exists()) {
-              // Store new user data
               await setDoc(doc(db, "users", user.uid), {
                 firstName: user.displayName?.split(" ")[0] || "",
                 lastName: user.displayName?.split(" ")[1] || "",
@@ -819,31 +873,34 @@
               });
             }
 
-            window.location.href = "patient/patient.html";
+            window.location.href = rolePages.patient;
           } catch (error) {
             console.error("Google sign-in error:", error);
-            alert("Sign-in failed: " + error.message);
+            showError(error.message);
+          } finally {
+            hideLoading("login-form");
           }
         });
 
       // Auth State Observer
-      onAuthStateChanged(auth, async (user) => {
-        if (user) {
-          // User is signed in
-          const userDoc = await getDoc(doc(db, "users", user.uid));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            const role = userData.role?.toLowerCase();
-            
-            if (role && rolePages[role]) {
-              // Only redirect if we're on the index page
-              if (window.location.pathname === '/' || window.location.pathname.endsWith('index.html')) {
-                window.location.href = rolePages[role];
-              }
-            }
-          }
-        }
-      });
+      // onAuthStateChanged(auth, async (user) => {
+      //   if (user) {
+      //     const userDoc = await getDoc(doc(db, "users", user.uid));
+      //     if (userDoc.exists()) {
+      //       const userData = userDoc.data();
+      //       const role = userData.role?.toLowerCase();
+
+      //       if (role && rolePages[role]) {
+      //         if (
+      //           window.location.pathname === "/" ||
+      //           window.location.pathname.endsWith("index.html")
+      //         ) {
+      //           window.location.href = rolePages[role];
+      //         }
+      //       }
+      //     }
+      //   }
+      // });
     </script>
   </body>
 </html>

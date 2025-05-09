@@ -89,7 +89,6 @@
       .nav-menu li a:hover {
         background: rgba(255, 255, 255, 0.2);
       }
-      /* Mobile toggle */
       .nav-toggle {
         display: none;
         cursor: pointer;
@@ -113,14 +112,10 @@
           display: block;
         }
       }
-
       main {
         max-width: 1200px;
         margin: 2rem auto;
         padding: 0 1rem;
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 1.5rem;
       }
       .card {
         background: var(--card-bg);
@@ -136,15 +131,42 @@
         margin-bottom: 0.5rem;
         color: var(--primary);
       }
-      .card p {
+      .form-group {
         margin-bottom: 1rem;
+      }
+      .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+      }
+      .form-group input,
+      .form-group textarea,
+      .form-group select {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      .form-group textarea {
+        resize: vertical;
+      }
+      button {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 4px;
+        background: var(--primary);
+        color: #fff;
+        cursor: pointer;
+        transition: background var(--transition);
+      }
+      button:hover {
+        background: #003d99;
       }
     </style>
   </head>
   <body>
     <header>
       <div class="header-inner">
-        <div class="brand">HMS Patient</div>
+        <div class="brand">HMS Dashboard</div>
         <div style="display: flex; align-items: center">
           <div id="greeting" class="greeting">Good Morning, Name</div>
           <div
@@ -156,18 +178,16 @@
       </div>
       <nav>
         <div class="nav-inner">
-          <div class="nav-toggle" id="navToggle">&#9776;</div>
+          <div class="nav-toggle" id="navToggle">☰</div>
           <ul class="nav-menu" id="navMenu">
+            <li><a href="patient.html" class="active">Profile</a></li>
             <li>
-              <a href="patient.html" class="active">Dashboard</a>
+              <a href="/patient/patient-appointments.html">Appointment</a>
             </li>
+            <li><a href="/patient/patient-records.html">Medical Record</a></li>
+            <li><a href="/patient/patient-results.html">Lab Result</a></li>
             <li>
-              <a href="/patient/patient-appointments.html">My Appointments</a>
-            </li>
-            <li><a href="/patient/patient-records.html">Medical Records</a></li>
-            <li><a href="/patient/patient-results.html">Lab Results</a></li>
-            <li>
-              <a href="/patient/patient-billing.html">Billing & Payments</a>
+              <a href="/patient/patient-billing.html">Billing & Payment</a>
             </li>
           </ul>
         </div>
@@ -176,25 +196,59 @@
 
     <main>
       <section class="card">
-        <h2>Welcome to Your Patient Portal</h2>
-        <div class="security-status secure">
-          <i class="fas fa-shield-alt"></i>
-          <span>Security Status: Protected</span>
-        </div>
-        <p>Manage your bookings and reminders.</p>
-        <!-- dynamic content here -->
-      </section>
-      <section class="card">
-        <h2>Recent Lab Results</h2>
-        <p>View your latest test outcomes.</p>
-      </section>
-      <section class="card">
-        <h2>Medical Records</h2>
-        <p>Access your health history.</p>
-      </section>
-      <section class="card">
-        <h2>Outstanding Bills</h2>
-        <p>Review and pay your invoices.</p>
+        <h2>Your Profile</h2>
+        <form id="profileForm">
+          <div class="form-group">
+            <label for="firstName">First Name</label>
+            <input type="text" id="firstName" required />
+          </div>
+          <div class="form-group">
+            <label for="lastName">Last Name</label>
+            <input type="text" id="lastName" required />
+          </div>
+          <div class="form-group">
+            <label for="dateOfBirth">Date of Birth</label>
+            <input type="date" id="dateOfBirth" required />
+          </div>
+          <div class="form-group">
+            <label for="gender">Gender</label>
+            <select id="gender" required>
+              <option value="">Select Gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="address">Address</label>
+            <textarea id="address" required></textarea>
+          </div>
+          <div class="form-group">
+            <label for="phone">Phone Number</label>
+            <input type="tel" id="phone" required />
+          </div>
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" readonly />
+          </div>
+          <div class="form-group">
+            <label for="allergies">Allergies</label>
+            <textarea id="allergies"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="medications">Current Medications</label>
+            <textarea id="medications"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="medicalHistory">Medical History</label>
+            <textarea id="medicalHistory"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="emergencyContact">Emergency Contact</label>
+            <input type="text" id="emergencyContact" />
+          </div>
+          <button type="submit" id="saveProfile">Save</button>
+        </form>
       </section>
     </main>
 
@@ -215,6 +269,8 @@
         getFirestore,
         doc,
         getDoc,
+        setDoc,
+        Timestamp,
       } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
       import {
         showLoading,
@@ -229,7 +285,7 @@
         apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
         authDomain: "hospitalmanagtsystem.firebaseapp.com",
         projectId: "hospitalmanagtsystem",
-        storageBucket: "hospitalmanagtsystem.firsebasestorage.app",
+        storageBucket: "hospitalmanagtsystem.firebasestorage.app",
         messagingSenderId: "771158568788",
         appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
       };
@@ -244,11 +300,9 @@
         if (user) {
           try {
             showLoading();
-            // Get user data
             const userDoc = await getDoc(doc(db, "users", user.uid));
             if (userDoc.exists()) {
               const userData = userDoc.data();
-              // Update greeting
               const greetEl = document.getElementById("greeting");
               const hour = new Date().getHours();
               const sal =
@@ -257,10 +311,28 @@
                   : hour < 18
                   ? "Good Afternoon"
                   : "Good Evening";
-              greetEl.textContent = `${sal}, ${userData.firstName}`;
+              greetEl.textContent = `${sal}, ${userData.firstName || "User"}`;
 
-              // Update security status
-              updateSecurityStatus(userData);
+              document.getElementById("firstName").value =
+                userData.firstName || "";
+              document.getElementById("lastName").value =
+                userData.lastName || "";
+              document.getElementById("dateOfBirth").value =
+                userData.dateOfBirth
+                  ? userData.dateOfBirth.toDate().toISOString().split("T")[0]
+                  : "";
+              document.getElementById("gender").value = userData.gender || "";
+              document.getElementById("address").value = userData.address || "";
+              document.getElementById("phone").value = userData.phone || "";
+              document.getElementById("email").value = userData.email || "";
+              document.getElementById("allergies").value =
+                userData.allergies || "";
+              document.getElementById("medications").value =
+                userData.medications || "";
+              document.getElementById("medicalHistory").value =
+                userData.medicalHistory || "";
+              document.getElementById("emergencyContact").value =
+                userData.emergencyContact || "";
             }
           } catch (error) {
             console.error("Error loading user data:", error);
@@ -269,40 +341,68 @@
             hideLoading();
           }
         } else {
-          // Redirect to login if not authenticated
           window.location.href = "/index.html";
         }
       });
 
-      // Update security status
-      function updateSecurityStatus(userData) {
-        const statusEl = document.querySelector(".security-status");
-        if (userData.lastLoginIP && userData.lastLoginTime) {
-          const timeDiff = Date.now() - userData.lastLoginTime.toMillis();
-          if (timeDiff < 3600000) {
-            // Within last hour
-            statusEl.className = "security-status secure";
-            statusEl.innerHTML =
-              '<i class="fas fa-shield-alt"></i><span>Security Status: Protected</span>';
-          } else {
-            statusEl.className = "security-status warning";
-            statusEl.innerHTML =
-              '<i class="fas fa-exclamation-triangle"></i><span>Security Status: Session Expired</span>';
-          }
-        }
-      }
-
-      // Logout functionality
+      // Form submission handler
       document
-        .getElementById("logoutBtn")
-        .addEventListener("click", async () => {
+        .getElementById("profileForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
           try {
             showLoading();
-            await signOut(auth);
-            window.location.href = "/index.html";
+            const user = auth.currentUser;
+            if (user) {
+              const firstName = document.getElementById("firstName").value;
+              const lastName = document.getElementById("lastName").value;
+              const dateOfBirthStr =
+                document.getElementById("dateOfBirth").value;
+              const dateOfBirth = dateOfBirthStr
+                ? Timestamp.fromDate(new Date(dateOfBirthStr))
+                : null;
+              const gender = document.getElementById("gender").value;
+              const address = document.getElementById("address").value;
+              const phone = document.getElementById("phone").value;
+              const allergies = document.getElementById("allergies").value;
+              const medications = document.getElementById("medications").value;
+              const medicalHistory =
+                document.getElementById("medicalHistory").value;
+              const emergencyContact =
+                document.getElementById("emergencyContact").value;
+
+              await setDoc(
+                doc(db, "users", user.uid),
+                {
+                  firstName,
+                  lastName,
+                  dateOfBirth,
+                  gender,
+                  address,
+                  phone,
+                  allergies,
+                  medications,
+                  medicalHistory,
+                  emergencyContact,
+                },
+                { merge: true }
+              );
+
+              const greetEl = document.getElementById("greeting");
+              const hour = new Date().getHours();
+              const sal =
+                hour < 12
+                  ? "Good Morning"
+                  : hour < 18
+                  ? "Good Afternoon"
+                  : "Good Evening";
+              greetEl.textContent = `${sal}, ${firstName}`;
+
+              showSuccess("Profile updated successfully!");
+            }
           } catch (error) {
-            console.error("Error signing out:", error);
-            showError("Failed to sign out. Please try again.");
+            console.error("Error saving profile:", error);
+            showError("Failed to save profile. Please try again.");
           } finally {
             hideLoading();
           }

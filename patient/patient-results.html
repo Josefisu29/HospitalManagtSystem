@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>HMS – Lab Results</title>
+    <link rel="stylesheet" href="css/all.css" />
+    <link rel="stylesheet" href="css/common.css" />
+    <style>
+      :root {
+        --primary: #0052cc;
+        --accent: #00bfa5;
+        --bg: #f9fbfd;
+        --text: #333;
+        --card-bg: #fff;
+        --transition: 0.3s ease;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+      header {
+        position: sticky;
+        top: 0;
+        background: var(--card-bg);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        z-index: 100;
+        padding: 1rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .greeting {
+        margin-right: 1rem;
+      }
+      .status-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #dc3545;
+        display: inline-block;
+        margin-left: 0.5rem;
+      }
+      .status-indicator.online {
+        background: #28a745;
+      }
+      nav {
+        background: var(--primary);
+        padding: 0.5rem 2rem;
+      }
+      nav ul {
+        list-style: none;
+        display: flex;
+        gap: 1rem;
+      }
+      nav a {
+        color: white;
+        text-decoration: none;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        transition: background var(--transition);
+      }
+      nav a.active,
+      nav a:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+      main {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+      }
+      .card {
+        background: var(--card-bg);
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+      }
+      th,
+      td {
+        padding: 1rem;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+      }
+      th {
+        background: #f8f9fa;
+        font-weight: 600;
+      }
+      .result-normal {
+        color: #28a745;
+      }
+      .result-high {
+        color: #dc3545;
+      }
+      .result-low {
+        color: #ffc107;
+      }
+      @media (max-width: 768px) {
+        nav ul {
+          flex-direction: column;
+        }
+        table {
+          display: block;
+          overflow-x: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>HMS Patient</h1>
+      <div style="display: flex; align-items: center">
+        <span id="greeting" class="greeting"></span>
+        <span id="statusIndicator" class="status-indicator offline"></span>
+        <button id="logoutBtn" class="btn" style="margin-left: 1rem">
+          Logout
+        </button>
+      </div>
+    </header>
+    <nav>
+      <ul>
+        <!-- <li><a href="patient.html">Dashboard</a></li> -->
+        <li><a href="patient.html" class="active">Profile</a></li>
+        <li><a href="patient-appointments.html">My Appointment</a></li>
+        <li><a href="patient-records.html">Medical Record</a></li>
+        <li><a href="patient-results.html" class="active">Lab Result</a></li>
+        <li><a href="patient-billing.html">Billing & Payment</a></li>
+      </ul>
+    </nav>
+    <main>
+      <section class="card">
+        <h2>Recent Lab Results</h2>
+        <div id="resultsTableContainer">
+          <table id="resultsTable">
+            <thead>
+              <tr>
+                <th>Test</th>
+                <th>Date</th>
+                <th>Result</th>
+                <th>Normal Range</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Results will be loaded dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+      import {
+        getAuth,
+        onAuthStateChanged,
+        signOut,
+      } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+      import {
+        getFirestore,
+        doc,
+        getDoc,
+        collection,
+        query,
+        where,
+        getDocs,
+      } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+      import {
+        showLoading,
+        hideLoading,
+        showError,
+        showSuccess,
+        setupTableSorting,
+        setupTableFiltering,
+      } from "./js/common.js";
+
+      // Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
+        authDomain: "hospitalmanagtsystem.firebaseapp.com",
+        projectId: "hospitalmanagtsystem",
+        storageBucket: "hospitalmanagtsystem.firsebasestorage.app",
+        messagingSenderId: "771158568788",
+        appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
+      };
+
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+
+      // Check authentication state
+      onAuthStateChanged(auth, async (user) => {
+        if (user) {
+          try {
+            showLoading();
+            // Get user data
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              // Update greeting
+              const greetEl = document.getElementById("greeting");
+              const hour = new Date().getHours();
+              const sal =
+                hour < 12
+                  ? "Good Morning"
+                  : hour < 18
+                  ? "Good Afternoon"
+                  : "Good Evening";
+              greetEl.textContent = `${sal}, ${userData.firstName}`;
+
+              // Load lab results
+              await loadLabResults(user.uid);
+            }
+          } catch (error) {
+            console.error("Error loading user data:", error);
+            showError("Failed to load user data. Please try again.");
+          } finally {
+            hideLoading();
+          }
+        } else {
+          window.location.href = "/index.html";
+        }
+      });
+
+      // Load lab results
+      async function loadLabResults(userId) {
+        try {
+          showLoading();
+          const resultsRef = collection(db, "labResults");
+          const q = query(resultsRef, where("patientId", "==", userId));
+          const querySnapshot = await getDocs(q);
+
+          const tbody = document
+            .getElementById("resultsTable")
+            .querySelector("tbody");
+          tbody.innerHTML = "";
+
+          if (querySnapshot.empty) {
+            const container = document.getElementById("resultsTableContainer");
+            container.innerHTML = `
+              <div class="empty-state">
+                <i class="fas fa-flask"></i>
+                <p>No lab results found.</p>
+              </div>
+            `;
+            return;
+          }
+
+          querySnapshot.forEach((doc) => {
+            const result = doc.data();
+            const row = document.createElement("tr");
+            row.innerHTML = `
+              <td>${result.testName}</td>
+              <td>${result.date}</td>
+              <td class="result-${result.status.toLowerCase()}">${
+              result.result
+            }</td>
+              <td>${result.normalRange}</td>
+            `;
+            tbody.appendChild(row);
+          });
+
+          // Setup table sorting and filtering
+          setupTableSorting("resultsTable", [0, 1, 2]); // Sortable columns: Test, Date, Result
+          setupTableFiltering("resultsTable", [0, 2]); // Filterable columns: Test, Result
+        } catch (error) {
+          console.error("Error loading lab results:", error);
+          showError("Failed to load lab results. Please try again.");
+        } finally {
+          hideLoading();
+        }
+      }
+
+      // Logout functionality
+      document
+        .getElementById("logoutBtn")
+        .addEventListener("click", async () => {
+          try {
+            showLoading();
+            await signOut(auth);
+            window.location.href = "/index.html";
+          } catch (error) {
+            console.error("Error signing out:", error);
+            showError("Failed to sign out. Please try again.");
+          } finally {
+            hideLoading();
+          }
+        });
+
+      // Status indicator
+      const statusDot = document.getElementById("statusIndicator");
+      async function updateStatus() {
+        try {
+          const res = await fetch("/api/system-status");
+          const { status } = await res.json();
+          statusDot.className = "status-indicator " + (status || "offline");
+        } catch {
+          statusDot.className = "status-indicator offline";
+        }
+      }
+      setInterval(updateStatus, 10000);
+      updateStatus();
+    </script>
+  </body>
+</html>
