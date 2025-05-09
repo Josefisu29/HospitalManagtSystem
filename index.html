@@ -146,7 +146,7 @@
         border-radius: 8px;
         overflow: hidden;
         width: 90%;
-        max-width: 480px;
+        max-width: 500px;
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
       }
       #close-auth {
@@ -352,7 +352,7 @@
         </div>
         <div class="panel" id="panel">
           <!-- Login Form -->
-          <form id="login-form">
+          <form id="login-form" style="width: 600px; ">
             <input type="email" id="login-email" placeholder="Email" required />
             <input
               type="password"
@@ -376,7 +376,7 @@
             </button>
           </form>
           <!-- Sign-Up Form -->
-          <form id="signup-form" style="margin-left: 160px">
+          <form id="signup-form" style="margin-left: 220px">
             <input
               type="text"
               id="signup-first"
@@ -418,7 +418,7 @@
       </div>
     </section>
 
-    <footer data-aos="">© 2025 HMS. All rights reserved.</footer>
+    <!-- <footer data-aos="">© 2025 HMS. All rights reserved.</footer> -->
 
     <!-- AOS & Your existing scripts -->
     <script src="index.js"></script>
@@ -828,12 +828,21 @@
 
       // Auth State Observer
       onAuthStateChanged(auth, async (user) => {
-        if (!user) {
-          // No user is signed in, redirect to login
-          window.location.href = "/index.html";
-          return;
+        if (user) {
+          // User is signed in
+          const userDoc = await getDoc(doc(db, "users", user.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            const role = userData.role?.toLowerCase();
+            
+            if (role && rolePages[role]) {
+              // Only redirect if we're on the index page
+              if (window.location.pathname === '/' || window.location.pathname.endsWith('index.html')) {
+                window.location.href = rolePages[role];
+              }
+            }
+          }
         }
-        // ... role verification
       });
     </script>
   </body>
