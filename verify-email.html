@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Please Verify Your Email</title>
+    <link rel="stylesheet" href="css/common.css" />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #f9fbfd;
+        color: #333;
+      }
+      main {
+        max-width: 500px;
+        margin: 4rem auto;
+        text-align: center;
+      }
+      .btn-accent {
+        background: #00bfa5;
+        color: #fff;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      #status-msg {
+        margin-top: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Verify Your Email</h1>
+      <p>
+        A link has been sent to <strong id="user-email"></strong>.<br />
+        Click it to activate your account.
+      </p>
+      <button id="resend-btn" class="btn-accent">
+        Resend Verification Email
+      </button>
+      <p id="status-msg"></p>
+    </main>
+
+    <script type="module">
+      import {
+        getAuth,
+        sendEmailVerification,
+        signOut,
+      } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+      const auth = getAuth();
+      const emailEl = document.getElementById("user-email");
+      const statusMsg = document.getElementById("status-msg");
+
+      if (!auth.currentUser) {
+        window.location.href = "/index.html";
+      } else {
+        emailEl.textContent = auth.currentUser.email;
+      }
+
+      document
+        .getElementById("resend-btn")
+        .addEventListener("click", async () => {
+          try {
+            await sendEmailVerification(auth.currentUser);
+            statusMsg.style.color = "green";
+            statusMsg.textContent = "Email resent. Check your inbox.";
+          } catch {
+            statusMsg.style.color = "#e53935";
+            statusMsg.textContent = "Error sending email. Please try later.";
+          }
+        });
+
+      // Auto-sign-out after 5 minutes to force re-check
+      setTimeout(() => signOut(auth), 300_000);
+    </script>
+  </body>
+</html>

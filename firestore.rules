@@ -1,0 +1,74 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user owns the document
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth.token.role == 'admin';
+    }
+
+    // Default rules for all collections
+    match /{col}/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if isAuthenticated() && isOwner(userId);
+      allow create: if isAuthenticated() && isOwner(userId);
+      allow update: if isAuthenticated() && isOwner(userId);
+      allow delete: if false; // Prevent user deletion
+    }
+
+    // Patients collection with records subcollection
+    match /patients/{pid} {
+      allow read: if isAuthenticated();
+      allow write: if false; // no direct writes
+      match /records/{rid} {
+        allow read: if isAuthenticated() && (isAdmin() || isOwner(pid));
+        allow write: if isAdmin();
+      }
+    }
+
+    // Medical records collection
+    match /medicalRecords/{recordId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.patientId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.patientId);
+      allow update, delete: if isAdmin(); // Only admin can modify/delete records
+    }
+
+    // Lab results collection
+    match /labResults/{resultId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.patientId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.patientId);
+      allow update, delete: if isAdmin(); // Only admin can modify/delete results
+    }
+
+    // Appointments collection
+    match /appointments/{appointmentId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.patientId);
+      allow create: if isAuthenticated() && isOwner(request.resource.data.patientId);
+      allow update: if isAuthenticated() && isOwner(resource.data.patientId);
+      allow delete: if isAuthenticated() && isOwner(resource.data.patientId);
+    }
+
+    // Invoices collection
+    match /invoices/{invoiceId} {
+      allow read: if isAuthenticated() && isOwner(resource.data.patientId);
+      allow create: if isAdmin(); // Only admin can create invoices
+      allow update: if isAuthenticated() && isOwner(resource.data.patientId) && 
+                   request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+      allow delete: if false; // Prevent invoice deletion
+    }
+  }
+} 

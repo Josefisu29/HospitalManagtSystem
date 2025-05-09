@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>HMS</title>
+
+    <!-- AOS animations -->
+    <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet" />
+
+    <!-- Firebase SDKs: App & Auth (v9 modular) -->
+    <script
+      type="module"
+      src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"
+    ></script>
+    <script
+      type="module"
+      src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js"
+    ></script>
+
+    <style>
+      /* Your existing CSS here... */
+      :root {
+        --primary: #0052cc;
+        --accent: #00bfa5;
+        --bg: #f9fbfd;
+        --text: #333;
+        --transition: 0.4s ease;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: Inter, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+      a {
+        text-decoration: none;
+        color: inherit;
+      }
+
+      /* Header */
+      header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(5px);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 2rem;
+        z-index: 1000;
+      }
+      header h1 {
+        font-size: 1.5rem;
+        color: var(--primary);
+      }
+      header nav {
+        display: flex;
+        gap: 1rem;
+      }
+      header nav a {
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        transition: background var(--transition);
+      }
+      header nav a:hover {
+        background: var(--primary);
+        color: #fff;
+      }
+
+      /* Hero */
+      .hero {
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        padding: 0 1rem;
+      }
+      .hero video {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0.3;
+      }
+      .hero .content {
+        position: relative;
+        z-index: 1;
+        max-width: 600px;
+      }
+      .hero h2 {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+      }
+      .hero p {
+        font-size: 1.2rem;
+        margin-bottom: 2rem;
+      }
+      .btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background var(--transition), transform var(--transition);
+      }
+      .btn-primary {
+        background: var(--primary);
+        color: #fff;
+      }
+      .btn-accent {
+        background: var(--accent);
+        color: #fff;
+      }
+      .btn:hover {
+        transform: translateY(-2px);
+      }
+
+      /* Auth Overlay */
+      #auth-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(2px);
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+      }
+      #auth-container {
+        background: #fff;
+        border-radius: 8px;
+        overflow: hidden;
+        width: 90%;
+        max-width: 480px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      }
+      #close-auth {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        background: transparent;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+      }
+      .tabs {
+        display: flex;
+      }
+      .tabs div {
+        flex: 1;
+        text-align: center;
+        padding: 1rem;
+        background: #f0f2f5;
+        cursor: pointer;
+        transition: background var(--transition);
+      }
+      .tabs .active {
+        background: var(--primary);
+        color: #fff;
+      }
+      .panel {
+        display: flex;
+        transition: transform var(--transition);
+      }
+      form {
+        flex: 1;
+        padding: 2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+      form input {
+        padding: 0.75rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        transition: border-color var(--transition);
+      }
+      form input:focus {
+        border-color: var(--primary);
+      }
+      form button {
+        padding: 0.75rem;
+        border: none;
+        border-radius: 4px;
+        background: var(--accent);
+        color: #fff;
+        cursor: pointer;
+        transition: background var(--transition);
+      }
+      form button:hover {
+        /* background: darken(var(--accent), 10%); */
+      }
+      .error {
+        color: #e53935;
+        font-size: 0.9rem;
+        display: none;
+      }
+
+      /* Footer */
+      footer {
+        text-align: center;
+        padding: 2rem 1rem;
+        color: #666;
+      }
+
+      @media (max-width: 768px) {
+        header nav a {
+          padding: 0.5rem;
+          font-size: 0.9rem;
+        }
+        .hero h2 {
+          font-size: 2rem;
+        }
+        .hero p {
+          font-size: 1rem;
+        }
+        form {
+          padding: 1rem;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .hero h2 {
+          font-size: 1.5rem;
+        }
+        .hero p {
+          font-size: 0.9rem;
+        }
+        form input {
+          padding: 0.5rem;
+          font-size: 0.9rem;
+        }
+        .btn {
+          padding: 0.5rem 1rem;
+        }
+        .tabs div {
+          padding: 0.5rem;
+          font-size: 0.9rem;
+        }
+      }
+
+      /* Form Options */
+      .form-options {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.9rem;
+        margin: -0.5rem 0;
+      }
+      .remember-me {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+      }
+      .remember-me input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+      }
+      .forgot-link {
+        color: var(--primary);
+        text-decoration: none;
+        transition: color var(--transition);
+      }
+      .forgot-link:hover {
+        color: var(--accent);
+      }
+      /* Error Messages */
+      .error {
+        color: #e53935;
+        font-size: 0.9rem;
+        display: none;
+        padding: 0.5rem;
+        border-radius: 4px;
+        background-color: #ffebee;
+        margin: 0.5rem 0;
+      }
+      .error.show {
+        display: block;
+      }
+      /* Loading State */
+      .loading {
+        position: relative;
+        pointer-events: none;
+      }
+      .loading::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .loading button {
+        opacity: 0.7;
+      }
+    </style>
+  </head>
+  <body>
+    <header data-aos="fade-down">
+      <h1>HMS</h1>
+      <nav>
+        <a href="#hero">Home</a>
+        <a href="#" id="nav-get-started">Get Started</a>
+      </nav>
+    </header>
+
+    <section class="hero" id="hero">
+      <video autoplay muted loop>
+        <source
+          src="https://www.example.com/healthcare-bg.mp4"
+          type="video/mp4"
+        />
+      </video>
+      <div class="content" data-aos="fade-up">
+        <h2>Manage Your Health Effortlessly</h2>
+        <p>
+          One secure portal for appointments, records, and emergency alerts.
+        </p>
+        <div class="btn-group">
+          <button class="btn btn-primary" id="btn-login">Login</button>
+          <button class="btn btn-accent" id="btn-signup">Sign Up</button>
+        </div>
+      </div>
+    </section>
+    <!-- Hero content omitted for brevity -->
+
+    <!-- AUTH OVERLAY -->
+    <section id="auth-overlay">
+      <div id="auth-container">
+        <button id="close-auth">×</button>
+        <div class="tabs">
+          <div id="tab-login" class="active">Login</div>
+          <div id="tab-signup">Sign Up</div>
+        </div>
+        <div class="panel" id="panel">
+          <!-- Login Form -->
+          <form id="login-form">
+            <input type="email" id="login-email" placeholder="Email" required />
+            <input
+              type="password"
+              id="login-password"
+              placeholder="Password"
+              required
+            />
+            <div class="form-options">
+              <label class="remember-me">
+                <input type="checkbox" id="remember-me" />
+                <span>Remember Me</span>
+              </label>
+              <a href="#" id="forgot-password" class="forgot-link"
+                >Forgot Password?</a
+              >
+            </div>
+            <button type="submit" class="btn btn-primary">Login</button>
+            <p id="login-error" class="error">Invalid credentials.</p>
+            <button type="button" id="btn-google-login" class="btn btn-accent">
+              Continue with Google
+            </button>
+          </form>
+          <!-- Sign-Up Form -->
+          <form id="signup-form" style="margin-left: 160px">
+            <input
+              type="text"
+              id="signup-first"
+              placeholder="First Name"
+              required
+            />
+            <input
+              type="text"
+              id="signup-last"
+              placeholder="Last Name"
+              required
+            />
+            <input
+              type="email"
+              id="signup-email"
+              placeholder="Email"
+              required
+            />
+            <input
+              type="password"
+              id="signup-password"
+              placeholder="Password"
+              required
+            />
+            <input
+              type="password"
+              id="signup-confirm"
+              placeholder="Confirm Password"
+              required
+            />
+            <p>
+              Lorem ipsum dolor sit amet consectetur adipisicing elit. Minima
+              quos laborum iure ad.
+            </p>
+            <button type="submit" class="btn btn-accent">Sign Up</button>
+            <p id="signup-error" class="error"></p>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <footer data-aos="">© 2025 HMS. All rights reserved.</footer>
+
+    <!-- AOS & Your existing scripts -->
+    <script src="index.js"></script>
+    <script src="server.js"></script>
+    <script src="/patient/js/security.js"></script>
+    <script src="/patient/js/common.js"></script>
+    <script src="/patient/js/securityLogger.js"></script>
+    <script src="/patient/js/securityMiddleware.js"></script>
+    <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+      import {
+        getAuth,
+        signInWithEmailAndPassword,
+        sendPasswordResetEmail,
+        setPersistence,
+        browserLocalPersistence,
+        browserSessionPersistence,
+        onAuthStateChanged,
+        signOut,
+      } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+      import {
+        getFirestore,
+        doc,
+        getDoc,
+        setDoc,
+        serverTimestamp,
+      } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+      // Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
+        authDomain: "hospitalmanagtsystem.firebaseapp.com",
+        projectId: "hospitalmanagtsystem",
+        storageBucket: "hospitalmanagtsystem.firsebasestorage.app",
+        messagingSenderId: "771158568788",
+        appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
+      };
+
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+
+      // Security checks
+      const securityChecks = {
+        checkPasswordStrength(password) {
+          const minLength = 8;
+          const hasUpperCase = /[A-Z]/.test(password);
+          const hasLowerCase = /[a-z]/.test(password);
+          const hasNumbers = /\d/.test(password);
+          const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+          const errors = [];
+          if (password.length < minLength)
+            errors.push("Password must be at least 8 characters long");
+          if (!hasUpperCase)
+            errors.push("Password must contain at least one uppercase letter");
+          if (!hasLowerCase)
+            errors.push("Password must contain at least one lowercase letter");
+          if (!hasNumbers)
+            errors.push("Password must contain at least one number");
+          if (!hasSpecialChar)
+            errors.push("Password must contain at least one special character");
+
+          return {
+            isValid: errors.length === 0,
+            errors,
+          };
+        },
+
+        checkEmailFormat(email) {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          return emailRegex.test(email);
+        },
+
+        checkLoginAttempts() {
+          const attempts = parseInt(
+            localStorage.getItem("loginAttempts") || "0"
+          );
+          const lastAttempt = parseInt(
+            localStorage.getItem("lastLoginAttempt") || "0"
+          );
+          const now = Date.now();
+
+          if (attempts >= 5 && now - lastAttempt < 300000) {
+            // 5 minutes
+            return {
+              blocked: true,
+              remainingTime: Math.ceil((300000 - (now - lastAttempt)) / 1000),
+            };
+          }
+
+          return { blocked: false };
+        },
+
+        updateLoginAttempts() {
+          const attempts = parseInt(
+            localStorage.getItem("loginAttempts") || "0"
+          );
+          localStorage.setItem("loginAttempts", (attempts + 1).toString());
+          localStorage.setItem("lastLoginAttempt", Date.now().toString());
+        },
+
+        resetLoginAttempts() {
+          localStorage.removeItem("loginAttempts");
+          localStorage.removeItem("lastLoginAttempt");
+        },
+      };
+
+      // Show error message
+      function showError(message, elementId = "login-error") {
+        const errorElement = document.getElementById(elementId);
+        errorElement.textContent = message;
+        errorElement.classList.add("show");
+        setTimeout(() => {
+          errorElement.classList.remove("show");
+        }, 5000);
+      }
+
+      // Show loading state
+      function showLoading(formId) {
+        const form = document.getElementById(formId);
+        form.classList.add("loading");
+      }
+
+      // Hide loading state
+      function hideLoading(formId) {
+        const form = document.getElementById(formId);
+        form.classList.remove("loading");
+      }
+
+      // Handle password reset
+      document
+        .getElementById("forgot-password")
+        .addEventListener("click", async (e) => {
+          e.preventDefault();
+          const email = document.getElementById("login-email").value;
+
+          if (!email) {
+            showError("Please enter your email address");
+            return;
+          }
+
+          if (!securityChecks.checkEmailFormat(email)) {
+            showError("Please enter a valid email address");
+            return;
+          }
+
+          try {
+            showLoading("login-form");
+            await sendPasswordResetEmail(auth, email);
+            showError(
+              "Password reset email sent. Please check your inbox.",
+              "login-error"
+            );
+          } catch (error) {
+            console.error("Password reset error:", error);
+            showError(error.message);
+          } finally {
+            hideLoading("login-form");
+          }
+        });
+
+      // Login Handler with enhanced security
+      document
+        .getElementById("login-form")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const email = document.getElementById("login-email").value;
+          const pass = document.getElementById("login-password").value;
+          const rememberMe = document.getElementById("remember-me").checked;
+
+          // Security checks
+          const loginAttempts = securityChecks.checkLoginAttempts();
+          if (loginAttempts.blocked) {
+            showError(
+              `Too many login attempts. Please try again in ${loginAttempts.remainingTime} seconds.`
+            );
+            return;
+          }
+
+          if (!securityChecks.checkEmailFormat(email)) {
+            showError("Please enter a valid email address");
+            return;
+          }
+
+          try {
+            showLoading("login-form");
+
+            // Set persistence based on Remember Me
+            await setPersistence(
+              auth,
+              rememberMe ? browserLocalPersistence : browserSessionPersistence
+            );
+
+            const userCredential = await signInWithEmailAndPassword(
+              auth,
+              email,
+              pass
+            );
+            const user = userCredential.user;
+
+            // Reset login attempts on successful login
+            securityChecks.resetLoginAttempts();
+
+            // Get user data to check role
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            if (!userDoc.exists()) {
+              showError("User data not found. Please contact support.");
+              return;
+            }
+
+            const userData = userDoc.data();
+            const role = userData.role?.toLowerCase();
+
+            if (!role || !rolePages[role]) {
+              showError("Invalid user role. Please contact support.");
+              return;
+            }
+
+            // Redirect based on role
+            const rolePages = {
+              admin: "/admin/admin.html",
+              doctor: "/doctor/doctor.html",
+              nurse: "/nurse/nurse.html",
+              pharmacist: "/pharmacist/pharmacist.html",
+              labAttendant: "/lab/lab.html",
+              receptionist: "/reception/reception.html",
+              firstResponder: "/responder/responder.html",
+              recordClerk: "/records/records.html",
+              hospitalStaff: "/hospital/hospital.html",
+              patient: "/patient/patient.html",
+            };
+
+            // Update last login
+            await setDoc(
+              doc(db, "users", user.uid),
+              {
+                ...userData,
+                lastLogin: serverTimestamp(),
+                lastLoginIP: await fetch("https://api.ipify.org?format=json")
+                  .then((r) => r.json())
+                  .then((data) => data.ip),
+              },
+              { merge: true }
+            );
+
+            if (userData.role === "patient") {
+              window.location.href = "confirm.html";
+            } else if (userData.role === "doctor") {
+              window.location.href = "confirm.html";
+            } else if (userData.role === "admin") {
+              window.location.href = "confirm.html";
+            }
+          } catch (error) {
+            console.error("Login error:", error);
+            securityChecks.updateLoginAttempts();
+
+            // Enhanced error messages
+            switch (error.code) {
+              case "auth/user-not-found":
+                showError("No account found with this email address.");
+                break;
+              case "auth/wrong-password":
+                showError("Incorrect password. Please try again.");
+                break;
+              case "auth/too-many-requests":
+                showError(
+                  "Too many failed attempts. Please try again later or reset your password."
+                );
+                break;
+              case "auth/user-disabled":
+                showError(
+                  "This account has been disabled. Please contact support."
+                );
+                break;
+              default:
+                showError(error.message);
+            }
+          } finally {
+            hideLoading("login-form");
+          }
+        });
+
+      // Check for saved email on page load
+      window.addEventListener("load", () => {
+        const savedEmail = localStorage.getItem("rememberedEmail");
+        if (savedEmail) {
+          document.getElementById("login-email").value = savedEmail;
+          document.getElementById("remember-me").checked = true;
+        }
+      });
+
+      // Save email when Remember Me is checked
+      document.getElementById("remember-me").addEventListener("change", (e) => {
+        const email = document.getElementById("login-email").value;
+        if (e.target.checked && email) {
+          localStorage.setItem("rememberedEmail", email);
+        } else {
+          localStorage.removeItem("rememberedEmail");
+        }
+      });
+
+      // Overlay UI logic (unchanged)
+      const overlay = document.getElementById("auth-overlay");
+      const btnLogin = document.getElementById("btn-login");
+      const btnSignup = document.getElementById("btn-signup");
+      const navGet = document.getElementById("nav-get-started");
+      const closeAuth = document.getElementById("close-auth");
+      const tabLogin = document.getElementById("tab-login");
+      const tabSignup = document.getElementById("tab-signup");
+      const panel = document.getElementById("panel");
+
+      function showAuth(signup = false) {
+        overlay.style.display = "flex";
+        tabLogin.classList.toggle("active", !signup);
+        tabSignup.classList.toggle("active", signup);
+        panel.style.transform = signup ? "translateX(-50%)" : "translateX(0)";
+      }
+      [btnLogin, btnSignup, navGet].forEach((el, i) =>
+        el.addEventListener("click", (e) => {
+          e.preventDefault();
+          showAuth(i === 1);
+        })
+      );
+      closeAuth.addEventListener(
+        "click",
+        () => (overlay.style.display = "none")
+      );
+      tabLogin.addEventListener("click", () => showAuth(false));
+      tabSignup.addEventListener("click", () => showAuth(true));
+
+      // Sign-Up Handler
+      document
+        .getElementById("signup-form")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const first = document.getElementById("signup-first").value;
+          const last = document.getElementById("signup-last").value;
+          const email = document.getElementById("signup-email").value;
+          const pass = document.getElementById("signup-password").value;
+          const confirm = document.getElementById("signup-confirm").value;
+
+          if (pass !== confirm) {
+            const err = document.getElementById("signup-error");
+            err.textContent = "Passwords must match.";
+            err.style.display = "block";
+            return;
+          }
+
+          try {
+            // Create user account
+            const userCredential = await createUserWithEmailAndPassword(
+              auth,
+              email,
+              pass
+            );
+            const user = userCredential.user;
+
+            // Store additional user data in Firestore
+            await setDoc(doc(db, "users", user.uid), {
+              firstName: first,
+              lastName: last,
+              email: email,
+              role: "patient",
+              createdAt: serverTimestamp(),
+            });
+
+            // Redirect to patient portal
+            window.location.href = "confirm.html";
+          } catch (error) {
+            const err = document.getElementById("signup-error");
+            err.textContent = error.message;
+            err.style.display = "block";
+          }
+        });
+
+      // Google Sign-In Handler
+      document
+        .getElementById("btn-google-login")
+        .addEventListener("click", async () => {
+          try {
+            const result = await signInWithPopup(auth, provider);
+            const user = result.user;
+
+            // Check if user exists in Firestore
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+
+            if (!userDoc.exists()) {
+              // Store new user data
+              await setDoc(doc(db, "users", user.uid), {
+                firstName: user.displayName?.split(" ")[0] || "",
+                lastName: user.displayName?.split(" ")[1] || "",
+                email: user.email,
+                role: "patient",
+                createdAt: serverTimestamp(),
+              });
+            }
+
+            window.location.href = "patient/patient.html";
+          } catch (error) {
+            console.error("Google sign-in error:", error);
+            alert("Sign-in failed: " + error.message);
+          }
+        });
+
+      // Auth State Observer
+      onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+          // No user is signed in, redirect to login
+          window.location.href = "/index.html";
+          return;
+        }
+        // ... role verification
+      });
+    </script>
+  </body>
+</html>

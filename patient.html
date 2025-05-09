@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>HMS – Patient Portal</title>
+    <link rel="stylesheet" href="css/all.css" />
+    <link rel="stylesheet" href="css/common.css" />
+    <link rel="stylesheet" href="css/security.css" />
+    <style>
+      :root {
+        --primary: #0052cc;
+        --accent: #00bfa5;
+        --bg: #f9fbfd;
+        --text: #333;
+        --card-bg: #fff;
+        --transition: 0.3s ease;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+      header {
+        position: sticky;
+        top: 0;
+        background: var(--card-bg);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        z-index: 100;
+      }
+      .header-inner {
+        max-width: 1200px;
+        margin: auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem;
+      }
+      .brand {
+        font-size: 1.5rem;
+        color: var(--primary);
+      }
+      .greeting {
+        font-size: 1rem;
+        margin-right: 1rem;
+      }
+      .status-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #dc3545;
+        transition: background var(--transition);
+      }
+      .status-indicator.online {
+        background: #28a745;
+      }
+      .status-indicator.sync {
+        background: #ffc107;
+      }
+      nav {
+        background: var(--primary);
+      }
+      .nav-inner {
+        max-width: 1200px;
+        margin: auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.5rem 1rem;
+      }
+      .nav-menu {
+        list-style: none;
+        display: flex;
+        gap: 1rem;
+      }
+      .nav-menu li a {
+        color: white;
+        text-decoration: none;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        transition: background var(--transition);
+      }
+      .nav-menu li a.active,
+      .nav-menu li a:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+      /* Mobile toggle */
+      .nav-toggle {
+        display: none;
+        cursor: pointer;
+        font-size: 1.25rem;
+        color: white;
+      }
+      @media (max-width: 768px) {
+        .nav-menu {
+          display: none;
+          flex-direction: column;
+          background: var(--primary);
+          position: absolute;
+          top: 100%;
+          left: 0;
+          right: 0;
+        }
+        .nav-menu.open {
+          display: flex;
+        }
+        .nav-toggle {
+          display: block;
+        }
+      }
+
+      main {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.5rem;
+      }
+      .card {
+        background: var(--card-bg);
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: transform var(--transition);
+      }
+      .card:hover {
+        transform: translateY(-4px);
+      }
+      .card h2 {
+        margin-bottom: 0.5rem;
+        color: var(--primary);
+      }
+      .card p {
+        margin-bottom: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="header-inner">
+        <div class="brand">HMS Patient</div>
+        <div style="display: flex; align-items: center">
+          <div id="greeting" class="greeting">Good Morning, Name</div>
+          <div
+            id="statusIndicator"
+            class="status-indicator offline"
+            title="Offline"
+          ></div>
+        </div>
+      </div>
+      <nav>
+        <div class="nav-inner">
+          <div class="nav-toggle" id="navToggle">&#9776;</div>
+          <ul class="nav-menu" id="navMenu">
+            <li>
+              <a href="patient.html" class="active">Dashboard</a>
+            </li>
+            <li>
+              <a href="/patient/patient-appointments.html">My Appointments</a>
+            </li>
+            <li><a href="/patient/patient-records.html">Medical Records</a></li>
+            <li><a href="/patient/patient-results.html">Lab Results</a></li>
+            <li>
+              <a href="/patient/patient-billing.html">Billing & Payments</a>
+            </li>
+          </ul>
+        </div>
+      </nav>
+    </header>
+
+    <main>
+      <section class="card">
+        <h2>Welcome to Your Patient Portal</h2>
+        <div class="security-status secure">
+          <i class="fas fa-shield-alt"></i>
+          <span>Security Status: Protected</span>
+        </div>
+        <p>Manage your bookings and reminders.</p>
+        <!-- dynamic content here -->
+      </section>
+      <section class="card">
+        <h2>Recent Lab Results</h2>
+        <p>View your latest test outcomes.</p>
+      </section>
+      <section class="card">
+        <h2>Medical Records</h2>
+        <p>Access your health history.</p>
+      </section>
+      <section class="card">
+        <h2>Outstanding Bills</h2>
+        <p>Review and pay your invoices.</p>
+      </section>
+    </main>
+
+    <script src="index.js"></script>
+    <script src="server.js"></script>
+    <script src="/patient/js/common.js"></script>
+    <script src="/patient/js/security.js"></script>
+    <script src="/patient/js/securityMiddleware.js"></script>
+    <script src="/patient/js/securityLogger.js"></script>
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+      import {
+        getAuth,
+        onAuthStateChanged,
+        signOut,
+      } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+      import {
+        getFirestore,
+        doc,
+        getDoc,
+      } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+      import {
+        showLoading,
+        hideLoading,
+        showError,
+        showSuccess,
+      } from "./js/common.js";
+      import securityMiddleware from "./js/securityMiddleware.js";
+
+      // Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
+        authDomain: "hospitalmanagtsystem.firebaseapp.com",
+        projectId: "hospitalmanagtsystem",
+        storageBucket: "hospitalmanagtsystem.firsebasestorage.app",
+        messagingSenderId: "771158568788",
+        appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
+      };
+
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+
+      // Check authentication state
+      onAuthStateChanged(auth, async (user) => {
+        if (user) {
+          try {
+            showLoading();
+            // Get user data
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              // Update greeting
+              const greetEl = document.getElementById("greeting");
+              const hour = new Date().getHours();
+              const sal =
+                hour < 12
+                  ? "Good Morning"
+                  : hour < 18
+                  ? "Good Afternoon"
+                  : "Good Evening";
+              greetEl.textContent = `${sal}, ${userData.firstName}`;
+
+              // Update security status
+              updateSecurityStatus(userData);
+            }
+          } catch (error) {
+            console.error("Error loading user data:", error);
+            showError("Failed to load user data. Please try again.");
+          } finally {
+            hideLoading();
+          }
+        } else {
+          // Redirect to login if not authenticated
+          window.location.href = "/index.html";
+        }
+      });
+
+      // Update security status
+      function updateSecurityStatus(userData) {
+        const statusEl = document.querySelector(".security-status");
+        if (userData.lastLoginIP && userData.lastLoginTime) {
+          const timeDiff = Date.now() - userData.lastLoginTime.toMillis();
+          if (timeDiff < 3600000) {
+            // Within last hour
+            statusEl.className = "security-status secure";
+            statusEl.innerHTML =
+              '<i class="fas fa-shield-alt"></i><span>Security Status: Protected</span>';
+          } else {
+            statusEl.className = "security-status warning";
+            statusEl.innerHTML =
+              '<i class="fas fa-exclamation-triangle"></i><span>Security Status: Session Expired</span>';
+          }
+        }
+      }
+
+      // Logout functionality
+      document
+        .getElementById("logoutBtn")
+        .addEventListener("click", async () => {
+          try {
+            showLoading();
+            await signOut(auth);
+            window.location.href = "/index.html";
+          } catch (error) {
+            console.error("Error signing out:", error);
+            showError("Failed to sign out. Please try again.");
+          } finally {
+            hideLoading();
+          }
+        });
+
+      // Status indicator
+      const statusDot = document.getElementById("statusIndicator");
+      async function updateStatus() {
+        try {
+          const res = await fetch("/api/system-status");
+          const { status } = await res.json();
+          statusDot.className = "status-indicator " + (status || "offline");
+        } catch {
+          statusDot.className = "status-indicator offline";
+        }
+      }
+      setInterval(updateStatus, 15000);
+      updateStatus();
+
+      // Mobile nav toggle
+      const navToggle = document.getElementById("navToggle");
+      const navMenu = document.getElementById("navMenu");
+      navToggle.addEventListener("click", () => {
+        navMenu.classList.toggle("open");
+      });
+
+      // Highlight active link
+      document.querySelectorAll(".nav-menu a").forEach((a) => {
+        if (window.location.pathname.endsWith(a.getAttribute("href"))) {
+          a.classList.add("active");
+        }
+      });
+    </script>
+  </body>
+</html>
