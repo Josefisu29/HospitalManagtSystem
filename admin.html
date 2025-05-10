@@ -213,6 +213,7 @@
           required
           autocomplete="off"
         />
+        <p><a href="#" id="forgot-password">Forgot Password?</a></p>
         <button type="submit">Login</button>
         <div class="spinner" id="login-spinner"></div>
       </form>
@@ -421,7 +422,67 @@
             spinner.style.display = "none";
           }
         });
+      document
+        .getElementById("forgot-password")
+        .addEventListener("click", (e) => {
+          e.preventDefault();
+          const email = prompt("Enter your email address:");
+          if (email) {
+            sendPasswordResetEmail(auth, email)
+              .then(() => {
+                alert("Password reset email sent.");
+              })
+              .catch((error) => {
+                alert("Error: " + error.message);
+              });
+          }
+        });
+      snapshot.forEach((docSnap) => {
+        const u = docSnap.data();
+        const row = `<tr><td>${u.firstName} ${u.lastName}</td><td>${u.email}</td><td>${u.role}</td><td><button class="reset-password" data-email="${u.email}">Reset Password</button></td></tr>`;
+        userTable.insertAdjacentHTML("beforeend", row);
+      });
+      document.addEventListener("click", (e) => {
+        if (e.target.classList.contains("reset-password")) {
+          const email = e.target.getAttribute("data-email");
+          if (confirm(`Send password reset email to ${email}?`)) {
+            const sendResetEmail = httpsCallable(functions, "sendResetEmail");
+            sendResetEmail({ email })
+              .then(() => {
+                alert("Password reset email sent.");
+              })
+              .catch((error) => {
+                alert("Error: " + error.message);
+              });
+          }
+        }
+      });
+      const functions = require("firebase-functions");
+      const admin = require("firebase-admin");
+      admin.initializeApp();
 
+      exports.sendResetEmail = functions.https.onCall((data, context) => {
+        if (!context.auth.token.admin) {
+          throw new functions.https.HttpsError(
+            "permission-denied",
+            "Only admins can reset passwords."
+          );
+        }
+        const email = data.email;
+        return admin
+          .auth()
+          .generatePasswordResetLink(email)
+          .then((link) => {
+            console.log(`Password reset link for ${email}: ${link}`);
+            return { success: true };
+          })
+          .catch((error) => {
+            throw new functions.https.HttpsError(
+              "internal",
+              "Failed to generate reset link."
+            );
+          });
+      });
       // Handle browser back/forward buttons
       window.addEventListener("popstate", () => {
         if (!auth.currentUser) {
