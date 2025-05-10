@@ -21,7 +21,19 @@
       }
     ]
   },
+
+    {
+      "source": "/admin/**",
+      "destination": "/admin/admin.html"
+    }
+    {
+      "source": "**",
+      "destination": "/index.html"
+    }
+  
+}
+
   "database": {
     "rules": "database.rules.json"
   }
-}
+
