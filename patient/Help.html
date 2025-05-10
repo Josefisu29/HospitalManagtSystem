@@ -1,29 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>HMS Emergency Help</title>
-  <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="/patient/css/res.css">
-  <script type="module" src="patient.js" defer></script>
-  <script src="https://kit.fontawesome.com/yourkit.js" crossorigin="anonymous"></script>
-</head>
-<body>
-  <main class="help-container" role="main">
-    <h1 class="visually-hidden">Request Emergency Assistance</h1>
-    <div class="card">
-      <p class="intro">Tap below to get Help immediately.</p>
-      <button id="btn-gps-help" class="btn btn-primary" aria-label="Share current location for help">
-        <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
-        <span>Share Location</span>
-      </button>
-      <button id="btn-call-help" class="btn btn-secondary" aria-label="Place voice call for help">
-        <i class="fas fa-phone" aria-hidden="true"></i>
-        <span>Call for Help</span>
-      </button>
-    </div>
-  </main>
-  <script src="/patient/js/res.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>HMS Emergency Help</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="/patient/css/res.css" />
+    <script type="module" src="patient.js" defer></script>
+    <script
+      src="https://kit.fontawesome.com/yourkit.js"
+      crossorigin="anonymous"
+    ></script>
+  </head>
+  <body>
+    <header>
+      <nav>
+        <div class="nav-inner">
+          <div class="nav-toggle" id="navToggle">☰</div>
+          <ul class="nav-menu" id="navMenu">
+            <li><a href="patient.html" class="active">Profile</a></li>
+            <li>
+              <a href="patient-appointments.html">Appointment</a>
+            </li>
+            <li><a href="patient-records.html">Medical Record</a></li>
+            <li><a href="patient-results.html">Lab Result</a></li>
+            <li>
+              <a href="patient-billing.html">Billing & Payment</a>
+            </li>
+            <li>
+              <a href="Help.html">Get-Help</a>
+            </li>
+          </ul>
+        </div>
+      </nav>
+    </header>
+    <main class="help-container" role="main">
+      <h1 class="visually-hidden">Request Emergency Assistance</h1>
+      <div class="card">
+        <p class="intro">Tap below to get Help immediately.</p>
+        <button
+          id="btn-gps-help"
+          class="btn btn-primary"
+          aria-label="Share current location for help"
+        >
+          <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
+          <span>Share Location</span>
+        </button>
+        <button
+          id="btn-call-help"
+          class="btn btn-secondary"
+          aria-label="Place voice call for help"
+        >
+          <i class="fas fa-phone" aria-hidden="true"></i>
+          <span>Call for Help</span>
+        </button>
+      </div>
+    </main>
+    <script src="/patient/js/res.js"></script>
+  </body>
 </html>
