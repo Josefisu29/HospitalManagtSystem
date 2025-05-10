@@ -22,7 +22,7 @@
     ]
   },
 
-    {
+   [{
       "source": "/admin/**",
       "destination": "/admin/admin.html"
     }
@@ -31,7 +31,7 @@
       "destination": "/index.html"
     }
   
-}
+}]
 
   "database": {
     "rules": "database.rules.json"
