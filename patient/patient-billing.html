@@ -154,6 +154,9 @@
           <a href="patient-billing.html" class="active">Billing & Payment</a>
         </li>
       </ul>
+      <li>
+        <a href="/patient/Help.html">Get-Help</a>
+      </li>
     </nav>
     <main>
       <section class="card">
@@ -190,6 +193,7 @@
         query,
         where,
         getDocs,
+        updateDoc,
       } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
       // Firebase configuration
@@ -211,22 +215,14 @@
       onAuthStateChanged(auth, async (user) => {
         if (user) {
           try {
-            // Get user data
             const userDoc = await getDoc(doc(db, "users", user.uid));
             if (userDoc.exists()) {
               const userData = userDoc.data();
-              // Update greeting
               const greetEl = document.getElementById("greeting");
               const hour = new Date().getHours();
-              const sal =
-                hour < 12
-                  ? "Good Morning"
-                  : hour < 18
-                  ? "Good Afternoon"
-                  : "Good Evening";
+              const sal = hour < 12 ? "Good Morning" : hour < 18 ? "Good Afternoon" : "Good Evening";
               greetEl.textContent = `${sal}, ${userData.firstName}`;
 
-              // Load invoices
               await loadInvoices(user.uid);
             }
           } catch (error) {
@@ -254,14 +250,9 @@
               <td>${invoice.invoiceNumber}</td>
               <td>${invoice.date}</td>
               <td class="amount">$${invoice.amount.toFixed(2)}</td>
-              <td class="status-${invoice.status.toLowerCase()}">${
-              invoice.status
-            }</td>
+              <td class="status-${invoice.status.toLowerCase()}">${invoice.status}</td>
               <td>
-                <button class="btn" ${
-                  invoice.status === "Paid" ? "disabled" : ""
-                } 
-                  onclick="handlePayment('${doc.id}', ${invoice.amount})">
+                <button class="btn" ${invoice.status === "Paid" ? "disabled" : ""} onclick="handlePayment('${doc.id}', ${invoice.amount})">
                   ${invoice.status === "Paid" ? "Paid" : "Pay Now"}
                 </button>
               </td>
@@ -275,8 +266,18 @@
 
       // Handle payment
       window.handlePayment = async (invoiceId, amount) => {
-        // TODO: Implement payment processing logic
-        alert(`Payment processing for $${amount.toFixed(2)} coming soon!`);
+        try {
+          // Placeholder: Update invoice status to "Paid"
+          // TODO: Integrate with payment gateway (e.g., Stripe, PayPal)
+          await updateDoc(doc(db, "invoices", invoiceId), {
+            status: "Paid",
+          });
+          await loadInvoices(auth.currentUser.uid);
+          alert(`Payment of $${amount.toFixed(2)} marked as paid.`);
+        } catch (error) {
+          console.error("Error paying invoice:", error);
+          alert("Failed to process payment.");
+        }
       };
 
       // Logout functionality
@@ -303,6 +304,11 @@
         }
       }
       setInterval(updateStatus, 10000);
+      updateStatus();
+    </script>
+  </body>
+</html>
+
       updateStatus();
     </script>
   </body>
