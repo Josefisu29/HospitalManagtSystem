@@ -100,14 +100,10 @@
           display: none;
           flex-direction: column;
           background: var(--primary);
-          position: fixed;
-          top: 0;
+          position: absolute;
+          top: 100%;
           left: 0;
           right: 0;
-          bottom: 0;
-          z-index: 1001;
-          justify-content: center;
-          align-items: center;
         }
         .nav-menu.open {
           display: flex;
@@ -172,7 +168,7 @@
         right: 0;
         bottom: 0;
         background: rgba(255, 255, 255, 0.8);
-        display: none;
+        display: flex;
         justify-content: center;
         align-items: center;
         z-index: 1000;
@@ -198,8 +194,7 @@
   <body>
     <header>
       <div class="header-inner">
-        <div class="brand">HMS Dashboard</div>
-        <div class="nav-toggle" id="navToggle">☰</div>
+        <div class="brand">Dashboard</div>
         <div style="display: flex; align-items: center">
           <div id="greeting" class="greeting">Good Morning,</div>
           <div
@@ -207,9 +202,27 @@
             class="status-indicator offline"
             title="Offline"
           ></div>
-          <button id="logoutBtn" class="btn">Logout</button>
         </div>
       </div>
+      <nav>
+        <div class="nav-inner">
+          <div class="nav-toggle" id="navToggle">☰</div>
+          <ul class="nav-menu" id="navMenu">
+            <li><a href="patient.html" class="active">Profile</a></li>
+            <li>
+              <a href="/patient/patient-appointments.html">Appointment</a>
+            </li>
+            <li><a href="/patient/patient-records.html">Medical Record</a></li>
+            <li><a href="/patient/patient-results.html">Lab Result</a></li>
+            <li>
+              <a href="/patient/patient-billing.html">Billing & Payment</a>
+            </li>
+            <li>
+              <a href="patient/Help.html">Get-Help</a>
+            </li>
+          </ul>
+        </div>
+      </nav>
     </header>
 
     <main>
@@ -272,8 +285,6 @@
           <button type="submit" id="saveProfile">Save</button>
         </form>
       </section>
-      <div id="error" class="error" style="display: none"></div>
-      <div id="success" class="success" style="display: none"></div>
     </main>
 
     <script src="index.js"></script>
