@@ -1,0 +1,40 @@
+:root {
+    --red-alert: #c62828;
+    --neutral-bg: #f2f4f6;
+    --text-dark: #212121;
+    --btn-radius: 8px;
+    --transition: 0.2s ease-in-out;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: sans-serif; background: var(--neutral-bg);
+    color: var(--text-dark); display: flex; align-items: center; justify-content: center;
+    height: 100vh;
+  }
+  .visually-hidden { /* screen-reader only */ position: absolute; width:1px;height:1px;overflow:hidden; }
+  .card {
+    background: #fff; padding: 2rem; border-radius: var(--btn-radius);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1); text-align: center;
+  }
+  .intro { margin-bottom: 1.5rem; font-size: 1rem; }
+  .btn {
+    display: flex; align-items: center; gap: 0.5rem;
+    width: 100%; padding: 1rem;
+    font-size: 1.1rem; border: none; border-radius: var(--btn-radius);
+    cursor: pointer; transition: transform var(--transition), box-shadow var(--transition);
+    min-height: 48px; /* touch target */ margin-bottom: 1rem;
+  }
+  .btn-primary {
+    background: var(--red-alert); color: #fff;
+  }
+  .btn-primary:hover,
+  .btn-primary:focus { box-shadow: 0 0 0 3px rgba(198,40,40,0.4); transform: scale(1.02); }
+  .btn-secondary {
+    background: #fff; color: var(--red-alert); border: 2px solid var(--red-alert);
+  }
+  .btn-secondary:hover,
+  .btn-secondary:focus { background: var(--red-alert); color: #fff; }
+  .btn:disabled {
+    opacity: 0.6; cursor: not-allowed;
+  }
+  
