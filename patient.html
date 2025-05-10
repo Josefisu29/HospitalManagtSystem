@@ -199,6 +199,10 @@
         <h2>Your Profile</h2>
         <form id="profileForm">
           <div class="form-group">
+            <label for="patientId">Patient ID</label>
+            <input type="text" id="patientId" readonly />
+          </div>
+          <div class="form-group">
             <label for="firstName">First Name</label>
             <input type="text" id="firstName" required />
           </div>
@@ -313,6 +317,8 @@
                   : "Good Evening";
               greetEl.textContent = `${sal}, ${userData.firstName || "User"}`;
 
+              document.getElementById("patientId").value =
+                userData.patientId || "";
               document.getElementById("firstName").value =
                 userData.firstName || "";
               document.getElementById("lastName").value =
