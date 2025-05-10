@@ -5,57 +5,168 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>HMS Emergency Help</title>
     <link rel="stylesheet" href="styles.css" />
-    <link rel="stylesheet" href="/patient/css/res.css" />
-    <script type="module" src="patient.js" defer></script>
     <script
       src="https://kit.fontawesome.com/yourkit.js"
       crossorigin="anonymous"
     ></script>
+    <script type="module" src="/patient/js/res.js" defer></script>
   </head>
+  <style>
+    :root {
+      --primary: #0052cc;
+      --danger: #d32f2f;
+      --bg: #f9fbfd;
+      --text: #212121;
+      --card: #ffffff;
+      --radius: 8px;
+      --transition: 0.3s;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    header {
+      background: var(--card);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .nav-inner {
+      max-width: 800px;
+      margin: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem;
+    }
+    .brand {
+      font-size: 1.25rem;
+      color: var(--primary);
+    }
+    .nav-toggle {
+      display: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+    .nav-menu {
+      list-style: none;
+      display: flex;
+      gap: 1rem;
+    }
+    .nav-menu li a {
+      color: var(--text);
+      text-decoration: none;
+      padding: 0.5rem;
+      border-radius: 4px;
+      transition: background var(--transition);
+    }
+    .nav-menu li a:hover,
+    .nav-menu li a.active {
+      background: var(--primary);
+      color: #fff;
+    }
+    @media (max-width: 600px) {
+      .nav-toggle {
+        display: block;
+      }
+      .nav-menu {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--card);
+        flex-direction: column;
+      }
+      .nav-menu.open {
+        display: flex;
+      }
+    }
+
+    .help-container {
+      height: calc(100vh - 72px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      background: var(--card);
+      padding: 2rem;
+      border-radius: var(--radius);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      max-width: 320px;
+      width: 100%;
+    }
+    .card h1 {
+      margin-bottom: 1rem;
+      color: var(--primary);
+    }
+    .card p {
+      margin-bottom: 1.5rem;
+    }
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.75rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: background var(--transition);
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: #003a9b;
+    }
+    .btn-secondary {
+      background: var(--danger);
+      color: #fff;
+    }
+    .btn-secondary:hover {
+      background: #9a1c1c;
+    }
+  </style>
   <body>
     <header>
       <nav>
         <div class="nav-inner">
-          <div class="nav-toggle" id="navToggle">☰</div>
-          <ul class="nav-menu" id="navMenu">
+          <div class="brand">HMS Patient</div>
+          <div id="navToggle" class="nav-toggle">☰</div>
+          <ul id="navMenu" class="nav-menu">
             <li><a href="patient.html" class="active">Profile</a></li>
-            <li>
-              <a href="patient-appointments.html">Appointment</a>
-            </li>
-            <li><a href="patient-records.html">Medical Record</a></li>
-            <li><a href="patient-results.html">Lab Result</a></li>
-            <li>
-              <a href="patient-billing.html">Billing & Payment</a>
-            </li>
-            <li>
-              <a href="Help.html">Get-Help</a>
-            </li>
+            <li><a href="patient-appointments.html">Appointments</a></li>
+            <li><a href="patient-records.html">Records</a></li>
+            <li><a href="Help.html">Get-Help</a></li>
           </ul>
         </div>
       </nav>
     </header>
-    <main class="help-container" role="main">
-      <h1 class="visually-hidden">Request Emergency Assistance</h1>
+
+    <main class="help-container">
       <div class="card">
-        <p class="intro">Tap below to get Help immediately.</p>
-        <button
-          id="btn-gps-help"
-          class="btn btn-primary"
-          aria-label="Share current location for help"
-        >
-          <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
-          <span>Share Location</span>
+        <h1>Emergency Assistance</h1>
+        <p>Tap below to request immediate help.</p>
+        <button id="btn-gps-help" class="btn btn-primary">
+          <i class="fas fa-map-marker-alt"></i> Share Location
         </button>
-        <button
-          id="btn-call-help"
-          class="btn btn-secondary"
-          aria-label="Place voice call for help"
-        >
-          <i class="fas fa-phone" aria-hidden="true"></i>
-          <span>Call for Help</span>
+        <button id="btn-call-help" class="btn btn-secondary">
+          <i class="fas fa-phone"></i> Call for Help
         </button>
       </div>
     </main>
-    <script src="/patient/js/res.js"></script>
   </body>
 </html>
