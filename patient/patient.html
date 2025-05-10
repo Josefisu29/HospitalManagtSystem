@@ -78,7 +78,6 @@
         display: flex;
         gap: 1rem;
       }
-
       .nav-menu li a {
         color: white;
         text-decoration: none;
@@ -252,7 +251,6 @@
               <option value="">Select Gender</option>
               <option value="male">Male</option>
               <option value="female">Female</option>
-              <!-- <option value="other">Other</option> -->
             </select>
           </div>
           <div class="form-group">
@@ -317,6 +315,7 @@
         setDoc,
         Timestamp,
         updateDoc,
+        onSnapshot,
       } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
       import {
         showLoading,
@@ -334,6 +333,7 @@
         storageBucket: "hospitalmanagtsystem.firebasestorage.app",
         messagingSenderId: "771158568788",
         appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
+        six,
       };
 
       // Initialize Firebase
@@ -341,57 +341,58 @@
       const auth = getAuth(app);
       const db = getFirestore(app);
 
+      // Define populateForm function
+      function populateForm(userData) {
+        const greetEl = document.getElementById("greeting");
+        const hour = new Date().getHours();
+        const sal =
+          hour < 12
+            ? "Good Morning"
+            : hour < 18
+            ? "Good Afternoon"
+            : "Good Evening";
+        greetEl.textContent = `${sal}, ${userData.firstName || "User"}`;
+
+        document.getElementById("patientId").value = userData.patientId || "";
+        document.getElementById("firstName").value = userData.firstName || "";
+        document.getElementById("lastName").value = userData.lastName || "";
+        document.getElementById("dateOfBirth").value = userData.dateOfBirth
+          ? userData.dateOfBirth.toDate().toISOString().split("T")[0]
+          : "";
+        document.getElementById("gender").value = userData.gender || "";
+        document.getElementById("address").value = userData.address || "";
+        document.getElementById("phone").value = userData.phone || "";
+        document.getElementById("email").value = userData.email || "";
+        document.getElementById("allergies").value = userData.allergies || "";
+        document.getElementById("medications").value =
+          userData.medications || "";
+        document.getElementById("medicalHistory").value =
+          userData.medicalHistory || "";
+        document.getElementById("emergencyContact").value =
+          userData.emergencyContact || "";
+      }
+
       // Check authentication state
       onAuthStateChanged(auth, async (user) => {
         if (user) {
+          showLoading();
           try {
-            showLoading();
-            const userDoc = await getDoc(doc(db, "users", user.uid));
-            if (userDoc.exists()) {
-              const userData = userDoc.data();
-              const greetEl = document.getElementById("greeting");
-              const hour = new Date().getHours();
-              const sal =
-                hour < 12
-                  ? "Good Morning"
-                  : hour < 18
-                  ? "Good Afternoon"
-                  : "Good Evening";
-              greetEl.textContent = `${sal}, ${userData.firstName || "User"}`;
-
-              document.getElementById("patientId").value =
-                userData.patientId || "";
-              document.getElementById("firstName").value =
-                userData.firstName || "";
-              document.getElementById("lastName").value =
-                userData.lastName || "";
-              document.getElementById("dateOfBirth").value =
-                userData.dateOfBirth
-                  ? userData.dateOfBirth.toDate().toISOString().split("T")[0]
-                  : "";
-              document.getElementById("gender").value = userData.gender || "";
-              document.getElementById("address").value = userData.address || "";
-              document.getElementById("phone").value = userData.phone || "";
-              document.getElementById("email").value = userData.email || "";
-              document.getElementById("allergies").value =
-                userData.allergies || "";
-              document.getElementById("medications").value =
-                userData.medications || "";
-              document.getElementById("medicalHistory").value =
-                userData.medicalHistory || "";
-              document.getElementById("emergencyContact").value =
-                userData.emergencyContact || "";
-            }
-            // Replace your one-time getDoc() in onAuthStateChanged…
+            // Initial one-time load
             const userDocRef = doc(db, "users", user.uid);
+            const userDocSnap = await getDoc(userDocRef);
+            if (userDocSnap.exists()) {
+              const data = userDocSnap.data();
+              populateForm(data);
+            }
+
+            // Real-time listener to update form if Firestore changes
             onSnapshot(userDocRef, (snap) => {
               if (!snap.exists()) return;
               const data = snap.data();
-              // populate form fields here exactly as you did in getDoc()
+              populateForm(data);
             });
-            // …
-          } catch (error) {
-            console.error("Error loading user data:", error);
+          } catch (err) {
+            console.error("Error loading user data:", err);
             showError("Failed to load user data. Please try again.");
           } finally {
             hideLoading();
@@ -443,16 +444,6 @@
                 },
                 { merge: true }
               );
-
-              const greetEl = document.getElementById("greeting");
-              const hour = new Date().getHours();
-              const sal =
-                hour < 12
-                  ? "Good Morning"
-                  : hour < 18
-                  ? "Good Afternoon"
-                  : "Good Evening";
-              greetEl.textContent = `${sal}, ${firstName}`;
 
               showSuccess("Profile updated successfully!");
             }
@@ -520,8 +511,10 @@
         .addEventListener("click", async () => {
           try {
             showLoading();
-            // Cleanup any active listeners
-            const unsubscribe = onSnapshot(q, () => {});
+            const unsubscribe = onSnapshot(
+              doc(db, "users", auth.currentUser.uid),
+              () => {}
+            );
             unsubscribe();
             await signOut(auth);
             window.location.href = "/index.html";
