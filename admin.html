@@ -303,301 +303,396 @@
     </div>
 
     <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-      import {
-        getAuth,
-        onAuthStateChanged,
-        signOut,
-        signInWithEmailAndPassword,
-        createUserWithEmailAndPassword,
-      } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-      import {
-        getFirestore,
-        collection,
-        query,
-        where,
-        orderBy,
-        limit,
-        onSnapshot,
-        setDoc,
-        doc,
-        serverTimestamp,
-      } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-      import {
-        getFunctions,
-        httpsCallable,
-      } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-functions.js";
+                  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+                  import {
+                    getAuth,
+                    onAuthStateChanged,
+                    signOut,
+                    signInWithEmailAndPassword,
+                    createUserWithEmailAndPassword,
+                  } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+                  import {
+                    getFirestore,
+                    collection,
+                    query,
+                    where,
+                    orderBy,
+                    limit,
+                    onSnapshot,
+                    setDoc,
+                    doc,
+                    serverTimestamp,
+                  } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+                  import {
+                    getFunctions,
+                    httpsCallable,
+                  } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-functions.js";
+                  import { sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+                  const firebaseConfig = {
+                    apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
+                    authDomain: "hospitalmanagtsystem.firebaseapp.com",
+                    projectId: "hospitalmanagtsystem",
+                    storageBucket: "hospitalmanagtsystem.firebasestorage.app",
+                    messagingSenderId: "771158568788",
+                    appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
+                  };
 
-      const firebaseConfig = {
-        apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
-        authDomain: "hospitalmanagtsystem.firebaseapp.com",
-        projectId: "hospitalmanagtsystem",
-        storageBucket: "hospitalmanagtsystem.firebasestorage.app",
-        messagingSenderId: "771158568788",
-        appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
-      };
+                  const app = initializeApp(firebaseConfig);
+                  const auth = getAuth(app);
+                  const db = getFirestore(app);
+                  const functions = getFunctions(app);
+                  const assignRoleClaim = httpsCallable(functions, "assignRoleClaim");
 
-      const app = initializeApp(firebaseConfig);
-      const auth = getAuth(app);
-      const db = getFirestore(app);
-      const functions = getFunctions(app);
-      const assignRoleClaim = httpsCallable(functions, "assignRoleClaim");
+                  // Authentication State
+                  // onAuthStateChanged(auth, async (user) => {
+                  //   if (!user) {
+                  //     document.getElementById("login-box").style.display = "flex";
+                  //     document.getElementById("admin-dashboard").style.display = "none";
+                  //   } else {
+                  //     try {
+                  //       const idRes = await user.getIdTokenResult(true);
+                  //       if (!idRes.claims.admin) {
+                  //         await signOut(auth);
+                  //         alert("Unauthorized: Admin access required.");
+                  //         window.location.href = "/";
+                  //       } else {
+                  //         document.getElementById("login-box").style.display = "none";
+                  //         document.getElementById("admin-dashboard").style.display =
+                  //           "block";
+                  //         loadDashboard();
+                  //       }
+                  //     } catch (error) {
+                  //       console.error("Error verifying admin:", error);
+                  //       await signOut(auth);
+                  //       alert("Failed to verify admin status. Please try again.");
+                  //       window.location.href = "/";
+                  //     }
+                  //   }
+                  // });
+                  onAuthStateChanged(auth, async (user) => {
+                    console.log("Auth state changed:", user); // Debug log
+                    if (!user) {
+                      console.log("No user, showing login box");
+                      document.getElementById("login-box").style.display = "flex";
+                      document.getElementById("admin-dashboard").style.display = "none";
+                    } else {
+                      try {
+                        const idRes = await user.getIdTokenResult(true);
+                        console.log("ID Token Result:", idRes); // Debug log
+                        if (!idRes.claims.admin) {
+                          console.log("User is not admin, signing out");
+                          await signOut(auth);
+                          alert("Unauthorized: Admin access required.");
+                          window.location.href = "/";
+                        } else {
+                          console.log("User is admin, showing dashboard");
+                          document.getElementById("login-box").style.display = "none";
+                          document.getElementById("admin-dashboard").style.display =
+                            "block";
+                          loadDashboard();
+                        }
+                      } catch (error) {
+                        console.error("Error verifying admin:", error);
+                        await signOut(auth);
+                        alert("Failed to verify admin status. Please try again.");
+                        window.location.href = "/";
+                      }
+                    }
+                  });
 
-      // Authentication State
-      onAuthStateChanged(auth, async (user) => {
-        if (!user) {
-          document.getElementById("login-box").style.display = "flex";
-          document.getElementById("admin-dashboard").style.display = "none";
-        } else {
-          try {
-            const idRes = await user.getIdTokenResult(true);
-            if (!idRes.claims.admin) {
-              await signOut(auth);
-              alert("Unauthorized: Admin access required.");
-              window.location.href = "/";
-            } else {
-              document.getElementById("login-box").style.display = "none";
-              document.getElementById("admin-dashboard").style.display =
-                "block";
-              loadDashboard();
-            }
-          } catch (error) {
-            console.error("Error verifying admin:", error);
-            await signOut(auth);
-            alert("Failed to verify admin status. Please try again.");
-            window.location.href = "/";
-          }
-        }
-      });
+                  // Login Handler
+                  // document
+                  //   .getElementById("admin-login-form")
+                  //   .addEventListener("submit", async (e) => {
+                  //     e.preventDefault();
+                  //     const email = document.getElementById("admin-email").value;
+                  //     const password = document.getElementById("admin-password").value;
+                  //     const spinner = document.getElementById("login-spinner");
+                  //     const errorMsg = document.getElementById("error-msg");
 
-      // Login Handler
-      document
-        .getElementById("admin-login-form")
-        .addEventListener("submit", async (e) => {
-          e.preventDefault();
-          const email = document.getElementById("admin-email").value;
-          const password = document.getElementById("admin-password").value;
-          const spinner = document.getElementById("login-spinner");
-          const errorMsg = document.getElementById("error-msg");
+                  //     spinner.style.display = "block";
+                  //     errorMsg.textContent = "You shall not pass😂😂😂😂😂";
 
-          spinner.style.display = "block";
-          errorMsg.textContent = "";
+                  //     try {
+                  //       const userCredential = await signInWithEmailAndPassword(
+                  //         auth,
+                  //         email,
+                  //         password
+                  //       );
+                  //       const user = userCredential.user;
+                  //       const idTokenResult = await user.getIdTokenResult(true);
 
-          try {
-            const userCredential = await signInWithEmailAndPassword(
-              auth,
-              email,
-              password
-            );
-            const user = userCredential.user;
-            const idTokenResult = await user.getIdTokenResult(true);
+                  //       if (!idTokenResult.claims.admin) {
+                  //         await signOut(auth);
+                  //         errorMsg.textContent = "Unauthorized: Admin access required.";
+                  //       } else {
+                  //         // Update URL without page reload
+                  //         window.history.pushState({}, "", "/admin");
+                  //       }
+                  //     } catch (error) {
+                  //       console.error("Login error:", error);
+                  //       switch (error.code) {
+                  //         case "auth/user-not-found":
+                  //           errorMsg.textContent = "No account found with this email.";
+                  //           break;
+                  //         case "auth/wrong-password":
+                  //           errorMsg.textContent = "Incorrect password.";
+                  //           break;
+                  //         case "auth/invalid-email":
+                  //           errorMsg.textContent = "Invalid email format.";
+                  //           break;
+                  //         case "auth/too-many-requests":
+                  //           errorMsg.textContent =
+                  //             "Too many failed attempts. Please try again later.";
+                  //           break;
+                  //         default:
+                  //           errorMsg.textContent = "Login failed. Please try again.";
+                  //       }
+                  //     } finally {
+                  //       spinner.style.display = "none";
+                  //     }
+                  //   });
+                  document.getElementById("admin-login-form").addEventListener("submit", async (e) => {
+              e.preventDefault();
+              const email = document.getElementById("admin-email").value;
+              const password = document.getElementById("admin-password").value;
+              const spinner = document.getElementById("login-spinner");
+              const errorMsg = document.getElementById("error-msg");
 
-            if (!idTokenResult.claims.admin) {
-              await signOut(auth);
-              errorMsg.textContent = "Unauthorized: Admin access required.";
-            } else {
-              // Update URL without page reload
-              window.history.pushState({}, "", "/admin");
-            }
-          } catch (error) {
-            console.error("Login error:", error);
-            switch (error.code) {
-              case "auth/user-not-found":
-                errorMsg.textContent = "No account found with this email.";
-                break;
-              case "auth/wrong-password":
-                errorMsg.textContent = "Incorrect password.";
-                break;
-              case "auth/invalid-email":
-                errorMsg.textContent = "Invalid email format.";
-                break;
-              case "auth/too-many-requests":
-                errorMsg.textContent =
-                  "Too many failed attempts. Please try again later.";
-                break;
-              default:
-                errorMsg.textContent = "Login failed. Please try again.";
-            }
-          } finally {
-            spinner.style.display = "none";
-          }
-        });
-      document
-        .getElementById("forgot-password")
-        .addEventListener("click", (e) => {
-          e.preventDefault();
-          const email = prompt("Enter your email address:");
-          if (email) {
-            sendPasswordResetEmail(auth, email)
-              .then(() => {
-                alert("Password reset email sent.");
-              })
-              .catch((error) => {
-                alert("Error: " + error.message);
-              });
-          }
-        });
-      snapshot.forEach((docSnap) => {
-        const u = docSnap.data();
-        const row = `<tr><td>${u.firstName} ${u.lastName}</td><td>${u.email}</td><td>${u.role}</td><td><button class="reset-password" data-email="${u.email}">Reset Password</button></td></tr>`;
-        userTable.insertAdjacentHTML("beforeend", row);
-      });
-      document.addEventListener("click", (e) => {
-        if (e.target.classList.contains("reset-password")) {
-          const email = e.target.getAttribute("data-email");
-          if (confirm(`Send password reset email to ${email}?`)) {
-            const sendResetEmail = httpsCallable(functions, "sendResetEmail");
-            sendResetEmail({ email })
-              .then(() => {
-                alert("Password reset email sent.");
-              })
-              .catch((error) => {
-                alert("Error: " + error.message);
-              });
-          }
-        }
-      });
-      const functions = require("firebase-functions");
-      const admin = require("firebase-admin");
-      admin.initializeApp();
+              console.log("Attempting login with:", email); // Debug log
+              spinner.style.display = "block";
+              errorMsg.textContent = "";
 
-      exports.sendResetEmail = functions.https.onCall((data, context) => {
-        if (!context.auth.token.admin) {
-          throw new functions.https.HttpsError(
-            "permission-denied",
-            "Only admins can reset passwords."
-          );
-        }
-        const email = data.email;
-        return admin
-          .auth()
-          .generatePasswordResetLink(email)
-          .then((link) => {
-            console.log(`Password reset link for ${email}: ${link}`);
-            return { success: true };
-          })
-          .catch((error) => {
-            throw new functions.https.HttpsError(
-              "internal",
-              "Failed to generate reset link."
-            );
-          });
-      });
-      // Handle browser back/forward buttons
-      window.addEventListener("popstate", () => {
-        if (!auth.currentUser) {
-          window.location.href = "/";
-        }
-      });
+              try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+                console.log("User signed in:", user); // Debug log
+                const idTokenResult = await user.getIdTokenResult(true);
+                console.log("ID Token Result:", idTokenResult); // Debug log
 
-      // Load Dashboard with Real-Time Data
-      function loadDashboard() {
-        onSnapshot(collection(db, "users"), (snapshot) => {
-          document.getElementById("stat-users").textContent = snapshot.size;
-          const userTable = document.getElementById("user-table");
-          userTable.innerHTML = "";
-          snapshot.forEach((docSnap) => {
-            const u = docSnap.data();
-            const row = `<tr><td>${u.firstName} ${u.lastName}</td><td>${u.email}</td><td>${u.role}</td></tr>`;
-            userTable.insertAdjacentHTML("beforeend", row);
-          });
-        });
-
-        onSnapshot(
-          query(collection(db, "users"), where("role", "==", "doctor")),
-          (snapshot) => {
-            document.getElementById("stat-doctors").textContent = snapshot.size;
-          }
-        );
-
-        onSnapshot(collection(db, "appointments"), (snapshot) => {
-          document.getElementById("stat-appointments").textContent =
-            snapshot.size;
-        });
-
-        onSnapshot(
-          query(
-            collection(db, "logs"),
-            orderBy("timestamp", "desc"),
-            limit(10)
-          ),
-          (snapshot) => {
-            const logsList = document.getElementById("system-logs");
-            logsList.innerHTML = "";
-            snapshot.forEach((docSnap) => {
-              const log = docSnap.data();
-              const li = document.createElement("li");
-              li.textContent = `[${
-                log.timestamp?.toDate().toLocaleString() || "N/A"
-              }] ${log.message}`;
-              logsList.appendChild(li);
+                if (!idTokenResult.claims.admin) {
+                  console.log("User is not admin, signing out");
+                  await signOut(auth);
+                  errorMsg.textContent = "Unauthorized: Admin access required.";
+                } else {
+                  console.log("User is admin, auth listener will handle dashboard");
+                  // Remove window.history.pushState; let the listener handle it
+                }
+              } catch (error) {
+                console.error("Login error:", error);
+                switch (error.code) {
+                  case "auth/user-not-found":
+                    errorMsg.textContent = "No account found with this email.";
+                    break;
+                  case "auth/wrong-password":
+                    errorMsg.textContent = "Incorrect password.";
+                    break;
+                  case "auth/invalid-email":
+                    errorMsg.textContent = "Invalid email format.";
+                    break;
+                  case "auth/too-many-requests":
+                    errorMsg.textContent = "Too many failed attempts. Please try again later.";
+                    break;
+                  default:
+                    errorMsg.textContent = "Login failed. Please try again.";
+                }
+              } finally {
+                spinner.style.display = "none";
+              }
             });
-          }
-        );
-      }
+                  // document
+                    .getElementById("forgot-password")
+                    .addEventListener("click", (e) => {
+                      e.preventDefault();
+                      const email = prompt("Enter your email address:");
+                      if (email) {
+                        sendPasswordResetEmail(auth, email)
+                          .then(() => {
+                            alert("Password reset email sent.");
+                          })
+                          .catch((error) => {
+                            alert("Error: " + error.message);
+                          });
+                      }
+                    });
+                  snapshot.forEach((docSnap) => {
+                    const u = docSnap.data();
+                    const row = `<tr><td>${u.firstName} ${u.lastName}</td><td>${u.email}</td><td>${u.role}</td><td><button class="reset-password" data-email="${u.email}">Reset Password</button></td></tr>`;
+                    userTable.insertAdjacentHTML("beforeend", row);
+                  });
+                  document.addEventListener("click", (e) => {
+                    if (e.target.classList.contains("reset-password")) {
+                      const email = e.target.getAttribute("data-email");
+                      if (confirm(`Send password reset email to ${email}?`)) {
+                        const sendResetEmail = httpsCallable(functions, "sendResetEmail");
+                        sendResetEmail({ email })
+                          .then(() => {
+                            alert("Password reset email sent.");
+                          })
+                          .catch((error) => {
+                            alert("Error: " + error.message);
+                          });
+                      }
+                    }
+                  });
 
-      // Register User
-      document
-        .getElementById("registerForm")
-        .addEventListener("submit", async (e) => {
-          e.preventDefault();
-          const firstName = e.target.firstName.value.trim();
-          const lastName = e.target.lastName.value.trim();
-          const email = e.target.email.value.trim();
-          const password = e.target.password.value;
-          const role = e.target.role.value;
 
-          const passRegex =
-            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-          if (!passRegex.test(password)) {
-            alert(
-              "Password must be at least 8 characters, with uppercase, lowercase, number, and special character."
-            );
-            return;
-          }
-
-          try {
-            const userCredential = await createUserWithEmailAndPassword(
-              auth,
-              email,
-              password
-            );
-            const user = userCredential.user;
-
-            await assignRoleClaim({ uid: user.uid, role });
-            await user.getIdTokenResult(true);
-
-            await setDoc(doc(db, "users", user.uid), {
-              firstName,
-              lastName,
-              email,
-              role,
-              createdAt: serverTimestamp(),
+      document.getElementById("forgot-password").addEventListener("click", (e) => {
+        e.preventDefault();
+        const email = prompt("Enter your email address:");
+        if (email) {
+          sendPasswordResetEmail(auth, email)
+            .then(() => {
+              alert("Password reset email sent successfully.");
+            })
+            .catch((error) => {
+              console.error("Password reset error:", error);
+              alert("Error: " + error.message);
             });
-
-            alert(`User ${firstName} ${lastName} registered as ${role}!`);
-            e.target.reset();
-          } catch (error) {
-            alert("Registration failed: " + error.message);
-          }
-        });
-
-      // Search Users
-      document.getElementById("searchInput").addEventListener("input", (e) => {
-        const searchTerm = e.target.value.toLowerCase();
-        const rows = document.querySelectorAll("#user-table tr");
-        rows.forEach((row) => {
-          const text = row.textContent.toLowerCase();
-          row.style.display = text.includes(searchTerm) ? "" : "none";
-        });
+        }
       });
+                  const functions = require("firebase-functions");
+                  const admin = require("firebase-admin");
+                  admin.initializeApp();
 
-      // Logout
-      document.getElementById("logoutBtn").addEventListener("click", () => {
-        signOut(auth).then(() => {
-          window.location.href = "/index.html";
-        });
-      });
+                  exports.sendResetEmail = functions.https.onCall((data, context) => {
+                    if (!context.auth.token.admin) {
+                      throw new functions.https.HttpsError(
+                        "permission-denied",
+                        "Only admins can reset passwords."
+                      );
+                    }
+
+                    const email = data.email;
+                    return admin
+                      .auth()
+                      .generatePasswordResetLink(email)
+                      .then((link) => {
+                        console.log(`Password reset link for ${email}: ${link}`);
+                        return { success: true };
+                      })
+                      .catch((error) => {
+                        throw new functions.https.HttpsError(
+                          "internal",
+                          "Failed to generate reset link."
+                        );
+                      });
+                  });
+                  // Handle browser back/forward buttons
+                  window.addEventListener("popstate", () => {
+                    if (!auth.currentUser) {
+                      window.location.href = "/";
+                    }
+                  });
+
+                  // Load Dashboard with Real-Time Data
+                  function loadDashboard() {
+                    onSnapshot(collection(db, "users"), (snapshot) => {
+                      document.getElementById("stat-users").textContent = snapshot.size;
+                      const userTable = document.getElementById("user-table");
+                      userTable.innerHTML = "";
+                      snapshot.forEach((docSnap) => {
+                        const u = docSnap.data();
+                        const row = `<tr><td>${u.firstName} ${u.lastName}</td><td>${u.email}</td><td>${u.role}</td></tr>`;
+                        userTable.insertAdjacentHTML("beforeend", row);
+                      });
+                    });
+
+                    onSnapshot(
+                      query(collection(db, "users"), where("role", "==", "doctor")),
+                      (snapshot) => {
+                        document.getElementById("stat-doctors").textContent = snapshot.size;
+                      }
+                    );
+
+                    onSnapshot(collection(db, "appointments"), (snapshot) => {
+                      document.getElementById("stat-appointments").textContent =
+                        snapshot.size;
+                    });
+
+                    onSnapshot(
+                      query(
+                        collection(db, "logs"),
+                        orderBy("timestamp", "desc"),
+                        limit(10)
+                      ),
+                      (snapshot) => {
+                        const logsList = document.getElementById("system-logs");
+                        logsList.innerHTML = "";
+                        snapshot.forEach((docSnap) => {
+                          const log = docSnap.data();
+                          const li = document.createElement("li");
+                          li.textContent = `[${
+                            log.timestamp?.toDate().toLocaleString() || "N/A"
+                          }] ${log.message}`;
+                          logsList.appendChild(li);
+                        });
+                      }
+                    );
+                  }
+
+                  // Register User
+                  document
+                    .getElementById("registerForm")
+                    .addEventListener("submit", async (e) => {
+                      e.preventDefault();
+                      const firstName = e.target.firstName.value.trim();
+                      const lastName = e.target.lastName.value.trim();
+                      const email = e.target.email.value.trim();
+                      const password = e.target.password.value;
+                      const role = e.target.role.value;
+
+                      const passRegex =
+                        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+                      if (!passRegex.test(password)) {
+                        alert(
+                          "Password must be at least 8 characters, with uppercase, lowercase, number, and special character."
+                        );
+                        return;
+                      }
+
+                      try {
+                        const userCredential = await createUserWithEmailAndPassword(
+                          auth,
+                          email,
+                          password
+                        );
+                        const user = userCredential.user;
+
+                        await assignRoleClaim({ uid: user.uid, role });
+                        await user.getIdTokenResult(true);
+
+                        await setDoc(doc(db, "users", user.uid), {
+                          firstName,
+                          lastName,
+                          email,
+                          role,
+                          createdAt: serverTimestamp(),
+                        });
+
+                        alert(`User ${firstName} ${lastName} registered as ${role}!`);
+                        e.target.reset();
+                      } catch (error) {
+                        alert("Registration failed: " + error.message);
+                      }
+                    });
+
+                  // Search Users
+                  document.getElementById("searchInput").addEventListener("input", (e) => {
+                    const searchTerm = e.target.value.toLowerCase();
+                    const rows = document.querySelectorAll("#user-table tr");
+                    rows.forEach((row) => {
+                      const text = row.textContent.toLowerCase();
+                      row.style.display = text.includes(searchTerm) ? "" : "none";
+                    });
+                  });
+
+                  // Logout
+                  document.getElementById("logoutBtn").addEventListener("click", () => {
+                    signOut(auth).then(() => {
+                      window.location.href = "/index.html";
+                    });
+                  });
     </script>
   </body>
 </html>
