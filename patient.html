@@ -161,6 +161,34 @@
       button:hover {
         background: #003d99;
       }
+      #loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      }
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
     </style>
   </head>
   <body>
@@ -278,6 +306,7 @@
         getDoc,
         setDoc,
         Timestamp,
+        updateDoc,
       } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
       import {
         showLoading,
@@ -444,6 +473,47 @@
           a.classList.add("active");
         }
       });
+
+      document.getElementById("saveStatus").onclick = async () => {
+        try {
+          if (!currentEmergency) {
+            throw new Error("No emergency selected");
+          }
+          const newStatus = document.getElementById("statusSelect").value;
+          if (!newStatus) {
+            throw new Error("Invalid status");
+          }
+          showLoading();
+          await updateDoc(doc(db, "helpRequests", currentEmergency.id), {
+            status: newStatus,
+          });
+          showNotification(`Status updated to ${newStatus}`);
+          document.getElementById("emergencyModal").classList.remove("show");
+        } catch (error) {
+          console.error("Error updating status:", error);
+          showNotification("Failed to update status");
+        } finally {
+          hideLoading();
+        }
+      };
+
+      document
+        .getElementById("logoutBtn")
+        .addEventListener("click", async () => {
+          try {
+            showLoading();
+            // Cleanup any active listeners
+            const unsubscribe = onSnapshot(q, () => {});
+            unsubscribe();
+            await signOut(auth);
+            window.location.href = "/index.html";
+          } catch (error) {
+            console.error("Error signing out:", error);
+            showNotification("Failed to sign out");
+          } finally {
+            hideLoading();
+          }
+        });
     </script>
   </body>
 </html>
