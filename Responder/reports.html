@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HMS Responder - Reports</title>
-  <link rel="stylesheet" href="[invalid url, do not cite]
-  <script type="module" src="[invalid url, do not cite]
-  <script type="module" src="[invalid url, do not cite]
-  <script type="module" src="[invalid url, do not cite]
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <script type="module" src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js"></script>
   <script type="module" src="auth.js"></script>
   <style>
     :root {
@@ -130,6 +130,13 @@
     .btn-primary:hover {
       background: #0041a8;
     }
+    .btn-accent {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-accent:hover {
+      background: #006666;
+    }
     footer {
       text-align: center;
       padding: 1rem;
@@ -162,4 +169,146 @@
 </head>
 <body>
   <header>
-    <h1>HMS Responder Dashboard
+    <h1>HMS Responder Dashboard</h1>
+    <div class="user-info">
+      <span id="userGreeting"></span>
+      <button id="logoutBtn" class="btn btn-primary" aria-label="Logout">Logout</button>
+    </div>
+  </header>
+  <nav>
+    <div class="nav-inner">
+      <div class="nav-toggle" id="navToggle">☰</div>
+      <ul class="nav-menu" id="navMenu">
+        <li><a href="responder.html">Dashboard</a></li>
+        <li><a href="assignments.html">My Assignments</a></li>
+        <li><a href="reports.html" class="active" aria-current="page">Reports</a></li>
+      </ul>
+    </div>
+  </nav>
+  <main>
+    <section id="reports" class="card">
+      <h2>Generate Report</h2>
+      <form id="reportForm">
+        <div>
+          <label for="startDate">Start Date</label>
+          <input type="date" id="startDate" aria-label="Start date for report" required>
+        </div>
+        <div>
+          <label for="endDate">End Date</label>
+          <input type="date" id="endDate" aria-label="End date for report" required>
+        </div>
+        <div>
+          <label for="typeFilter">Type</label>
+          <select id="typeFilter" aria-label="Filter by request type">
+            <option value="all">All</option>
+            <option value="gps">GPS</option>
+            <option value="voice">Voice</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary" aria-label="Generate report">Generate</button>
+      </form>
+      <div id="reportResults"></div>
+    </section>
+  </main>
+  <footer>
+    <p>© 2025 Hospital Management System. All rights reserved.</p>
+  </footer>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+    import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+    import { getFirestore, collection, query, where, onSnapshot, Timestamp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+    import { checkAuth, updateGreeting } from "./auth.js";
+
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    checkAuth(async (user) => {
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      updateGreeting(userDoc.data());
+    });
+
+    function showNotification(message) {
+      const notifications = document.createElement('div');
+      notifications.className = 'notification';
+      notifications.style.cssText = 'position: fixed; top: 10px; right: 10px; background: #fff; padding: 1rem; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);';
+      notifications.innerHTML = `<i class="fas fa-bell" aria-hidden="true"></i> ${message}`;
+      document.body.appendChild(notifications);
+      setTimeout(() => notifications.remove(), 5000);
+    }
+
+    document.getElementById('reportForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+      const typeFilter = document.getElementById('typeFilter').value;
+
+      if (!startDate || !endDate) {
+        showNotification('Please select both start and end dates');
+        return;
+      }
+
+      try {
+        const start = Timestamp.fromDate(new Date(startDate));
+        const end = Timestamp.fromDate(new Date(endDate));
+        let q = query(collection(db, "helpRequests"), where("createdAt", ">=", start), where("createdAt", "<=", end));
+
+        if (typeFilter !== "all") {
+          q = query(q, where("type", "==", typeFilter));
+        }
+
+        onSnapshot(q, (snapshot) => {
+          const reports = [];
+          snapshot.forEach((doc) => {
+            reports.push({ id: doc.id, ...doc.data() });
+          });
+          renderReports(reports);
+        });
+      } catch (error) {
+        console.error("Error generating report:", error);
+        showNotification("Failed to generate report");
+      }
+    });
+
+    function renderReports(reports) {
+      const results = document.getElementById('reportResults');
+      results.innerHTML = reports.length ? '' : '<p>No reports found for the selected criteria.</p>';
+      reports.forEach((report) => {
+        const item = document.createElement('div');
+        item.className = 'report-item';
+        item.innerHTML = `
+          <h3><i class="fas fa-user-injured" aria-hidden="true"></i> ${report.name}</h3>
+          <p><i class="fas fa-map-marker-alt" aria-hidden="true"></i> ${report.address}</p>
+          <p><i class="fas fa-clock" aria-hidden="true"></i> Requested at: ${new Date(report.createdAt.toDate()).toLocaleString()}</p>
+          <p><i class="fas fa-info-circle" aria-hidden="true"></i> Type: ${report.type === "gps" ? "GPS Request" : "Voice Call"}</p>
+          <p><i class="fas fa-check-circle" aria-hidden="true"></i> Status: ${report.status}</p>
+        `;
+        results.appendChild(item);
+      });
+    }
+
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      try {
+        await signOut(auth);
+        window.location.href = "/index.html";
+      } catch (error) {
+        console.error("Error signing out:", error);
+        showNotification("Failed to sign out");
+      }
+    });
+
+    document.getElementById('navToggle').addEventListener('click', () => {
+      document.getElementById('navMenu').classList.toggle('open');
+    });
+  </script>
+</body>
+</html>
