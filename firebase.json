@@ -8,6 +8,14 @@
         "destination": "/admin.html"
       },
       {
+        "source": "/doctor",
+        "destination": "/doctor/doctor.html"
+      },
+      {
+        "source": "/doctor/*",
+        "destination": "/doctor/*.html"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
