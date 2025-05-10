@@ -2,191 +2,25 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>HMS Admin Panel</title>
-
-    <!-- Firebase v9+ modular SDK -->
-    <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-      import {
-        getAuth,
-        onAuthStateChanged,
-        createUserWithEmailAndPassword,
-        getIdTokenResult,
-        signOut,
-      } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-      import {
-        getFirestore,
-        collection,
-        query,
-        where,
-        orderBy,
-        limit,
-        onSnapshot,
-        setDoc,
-        doc,
-        serverTimestamp,
-      } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-      import {
-        getFunctions,
-        httpsCallable,
-      } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-functions.js";
-
-      // --- Firebase Config ---
-      const firebaseConfig = {
-        apiKey: "YOUR_API_KEY",
-        authDomain: "YOUR_AUTH_DOMAIN",
-        projectId: "YOUR_PROJECT_ID",
-        storageBucket: "your-app.appspot.com",
-        messagingSenderId: "1234567890",
-        appId: "1:1234567890:web:abcdefg12345",
-      };
-      const app = initializeApp(firebaseConfig);
-      const auth = getAuth(app);
-      const db = getFirestore(app);
-      const functions = getFunctions(app);
-      const setRole = httpsCallable(functions, "assignRoleClaim");
-
-      // Role→Page mapping (guards)
-      const rolePages = {
-        admin: "/admin.html",
-        doctor: "/doctor.html",
-        nurse: "/nurse.html",
-        pharmacist: "/pharmacist.html",
-        labAttendant: "lab.html",
-        receptionist: "/reception.html",
-        firstResponder: "responder.html",
-        recordClerk: "/records.html",
-        hospitalStaff: "/hospital.html",
-        patient: "/patient.html",
-      };
-
-      // --- Auth State & Token Refresh ---
-      onAuthStateChanged(auth, async (user) => {
-        if (!user) return (window.location.href = "/index.html");
-        try {
-          // Force refresh to get updated claims
-          const idRes = await user.getIdTokenResult(true);
-          if (!idRes.claims.admin)
-            return (window.location.href = "/unauthorized.html");
-          // Now safe to render dashboard
-          document.getElementById("login-box").style.display = "none";
-          document.getElementById("admin-dashboard").style.display = "flex";
-
-          // Set up real-time listeners
-          onSnapshot(collection(db, "users"), (snapshot) => {
-            document.getElementById("stat-users").textContent = snapshot.size;
-            const tbody = document.getElementById("user-table");
-            tbody.innerHTML = "";
-            snapshot.forEach((docSnap) => {
-              const u = docSnap.data();
-              const tr = document.createElement("tr");
-              tr.innerHTML = `<td>${u.firstName} ${u.lastName}</td><td>${u.email}</td><td>${u.role}</td>`;
-              tbody.appendChild(tr);
-            });
-          });
-
-          onSnapshot(
-            query(collection(db, "users"), where("role", "==", "doctor")),
-            (snapshot) => {
-              document.getElementById("stat-doctors").textContent =
-                snapshot.size;
-            }
-          );
-
-          onSnapshot(collection(db, "appointments"), (snapshot) => {
-            document.getElementById("stat-appointments").textContent =
-              snapshot.size;
-          });
-
-          onSnapshot(
-            query(
-              collection(db, "logs"),
-              orderBy("timestamp", "desc"),
-              limit(10)
-            ),
-            (snapshot) => {
-              const ul = document.getElementById("system-logs");
-              ul.innerHTML = "";
-              snapshot.forEach((docSnap) => {
-                const l = docSnap.data();
-                const li = document.createElement("li");
-                li.textContent = `[${l.timestamp.toDate().toLocaleString()}] ${
-                  l.message
-                }`;
-                ul.appendChild(li);
-              });
-            }
-          );
-        } catch (error) {
-          console.error("Error setting up dashboard:", error);
-          alert("Failed to load dashboard: " + error.message);
-        }
-      });
-
-      // --- Logout ---
-      window.logout = () =>
-        signOut(auth).then(() => (window.location.href = "/index.html"));
-
-      // --- Register New User with Role ---
-      document.addEventListener("DOMContentLoaded", () => {
-        document
-          .getElementById("reg-form")
-          .addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const first = e.target.firstName.value.trim();
-            const last = e.target.lastName.value.trim();
-            const email = e.target.email.value.trim();
-            const pass = e.target.password.value;
-            const role = e.target.role.value;
-
-            // Basic password strength validation
-            const passRegex =
-              /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-            if (!passRegex.test(pass)) {
-              alert(
-                "Password must be at least 8 characters, with uppercase, lowercase, number, and special character."
-              );
-              return;
-            }
-
-            try {
-              // Create Auth user
-              const cred = await createUserWithEmailAndPassword(
-                auth,
-                email,
-                pass
-              );
-              const uid = cred.user.uid;
-
-              // Set custom claim via Cloud Function
-              await setRole({ uid, role });
-              // Force token refresh so claim applies
-              await cred.user.getIdTokenResult(true);
-
-              // Store profile in Firestore
-              await setDoc(doc(db, "users", uid), {
-                firstName: first,
-                lastName: last,
-                email,
-                role,
-                createdAt: serverTimestamp(),
-              });
-
-              alert(`Registered ${first} ${last} as ${role}`);
-              e.target.reset();
-            } catch (error) {
-              alert(`Error: ${error.message}`);
-            }
-          });
-      });
-    </script>
-
-    <link rel="stylesheet" href="common.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+    />
     <style>
+      :root {
+        --primary: #0052cc;
+        --accent: #00bfa5;
+        --bg: #f9fbfd;
+        --text: #333;
+        --card-bg: #fff;
+        --transition: 0.3s ease;
+      }
       body {
-        background: #f4f6fb;
         font-family: "Segoe UI", Arial, sans-serif;
+        background: #f4f6fb;
+        color: var(--text);
         margin: 0;
         min-height: 100vh;
       }
@@ -197,9 +31,8 @@
         justify-content: center;
         min-height: 100vh;
       }
-      #login-box,
-      .dashboard-card {
-        background: #fff;
+      #login-box {
+        background: var(--card-bg);
         padding: 2.5rem 2rem;
         border-radius: 12px;
         box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
@@ -207,8 +40,7 @@
         max-width: 90vw;
         margin: 1rem;
       }
-      #login-box h2,
-      .dashboard-card h2 {
+      #login-box h2 {
         margin-bottom: 1.5rem;
         color: #2d3a4b;
       }
@@ -233,13 +65,13 @@
       }
       input:focus,
       select:focus {
-        border-color: #3182ce;
+        border-color: var(--primary);
         outline: none;
       }
       button {
         width: 100%;
         padding: 0.8rem;
-        background: #3182ce;
+        background: var(--primary);
         color: #fff;
         border: none;
         border-radius: 6px;
@@ -249,7 +81,7 @@
         transition: background 0.2s;
       }
       button:hover {
-        background: #2563eb;
+        background: #0041a8;
       }
       .error {
         color: #e53e3e;
@@ -257,69 +89,53 @@
         min-height: 1.2em;
         text-align: center;
       }
-      .success {
-        color: #38a169;
-        margin-bottom: 1rem;
-        min-height: 1.2em;
-        text-align: center;
-      }
-      /* Dashboard styles */
       #admin-dashboard {
-        width: 100vw;
+        width: 100%;
         min-height: 100vh;
         background: #f4f6fb;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 2rem 0;
+        padding: 2rem 1rem;
       }
-      .dashboard-header {
-        width: 100%;
-        max-width: 900px;
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      .header {
+        background: var(--primary);
+        color: #fff;
+        padding: 1rem;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        border-radius: 8px;
         margin-bottom: 2rem;
-      }
-      .dashboard-header h2 {
-        margin: 0;
-        color: #2d3a4b;
-      }
-      .dashboard-cards {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 1.5rem;
-        width: 100%;
-        max-width: 900px;
-        margin-bottom: 2rem;
-      }
-      .dashboard-card {
-        flex: 1 1 250px;
-        min-width: 250px;
-        max-width: 100%;
-        padding: 1.5rem 1rem;
-        box-sizing: border-box;
-        text-align: left;
-      }
-      .dashboard-card h3 {
-        margin-top: 0;
-        color: #2563eb;
-        font-size: 1.1rem;
       }
       .stats {
         display: flex;
-        gap: 2rem;
-        margin-bottom: 1.5rem;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
       }
       .stat {
         background: #e0e7ff;
         color: #3730a3;
+        padding: 1rem;
         border-radius: 8px;
-        padding: 1rem 1.5rem;
+        text-align: center;
+        flex: 1;
+        min-width: 120px;
         font-size: 1.2rem;
         font-weight: 600;
-        text-align: center;
-        min-width: 100px;
+      }
+      .card {
+        background: var(--card-bg);
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        margin-bottom: 1.5rem;
+      }
+      .card h2 {
+        margin-top: 0;
+        color: #2563eb;
       }
       table {
         width: 100%;
@@ -328,7 +144,7 @@
       }
       th,
       td {
-        padding: 0.7rem 0.5rem;
+        padding: 0.7rem;
         border-bottom: 1px solid #e2e8f0;
         text-align: left;
       }
@@ -336,23 +152,27 @@
         background: #f1f5f9;
         color: #2d3a4b;
       }
-      @media (max-width: 700px) {
-        .dashboard-cards,
-        .stats {
-          flex-direction: column;
-          gap: 1rem;
-        }
-        .dashboard-header {
-          flex-direction: column;
-          gap: 1rem;
-        }
+      #searchInput {
+        width: 100%;
+        padding: 0.5rem;
+        margin-bottom: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
       }
-      /* Loading spinner */
+      .form-group {
+        margin-bottom: 1rem;
+      }
+      .form-group label {
+        margin-bottom: 0.5rem;
+      }
+      #system-logs {
+        padding-left: 1.2em;
+      }
       .spinner {
         display: none;
         margin: 1rem auto;
         border: 4px solid #e2e8f0;
-        border-top: 4px solid #3182ce;
+        border-top: 4px solid var(--primary);
         border-radius: 50%;
         width: 32px;
         height: 32px;
@@ -366,10 +186,20 @@
           transform: rotate(360deg);
         }
       }
+      @media (max-width: 768px) {
+        .stats {
+          flex-direction: column;
+          gap: 1rem;
+        }
+        .header {
+          flex-direction: column;
+          gap: 1rem;
+        }
+      }
     </style>
   </head>
   <body>
-    <!-- Login Box (shown until auth) -->
+    <!-- Login Box -->
     <div class="centered" id="login-box">
       <h2>Admin Login</h2>
       <div class="error" id="error-msg"></div>
@@ -388,28 +218,29 @@
       </form>
     </div>
 
-    <!-- Main Admin Dashboard -->
+    <!-- Admin Dashboard -->
     <div id="admin-dashboard" style="display: none">
-      <div class="dashboard-header">
-        <h2>Admin Dashboard</h2>
-        <button onclick="logout()" style="width: auto; max-width: 150px">
-          Logout
-        </button>
-      </div>
+      <div class="container">
+        <header class="header">
+          <h1>HMS Admin Panel</h1>
+          <button id="logoutBtn" style="width: auto; max-width: 150px">
+            Logout
+          </button>
+        </header>
 
-      <!-- Stats Cards -->
-      <div class="stats">
-        <div class="stat">Users<br /><span id="stat-users">0</span></div>
-        <div class="stat">Doctors<br /><span id="stat-doctors">0</span></div>
-        <div class="stat">
-          Appointments<br /><span id="stat-appointments">0</span>
+        <!-- Real-Time Stats -->
+        <div class="stats">
+          <div class="stat">Users<br /><span id="stat-users">0</span></div>
+          <div class="stat">Doctors<br /><span id="stat-doctors">0</span></div>
+          <div class="stat">
+            Appointments<br /><span id="stat-appointments">0</span>
+          </div>
         </div>
-      </div>
 
-      <div class="dashboard-cards">
-        <!-- User Table -->
-        <div class="dashboard-card">
-          <h3>User Accounts</h3>
+        <!-- User Management -->
+        <div class="card">
+          <h2>User Management</h2>
+          <input type="text" id="searchInput" placeholder="Search users..." />
           <table>
             <thead>
               <tr>
@@ -422,42 +253,244 @@
           </table>
         </div>
 
-        <!-- System Logs -->
-        <div class="dashboard-card">
-          <h3>System Logs</h3>
-          <ul id="system-logs" style="padding-left: 1.2em"></ul>
-        </div>
-
-        <!-- Registration Form -->
-        <div class="dashboard-card">
-          <h3>Register New User</h3>
-          <form id="reg-form">
-            <input name="firstName" placeholder="First Name" required />
-            <input name="lastName" placeholder="Last Name" required />
-            <input name="email" type="email" placeholder="Email" required />
-            <input
-              name="password"
-              type="password"
-              placeholder="Password"
-              required
-            />
-            <select name="role" required>
-              <option value="">Select Role</option>
-              <option value="admin">Admin</option>
-              <option value="doctor">Doctor</option>
-              <option value="nurse">Nurse</option>
-              <option value="pharmacist">Pharmacist</option>
-              <option value="labAttendant">Lab Attendant</option>
-              <option value="receptionist">Receptionist</option>
-              <option value="firstResponder">First Responder</option>
-              <option value="recordClerk">Record Clerk</option>
-              <option value="hospitalStaff">Hospital Staff</option>
-              <option value="patient">Patient</option>
-            </select>
+        <!-- Register New User -->
+        <div class="card">
+          <h2>Register New User</h2>
+          <form id="registerForm">
+            <div class="form-group">
+              <label for="firstName">First Name</label>
+              <input type="text" id="firstName" name="firstName" required />
+            </div>
+            <div class="form-group">
+              <label for="lastName">Last Name</label>
+              <input type="text" id="lastName" name="lastName" required />
+            </div>
+            <div class="form-group">
+              <label for="email">Email</label>
+              <input type="email" id="email" name="email" required />
+            </div>
+            <div class="form-group">
+              <label for="password">Password</label>
+              <input type="password" id="password" name="password" required />
+            </div>
+            <div class="form-group">
+              <label for="role">Role</label>
+              <select id="role" name="role" required>
+                <option value="">Select Role</option>
+                <option value="admin">Admin</option>
+                <option value="doctor">Doctor</option>
+                <option value="nurse">Nurse</option>
+                <option value="pharmacist">Pharmacist</option>
+                <option value="labAttendant">Lab Attendant</option>
+                <option value="receptionist">Receptionist</option>
+                <option value="firstResponder">First Responder</option>
+                <option value="recordClerk">Record Clerk</option>
+                <option value="hospitalStaff">Hospital Staff</option>
+                <option value="patient">Patient</option>
+              </select>
+            </div>
             <button type="submit">Register</button>
           </form>
         </div>
+
+        <!-- System Logs -->
+        <div class="card">
+          <h2>System Logs</h2>
+          <ul id="system-logs"></ul>
+        </div>
       </div>
     </div>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+      import {
+        getAuth,
+        onAuthStateChanged,
+        signOut,
+        signInWithEmailAndPassword,
+        createUserWithEmailAndPassword,
+      } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+      import {
+        getFirestore,
+        collection,
+        query,
+        where,
+        orderBy,
+        limit,
+        onSnapshot,
+        setDoc,
+        doc,
+        serverTimestamp,
+      } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+      import {
+        getFunctions,
+        httpsCallable,
+      } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-functions.js";
+
+      const firebaseConfig = {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_AUTH_DOMAIN",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_STORAGE_BUCKET",
+        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+        appId: "YOUR_APP_ID",
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+      const functions = getFunctions(app);
+      const assignRoleClaim = httpsCallable(functions, "assignRoleClaim");
+
+      // Authentication State
+      onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+          document.getElementById("login-box").style.display = "flex";
+          document.getElementById("admin-dashboard").style.display = "none";
+        } else {
+          try {
+            const idRes = await user.getIdTokenResult(true);
+            if (!idRes.claims.admin) {
+              window.location.href = "/unauthorized.html";
+            } else {
+              document.getElementById("login-box").style.display = "none";
+              document.getElementById("admin-dashboard").style.display =
+                "block";
+              loadDashboard();
+            }
+          } catch (error) {
+            console.error("Error verifying admin:", error);
+            alert("Failed to verify admin status.");
+          }
+        }
+      });
+
+      // Login Handler
+      document
+        .getElementById("admin-login-form")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const email = document.getElementById("admin-email").value;
+          const password = document.getElementById("admin-password").value;
+          const spinner = document.getElementById("login-spinner");
+          spinner.style.display = "block";
+          try {
+            await signInWithEmailAndPassword(auth, email, password);
+          } catch (error) {
+            document.getElementById("error-msg").textContent = error.message;
+          } finally {
+            spinner.style.display = "none";
+          }
+        });
+
+      // Load Dashboard with Real-Time Data
+      function loadDashboard() {
+        onSnapshot(collection(db, "users"), (snapshot) => {
+          document.getElementById("stat-users").textContent = snapshot.size;
+          const userTable = document.getElementById("user-table");
+          userTable.innerHTML = "";
+          snapshot.forEach((docSnap) => {
+            const u = docSnap.data();
+            const row = `<tr><td>${u.firstName} ${u.lastName}</td><td>${u.email}</td><td>${u.role}</td></tr>`;
+            userTable.insertAdjacentHTML("beforeend", row);
+          });
+        });
+
+        onSnapshot(
+          query(collection(db, "users"), where("role", "==", "doctor")),
+          (snapshot) => {
+            document.getElementById("stat-doctors").textContent = snapshot.size;
+          }
+        );
+
+        onSnapshot(collection(db, "appointments"), (snapshot) => {
+          document.getElementById("stat-appointments").textContent =
+            snapshot.size;
+        });
+
+        onSnapshot(
+          query(
+            collection(db, "logs"),
+            orderBy("timestamp", "desc"),
+            limit(10)
+          ),
+          (snapshot) => {
+            const logsList = document.getElementById("system-logs");
+            logsList.innerHTML = "";
+            snapshot.forEach((docSnap) => {
+              const log = docSnap.data();
+              const li = document.createElement("li");
+              li.textContent = `[${
+                log.timestamp?.toDate().toLocaleString() || "N/A"
+              }] ${log.message}`;
+              logsList.appendChild(li);
+            });
+          }
+        );
+      }
+
+      // Register User
+      document
+        .getElementById("registerForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const firstName = e.target.firstName.value.trim();
+          const lastName = e.target.lastName.value.trim();
+          const email = e.target.email.value.trim();
+          const password = e.target.password.value;
+          const role = e.target.role.value;
+
+          const passRegex =
+            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+          if (!passRegex.test(password)) {
+            alert(
+              "Password must be at least 8 characters, with uppercase, lowercase, number, and special character."
+            );
+            return;
+          }
+
+          try {
+            const userCredential = await createUserWithEmailAndPassword(
+              auth,
+              email,
+              password
+            );
+            const user = userCredential.user;
+
+            await assignRoleClaim({ uid: user.uid, role });
+            await user.getIdTokenResult(true);
+
+            await setDoc(doc(db, "users", user.uid), {
+              firstName,
+              lastName,
+              email,
+              role,
+              createdAt: serverTimestamp(),
+            });
+
+            alert(`User ${firstName} ${lastName} registered as ${role}!`);
+            e.target.reset();
+          } catch (error) {
+            alert("Registration failed: " + error.message);
+          }
+        });
+
+      // Search Users
+      document.getElementById("searchInput").addEventListener("input", (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        const rows = document.querySelectorAll("#user-table tr");
+        rows.forEach((row) => {
+          const text = row.textContent.toLowerCase();
+          row.style.display = text.includes(searchTerm) ? "" : "none";
+        });
+      });
+
+      // Logout
+      document.getElementById("logoutBtn").addEventListener("click", () => {
+        signOut(auth).then(() => {
+          window.location.href = "/index.html";
+        });
+      });
+    </script>
   </body>
 </html>
