@@ -77,7 +77,9 @@
         list-style: none;
         display: flex;
         gap: 1rem;
+        
       }
+      
       .nav-menu li a {
         color: white;
         text-decoration: none;
@@ -293,6 +295,13 @@
     <script src="/patient/js/security.js"></script>
     <script src="/patient/js/securityMiddleware.js"></script>
     <script src="/patient/js/securityLogger.js"></script>
+    <script >document.addEventListener('DOMContentLoaded', () => {
+      const navToggle = document.getElementById('navToggle');
+      const navMenu   = document.getElementById('navMenu');
+      navToggle.addEventListener('click', () => {
+        navMenu.classList.toggle('open');
+      });
+    });</script>
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
       import {
@@ -372,6 +381,14 @@
               document.getElementById("emergencyContact").value =
                 userData.emergencyContact || "";
             }
+            // Replace your one-time getDoc() in onAuthStateChanged…
+            const userDocRef = doc(db, "users", user.uid);
+            onSnapshot(userDocRef, (snap) => {
+              if (!snap.exists()) return;
+              const data = snap.data();
+              // populate form fields here exactly as you did in getDoc()
+            });
+            // …
           } catch (error) {
             console.error("Error loading user data:", error);
             showError("Failed to load user data. Please try again.");
