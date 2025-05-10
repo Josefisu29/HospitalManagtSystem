@@ -12,14 +12,14 @@
       :root {
         --primary: #0052cc;
         --accent: #00bfa5;
-        --bg: #f9fbfd;
+        --bg: #f4f6fb;
         --text: #333;
         --card-bg: #fff;
         --transition: 0.3s ease;
       }
       body {
         font-family: "Segoe UI", Arial, sans-serif;
-        background: #f4f6fb;
+        background: var(--bg);
         color: var(--text);
         margin: 0;
         min-height: 100vh;
@@ -92,7 +92,7 @@
       #admin-dashboard {
         width: 100%;
         min-height: 100vh;
-        background: #f4f6fb;
+        background: var(--bg);
         padding: 2rem 1rem;
       }
       .container {
@@ -328,12 +328,12 @@
       } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-functions.js";
 
       const firebaseConfig = {
-        apiKey: "YOUR_API_KEY",
-        authDomain: "YOUR_AUTH_DOMAIN",
-        projectId: "YOUR_PROJECT_ID",
-        storageBucket: "YOUR_STORAGE_BUCKET",
-        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-        appId: "YOUR_APP_ID",
+        apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
+        authDomain: "hospitalmanagtsystem.firebaseapp.com",
+        projectId: "hospitalmanagtsystem",
+        storageBucket: "hospitalmanagtsystem.firebasestorage.app",
+        messagingSenderId: "771158568788",
+        appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
       };
 
       const app = initializeApp(firebaseConfig);
@@ -351,7 +351,9 @@
           try {
             const idRes = await user.getIdTokenResult(true);
             if (!idRes.claims.admin) {
-              window.location.href = "/unauthorized.html";
+              await signOut(auth);
+              alert("Unauthorized: Admin access required.");
+              window.location.href = "/";
             } else {
               document.getElementById("login-box").style.display = "none";
               document.getElementById("admin-dashboard").style.display =
@@ -360,7 +362,9 @@
             }
           } catch (error) {
             console.error("Error verifying admin:", error);
-            alert("Failed to verify admin status.");
+            await signOut(auth);
+            alert("Failed to verify admin status. Please try again.");
+            window.location.href = "/";
           }
         }
       });
@@ -373,15 +377,57 @@
           const email = document.getElementById("admin-email").value;
           const password = document.getElementById("admin-password").value;
           const spinner = document.getElementById("login-spinner");
+          const errorMsg = document.getElementById("error-msg");
+
           spinner.style.display = "block";
+          errorMsg.textContent = "";
+
           try {
-            await signInWithEmailAndPassword(auth, email, password);
+            const userCredential = await signInWithEmailAndPassword(
+              auth,
+              email,
+              password
+            );
+            const user = userCredential.user;
+            const idTokenResult = await user.getIdTokenResult(true);
+
+            if (!idTokenResult.claims.admin) {
+              await signOut(auth);
+              errorMsg.textContent = "Unauthorized: Admin access required.";
+            } else {
+              // Update URL without page reload
+              window.history.pushState({}, "", "/admin");
+            }
           } catch (error) {
-            document.getElementById("error-msg").textContent = error.message;
+            console.error("Login error:", error);
+            switch (error.code) {
+              case "auth/user-not-found":
+                errorMsg.textContent = "No account found with this email.";
+                break;
+              case "auth/wrong-password":
+                errorMsg.textContent = "Incorrect password.";
+                break;
+              case "auth/invalid-email":
+                errorMsg.textContent = "Invalid email format.";
+                break;
+              case "auth/too-many-requests":
+                errorMsg.textContent =
+                  "Too many failed attempts. Please try again later.";
+                break;
+              default:
+                errorMsg.textContent = "Login failed. Please try again.";
+            }
           } finally {
             spinner.style.display = "none";
           }
         });
+
+      // Handle browser back/forward buttons
+      window.addEventListener("popstate", () => {
+        if (!auth.currentUser) {
+          window.location.href = "/";
+        }
+      });
 
       // Load Dashboard with Real-Time Data
       function loadDashboard() {
