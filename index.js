@@ -97,3 +97,99 @@ signInWithEmailAndPassword(auth, email, pass)
   .catch((error) => {
     /* show error */
   });
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+import {
+  getAuth,
+  onAuthStateChanged,
+  signOut,
+} from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  serverTimestamp,
+  doc,
+  updateDoc,
+  onSnapshot,
+} from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
+  authDomain: "hospitalmanagtsystem.firebaseapp.com",
+  projectId: "hospitalmanagtsystem",
+  storageBucket: "hospitalmanagtsystem.firebasestorage.app",
+  messagingSenderId: "771158568788",
+  appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+
+// Utility function to get the current user's role
+export async function getUserRole() {
+  const user = auth.currentUser;
+  if (user) {
+    const token = await user.getIdTokenResult();
+    return token.claims.role || null;
+  }
+  return null;
+}
+
+// Database operation: Create a help request
+export async function createHelpRequest(latitude, longitude) {
+  const user = auth.currentUser;
+  if (!user) throw new Error("User not authenticated");
+  if ((await getUserRole()) !== "patient")
+    throw new Error("Only patients can create help requests");
+  await addDoc(collection(db, "helpRequests"), {
+    patientId: user.uid,
+    latitude,
+    longitude,
+    timestamp: serverTimestamp(),
+  });
+}
+
+// Database operation: Update user profile
+export async function updateUserProfile(data) {
+  const user = auth.currentUser;
+  if (!user) throw new Error("User not authenticated");
+  const userRef = doc(db, "users", user.uid);
+  await updateDoc(userRef, data);
+}
+
+// Authentication utility: Sign out
+export async function signOutUser() {
+  await signOut(auth);
+}
+
+// Authentication utility: Set up auth state listener
+export function setupAuthListener(callback) {
+  onAuthStateChanged(auth, callback);
+}
+
+// Real-time listener for help requests (for responders)
+export function listenToHelpRequests(callback) {
+  return onSnapshot(collection(db, "helpRequests"), callback);
+}
+
+// UI utility functions (placeholders, implement as needed)
+export function showLoading() {
+  const loading = document.getElementById("loading");
+  if (loading) loading.style.display = "flex";
+}
+
+export function hideLoading() {
+  const loading = document.getElementById("loading");
+  if (loading) loading.style.display = "none";
+}
+
+export function showError(message) {
+  alert(`Error: ${message}`);
+}
+
+export function showSuccess(message) {
+  alert(`Success: ${message}`);
+}
