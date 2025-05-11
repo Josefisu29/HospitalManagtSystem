@@ -320,158 +320,158 @@
       });
     </script>
     <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-      import {
-        getAuth,
-        onAuthStateChanged,
-        signOut,
-      } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
-      import {
-        getFirestore,
-        doc,
-        getDoc,
-        setDoc,
-        Timestamp,
-        updateDoc,
-        onSnapshot,
-      } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
-      import {
-        showLoading,
-        hideLoading,
-        showError,
-        showSuccess,
-      } from "./js/common.js";
-      import securityMiddleware from "./js/securityMiddleware.js";
+      // import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+      // import {
+      //   getAuth,
+      //   onAuthStateChanged,
+      //   signOut,
+      // } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+      // import {
+      //   getFirestore,
+      //   doc,
+      //   getDoc,
+      //   setDoc,
+      //   Timestamp,
+      //   updateDoc,
+      //   onSnapshot,
+      // } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+      // import {
+      //   showLoading,
+      //   hideLoading,
+      //   showError,
+      //   showSuccess,
+      // } from "./js/common.js";
+      // import securityMiddleware from "./js/securityMiddleware.js";
 
-      // Firebase configuration
-      const firebaseConfig = {
-        apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
-        authDomain: "hospitalmanagtsystem.firebaseapp.com",
-        projectId: "hospitalmanagtsystem",
-        storageBucket: "hospitalmanagtsystem.firebasestorage.app",
-        messagingSenderId: "771158568788",
-        appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
-        six,
-      };
+      // // Firebase configuration
+      // const firebaseConfig = {
+      //   apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
+      //   authDomain: "hospitalmanagtsystem.firebaseapp.com",
+      //   projectId: "hospitalmanagtsystem",
+      //   storageBucket: "hospitalmanagtsystem.firebasestorage.app",
+      //   messagingSenderId: "771158568788",
+      //   appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
+      //   six,
+      // };
 
-      // Initialize Firebase
-      const app = initializeApp(firebaseConfig);
-      const auth = getAuth(app);
-      const db = getFirestore(app);
+      // // Initialize Firebase
+      // const app = initializeApp(firebaseConfig);
+      // const auth = getAuth(app);
+      // const db = getFirestore(app);
 
-      // Define populateForm function
-      function populateForm(userData) {
-        const greetEl = document.getElementById("greeting");
-        const hour = new Date().getHours();
-        const sal =
-          hour < 12
-            ? "Good Morning"
-            : hour < 18
-            ? "Good Afternoon"
-            : "Good Evening";
-        greetEl.textContent = `${sal}, ${userData.firstName || "User"}`;
+      // // Define populateForm function
+      // function populateForm(userData) {
+      //   const greetEl = document.getElementById("greeting");
+      //   const hour = new Date().getHours();
+      //   const sal =
+      //     hour < 12
+      //       ? "Good Morning"
+      //       : hour < 18
+      //       ? "Good Afternoon"
+      //       : "Good Evening";
+      //   greetEl.textContent = `${sal}, ${userData.firstName || "User"}`;
 
-        document.getElementById("patientId").value = userData.patientId || "";
-        document.getElementById("firstName").value = userData.firstName || "";
-        document.getElementById("lastName").value = userData.lastName || "";
-        document.getElementById("dateOfBirth").value = userData.dateOfBirth
-          ? userData.dateOfBirth.toDate().toISOString().split("T")[0]
-          : "";
-        document.getElementById("gender").value = userData.gender || "";
-        document.getElementById("address").value = userData.address || "";
-        document.getElementById("phone").value = userData.phone || "";
-        document.getElementById("email").value = userData.email || "";
-        document.getElementById("allergies").value = userData.allergies || "";
-        document.getElementById("medications").value =
-          userData.medications || "";
-        document.getElementById("medicalHistory").value =
-          userData.medicalHistory || "";
-        document.getElementById("emergencyContact").value =
-          userData.emergencyContact || "";
-      }
+      //   document.getElementById("patientId").value = userData.patientId || "";
+      //   document.getElementById("firstName").value = userData.firstName || "";
+      //   document.getElementById("lastName").value = userData.lastName || "";
+      //   document.getElementById("dateOfBirth").value = userData.dateOfBirth
+      //     ? userData.dateOfBirth.toDate().toISOString().split("T")[0]
+      //     : "";
+      //   document.getElementById("gender").value = userData.gender || "";
+      //   document.getElementById("address").value = userData.address || "";
+      //   document.getElementById("phone").value = userData.phone || "";
+      //   document.getElementById("email").value = userData.email || "";
+      //   document.getElementById("allergies").value = userData.allergies || "";
+      //   document.getElementById("medications").value =
+      //     userData.medications || "";
+      //   document.getElementById("medicalHistory").value =
+      //     userData.medicalHistory || "";
+      //   document.getElementById("emergencyContact").value =
+      //     userData.emergencyContact || "";
+      // }
 
-      // Check authentication state
-      onAuthStateChanged(auth, async (user) => {
-        if (user) {
-          showLoading();
-          try {
-            // Initial one-time load
-            const userDocRef = doc(db, "users", user.uid);
-            const userDocSnap = await getDoc(userDocRef);
-            if (userDocSnap.exists()) {
-              const data = userDocSnap.data();
-              populateForm(data);
-            }
+      // // Check authentication state
+      // onAuthStateChanged(auth, async (user) => {
+      //   if (user) {
+      //     showLoading();
+      //     try {
+      //       // Initial one-time load
+      //       const userDocRef = doc(db, "users", user.uid);
+      //       const userDocSnap = await getDoc(userDocRef);
+      //       if (userDocSnap.exists()) {
+      //         const data = userDocSnap.data();
+      //         populateForm(data);
+      //       }
 
-            // Real-time listener to update form if Firestore changes
-            onSnapshot(userDocRef, (snap) => {
-              if (!snap.exists()) return;
-              const data = snap.data();
-              populateForm(data);
-            });
-          } catch (err) {
-            console.error("Error loading user data:", err);
-            showError("Failed to load user data. Please try again.");
-          } finally {
-            hideLoading();
-          }
-        } else {
-          window.location.href = "/index.html";
-        }
-      });
+      //       // Real-time listener to update form if Firestore changes
+      //       onSnapshot(userDocRef, (snap) => {
+      //         if (!snap.exists()) return;
+      //         const data = snap.data();
+      //         populateForm(data);
+      //       });
+      //     } catch (err) {
+      //       console.error("Error loading user data:", err);
+      //       showError("Failed to load user data. Please try again.");
+      //     } finally {
+      //       hideLoading();
+      //     }
+      //   } else {
+      //     window.location.href = "/index.html";
+      //   }
+      // });
 
       // Form submission handler
-      document
-        .getElementById("profileForm")
-        .addEventListener("submit", async (e) => {
-          e.preventDefault();
-          try {
-            showLoading();
-            const user = auth.currentUser;
-            if (user) {
-              const firstName = document.getElementById("firstName").value;
-              const lastName = document.getElementById("lastName").value;
-              const dateOfBirthStr =
-                document.getElementById("dateOfBirth").value;
-              const dateOfBirth = dateOfBirthStr
-                ? Timestamp.fromDate(new Date(dateOfBirthStr))
-                : null;
-              const gender = document.getElementById("gender").value;
-              const address = document.getElementById("address").value;
-              const phone = document.getElementById("phone").value;
-              const allergies = document.getElementById("allergies").value;
-              const medications = document.getElementById("medications").value;
-              const medicalHistory =
-                document.getElementById("medicalHistory").value;
-              const emergencyContact =
-                document.getElementById("emergencyContact").value;
+      // document
+      //   .getElementById("profileForm")
+      //   .addEventListener("submit", async (e) => {
+      //     e.preventDefault();
+      //     try {
+      //       showLoading();
+      //       const user = auth.currentUser;
+      //       if (user) {
+      //         const firstName = document.getElementById("firstName").value;
+      //         const lastName = document.getElementById("lastName").value;
+      //         const dateOfBirthStr =
+      //           document.getElementById("dateOfBirth").value;
+      //         const dateOfBirth = dateOfBirthStr
+      //           ? Timestamp.fromDate(new Date(dateOfBirthStr))
+      //           : null;
+      //         const gender = document.getElementById("gender").value;
+      //         const address = document.getElementById("address").value;
+      //         const phone = document.getElementById("phone").value;
+      //         const allergies = document.getElementById("allergies").value;
+      //         const medications = document.getElementById("medications").value;
+      //         const medicalHistory =
+      //           document.getElementById("medicalHistory").value;
+      //         const emergencyContact =
+      //           document.getElementById("emergencyContact").value;
 
-              await setDoc(
-                doc(db, "users", user.uid),
-                {
-                  firstName,
-                  lastName,
-                  dateOfBirth,
-                  gender,
-                  address,
-                  phone,
-                  allergies,
-                  medications,
-                  medicalHistory,
-                  emergencyContact,
-                },
-                { merge: true }
-              );
+      //         await setDoc(
+      //           doc(db, "users", user.uid),
+      //           {
+      //             firstName,
+      //             lastName,
+      //             dateOfBirth,
+      //             gender,
+      //             address,
+      //             phone,
+      //             allergies,
+      //             medications,
+      //             medicalHistory,
+      //             emergencyContact,
+      //           },
+      //           { merge: true }
+      //         );
 
-              showSuccess("Profile updated successfully!");
-            }
-          } catch (error) {
-            console.error("Error saving profile:", error);
-            showError("Failed to save profile. Please try again.");
-          } finally {
-            hideLoading();
-          }
-        });
+      //         showSuccess("Profile updated successfully!");
+      //       }
+      //     } catch (error) {
+      //       console.error("Error saving profile:", error);
+      //       showError("Failed to save profile. Please try again.");
+      //     } finally {
+      //       hideLoading();
+      //     }
+      //   });
 
       // Status indicator
       const statusDot = document.getElementById("statusIndicator");
