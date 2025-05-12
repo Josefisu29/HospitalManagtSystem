@@ -226,17 +226,11 @@
           <div class="nav-toggle" id="navToggle">☰</div>
           <ul class="nav-menu" id="navMenu">
             <li><a href="patient.html" class="active">Profile</a></li>
-            <li>
-              <a href="patient-appointments.html">Appointment</a>
-            </li>
+            <li><a href="patient-appointments.html">Appointment</a></li>
             <li><a href="patient-records.html">Medical Record</a></li>
             <li><a href="patient-results.html">Lab Result</a></li>
-            <li>
-              <a href="patient-billing.html">Billing & Payment</a>
-            </li>
-            <li>
-              <a href="Help.html">Get-Help</a>
-            </li>
+            <li><a href="patient-billing.html">Billing & Payment</a></li>
+            <li><a href="Help.html">Get-Help</a></li>
           </ul>
         </div>
       </nav>
@@ -308,8 +302,8 @@
     <script src="/patient/js/common.js"></script>
     <script src="/patient/js/security.js"></script>
     <script src="/patient/js/securityMiddleware.js"></script>
-    <script src=patient/js/securityLogger.js""></script>
-    <script src="patient/js/profile.js"></script>
+    <script src="/patient/js/securityLogger.js"></script>
+    <script src="/patient/js/profile.js"></script>
     <script>
       document.addEventListener("DOMContentLoaded", () => {
         const navToggle = document.getElementById("navToggle");
@@ -351,7 +345,6 @@
         storageBucket: "hospitalmanagtsystem.firebasestorage.app",
         messagingSenderId: "771158568788",
         appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
-        six,
       };
 
       // Initialize Firebase
@@ -359,7 +352,38 @@
       const auth = getAuth(app);
       const db = getFirestore(app);
 
-      // Define populateForm function
+      // Function to generate a unique patient ID
+      // function generatePatientId() {
+      //   return "PAT-" + Math.random().toString(36).substr(2, 9).toUpperCase();
+      // }
+      async function generatePatientId() {
+        const counterRef = doc(db, "counters", "patientId");
+        const counterSnap = await getDoc(counterRef);
+
+        if (!counterSnap.exists()) {
+          // Initialize the counter if it doesn't exist
+          await setDoc(counterRef, { lastId: 0 });
+        }
+
+        // Increment the counter
+        const lastId = counterSnap.exists() ? counterSnap.data().lastId : 0;
+        const newId = lastId + 1;
+        await updateDoc(counterRef, { lastId: newId });
+
+        // Format the ID as a 3-digit string (e.g., 001, 002, ...)
+        return String(newId).padStart(3, "0");
+      }
+
+      // Function to disable form inputs
+      function disableFormInputs() {
+        const formElements = document.querySelectorAll(
+          "#profileForm input, #profileForm textarea, #profileForm select"
+        );
+        formElements.forEach((el) => (el.disabled = true));
+        document.getElementById("saveProfile").style.display = "none";
+      }
+
+      // Function to populate form with user data
       function populateForm(userData) {
         const greetEl = document.getElementById("greeting");
         const hour = new Date().getHours();
@@ -399,23 +423,25 @@
 
             // Initial data load
             const userDocSnap = await getDoc(userDocRef);
-            if (userDocSnap.exists()) {
-              populateForm(userDocSnap.data());
+            let userData = userDocSnap.exists() ? userDocSnap.data() : {};
+
+            // Generate and save patient ID if it doesn't exist
+            if (!userData.patientId) {
+              const patientId = generatePatientId();
+              await setDoc(userDocRef, { patientId }, { merge: true });
+              userData.patientId = patientId;
             }
 
+            // Set email from auth object
+            userData.email = user.email;
+            populateForm(userData);
+
             // Real-time updates
-            unsubscribeSnapshot = onSnapshot(
-              userDocRef,
-              (snap) => {
-                if (snap.exists()) {
-                  populateForm(snap.data());
-                }
-              },
-              (err) => {
-                console.error("Snapshot error:", err);
-                showError("Failed to sync profile data.");
+            onSnapshot(userDocRef, (snap) => {
+              if (snap.exists()) {
+                populateForm(snap.data());
               }
-            );
+            });
           } catch (err) {
             console.error("Error loading user data:", err);
             showError("Failed to load user data. Please try again.");
@@ -448,6 +474,7 @@
                 gender: document.getElementById("gender").value,
                 address: document.getElementById("address").value,
                 phone: document.getElementById("phone").value,
+                email: document.getElementById("email").value,
                 allergies: document.getElementById("allergies").value,
                 medications: document.getElementById("medications").value,
                 medicalHistory: document.getElementById("medicalHistory").value,
@@ -457,6 +484,7 @@
 
               await updateDoc(userDocRef, formData);
               showSuccess("Profile updated successfully!");
+              disableFormInputs(); // Make form static after saving
             }
           } catch (error) {
             console.error("Error saving profile:", error);
@@ -494,44 +522,16 @@
         }
       });
 
-      document.getElementById("saveStatus").onclick = async () => {
-        try {
-          if (!currentEmergency) {
-            throw new Error("No emergency selected");
-          }
-          const newStatus = document.getElementById("statusSelect").value;
-          if (!newStatus) {
-            throw new Error("Invalid status");
-          }
-          showLoading();
-          await updateDoc(doc(db, "helpRequests", currentEmergency.id), {
-            status: newStatus,
-          });
-          showNotification(`Status updated to ${newStatus}`);
-          document.getElementById("emergencyModal").classList.remove("show");
-        } catch (error) {
-          console.error("Error updating status:", error);
-          showNotification("Failed to update status");
-        } finally {
-          hideLoading();
-        }
-      };
-
       document
         .getElementById("logoutBtn")
         .addEventListener("click", async () => {
           try {
             showLoading();
-            const unsubscribe = onSnapshot(
-              doc(db, "users", auth.currentUser.uid),
-              () => {}
-            );
-            unsubscribe();
             await signOut(auth);
             window.location.href = "/index.html";
           } catch (error) {
             console.error("Error signing out:", error);
-            showNotification("Failed to sign out");
+            showError("Failed to sign out");
           } finally {
             hideLoading();
           }
