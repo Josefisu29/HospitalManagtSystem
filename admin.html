@@ -606,7 +606,7 @@
 
             if (idTokenResult.claims.role !== "admin") {
               await signOut(auth);
-              errorMsg.textContent = "Unauthorized: Admin access required.";
+              // errorMsg.textContent = "Unauthorized: Admin access required.";
             }
           } catch (error) {
             console.error("Login error:", error);
@@ -656,7 +656,7 @@
         .addEventListener("click", async () => {
           try {
             await signOut(auth);
-            window.location.href = "/";
+            window.location.href = "/index.html";
           } catch (error) {
             console.error("Logout error:", error);
             alert("Failed to log out. Please try again.");
