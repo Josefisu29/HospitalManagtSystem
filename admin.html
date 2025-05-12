@@ -556,31 +556,31 @@
       const sendResetEmail = httpsCallable(functions, "sendResetEmail");
 
       // Authentication State
-      onAuthStateChanged(auth, async (user) => {
-        if (!user) {
-          document.getElementById("login-box").style.display = "flex";
-          document.getElementById("admin-dashboard").style.display = "none";
-        } else {
-          try {
-            const idRes = await user.getIdTokenResult(true);
-            if (idRes.claims.role !== "admin") {
-              await signOut(auth);
-              alert("Unauthorized: Admin access required.");
-              window.location.href = "/";
-            } else {
-              document.getElementById("login-box").style.display = "none";
-              document.getElementById("admin-dashboard").style.display =
-                "block";
-              loadDashboard();
-            }
-          } catch (error) {
-            console.error("Error verifying admin:", error);
-            await signOut(auth);
-            alert("Failed to verify admin status. Please try again.");
-            window.location.href = "/";
-          }
-        }
-      });
+      // onAuthStateChanged(auth, async (user) => {
+      //   if (!user) {
+      //     document.getElementById("login-box").style.display = "flex";
+      //     document.getElementById("admin-dashboard").style.display = "none";
+      //   } else {
+      //     try {
+      //       const idRes = await user.getIdTokenResult(true);
+      //       if (idRes.claims.role !== "admin") {
+      //         await signOut(auth);
+      //         alert("Unauthorized: Admin access required.");
+      //         window.location.href = "/";
+      //       } else {
+      //         document.getElementById("login-box").style.display = "none";
+      //         document.getElementById("admin-dashboard").style.display =
+      //           "block";
+      //         loadDashboard();
+      //       }
+      //     } catch (error) {
+      //       console.error("Error verifying admin:", error);
+      //       await signOut(auth);
+      //       alert("Failed to verify admin status. Please try again.");
+      //       window.location.href = "/";
+      //     }
+      //   }
+      // });
 
       // Login Handler
       document
