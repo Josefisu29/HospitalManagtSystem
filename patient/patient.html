@@ -413,6 +413,13 @@
         document.getElementById("emergencyContact").value =
           userData.emergencyContact || "";
       }
+      function disableFormInputs() {
+        const formElements = document.querySelectorAll(
+          "#profileForm input, #profileForm textarea, #profileForm select"
+        );
+        formElements.forEach((el) => (el.disabled = true));
+        document.getElementById("saveProfile").style.display = "none";
+      }
 
       // Check authentication state
       onAuthStateChanged(auth, async (user) => {
@@ -421,8 +428,29 @@
           try {
             const userDocRef = doc(db, "users", user.uid);
 
-            // Initial data load
             const userDocSnap = await getDoc(userDocRef);
+            if (userDocSnap.exists()) {
+              userData = userDocSnap.data();
+            } else {
+              userData = {
+                email: user.email,
+                patientId: await generatePatientId(),
+                firstName: "",
+                lastName: "",
+                dateOfBirth: null,
+                gender: "",
+                address: "",
+                phone: "",
+                allergies: "",
+                medications: "",
+                medicalHistory: "",
+                emergencyContact: "",
+              };
+              await setDoc(userDocRef, userData);
+            }
+
+            // Initial data load
+            // const userDocSnap = await getDoc(userDocRef);
             let userData = userDocSnap.exists() ? userDocSnap.data() : {};
 
             // Generate and save patient ID if it doesn't exist
