@@ -186,3 +186,36 @@ export {
   setupTableSorting,
   setupTableFiltering,
 };
+// status.js
+
+/**
+ * Initializes the online/offline status indicator.
+ *
+ * @param {string} indicatorId - The ID of the status indicator element.
+ */
+export function initStatusIndicator(indicatorId = "statusIndicator") {
+  const indicator = document.getElementById(indicatorId);
+  if (!indicator) {
+    console.warn(`Status indicator element "#${indicatorId}" not found.`);
+    return;
+  }
+
+  function update() {
+    if (navigator.onLine) {
+      indicator.classList.remove("offline");
+      indicator.classList.add("online");
+      indicator.title = "Online";
+    } else {
+      indicator.classList.remove("online");
+      indicator.classList.add("offline");
+      indicator.title = "Offline";
+    }
+  }
+
+  // Listen for browser events
+  window.addEventListener("online", update); // :contentReference[oaicite:0]{index=0}
+  window.addEventListener("offline", update); // :contentReference[oaicite:1]{index=1}
+
+  // Set initial state
+  update(); // :contentReference[oaicite:2]{index=2}
+}

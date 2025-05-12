@@ -113,3 +113,17 @@
   color: #ddd;
   margin-bottom: 1rem;
 }
+.status-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #e53935; /* red when offline */
+  transition: background 0.3s;
+}
+.status-indicator.online {
+  background: #28a745; /* green when online */
+}
+.status-indicator.offline {
+  background: #e53935; /* red when offline */
+}
+  
