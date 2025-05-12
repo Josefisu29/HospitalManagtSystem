@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>HMS – My Appointments</title>
+    <title>HMS –Appointments</title>
     <link rel="stylesheet" href="css/all.css" />
     <style>
       :root {
@@ -165,7 +165,6 @@
   </head>
   <body>
     <header>
-      <!-- <h1>HMS</h1> -->
       <div style="display: flex; align-items: center">
         <span id="greeting" class="greeting"></span>
         <span id="statusIndicator" class="status-indicator offline"></span>
@@ -178,18 +177,14 @@
       <div class="nav-inner">
         <div class="nav-toggle" id="navToggle">☰</div>
         <ul class="nav-menu" id="navMenu">
-          <li><a href="patient.html" class="active">Profile</a></li>
+          <li><a href="patient.html">Profile</a></li>
           <li>
-            <a href="patient-appointments.html">Appointment</a>
+            <a href="patient-appointments.html" class="active">Appointment</a>
           </li>
           <li><a href="patient-records.html">Medical Record</a></li>
           <li><a href="patient-results.html">Lab Result</a></li>
-          <li>
-            <a href="patient-billing.html">Billing & Payment</a>
-          </li>
-          <li>
-            <a href="Help.html">Get-Help</a>
-          </li>
+          <li><a href="patient-billing.html">Billing & Payment</a></li>
+          <li><a href="Help.html">Get-Help</a></li>
         </ul>
       </div>
     </nav>
@@ -218,23 +213,14 @@
 
     <div id="appointmentModal" class="modal">
       <div class="modal-content">
-        <span class="close" id="closeModal">&times;</span>
+        <span class="close" id="closeModal">×</span>
         <h2>Book Appointment</h2>
         <form id="appointmentForm">
           <div>
             <label for="doctorSelect">Doctor</label>
             <select id="doctorSelect" required>
-              <option value="">Select Doctor1</option>
-              <option value="">Select Doctor2</option>
-              <option value="">Select Doctor3</option>
-              <option value="">Select Doctor4</option>
-              <option value="">Select Doctor5</option>
-              <option value="">Select Doctor6</option>
-              <option value="">Select Doctor7</option>
-              <option value="">Select Doctor8</option>
-              <option value="">Select Doctor9</option>
-              <option value="">Select Doctor10</option>
-              <option value="">Select Doctor11</option>
+              <option value="">Select Doctor</option>
+              <!-- Doctors will be loaded dynamically -->
             </select>
           </div>
           <div>
@@ -266,6 +252,7 @@
         where,
         getDocs,
         setDoc,
+        Timestamp,
       } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
       // Firebase configuration
@@ -283,13 +270,15 @@
       const auth = getAuth(app);
       const db = getFirestore(app);
 
+      let currentUser = null;
+
       // Check authentication state
       onAuthStateChanged(auth, async (user) => {
         if (user) {
           try {
             const userDoc = await getDoc(doc(db, "users", user.uid));
             if (userDoc.exists()) {
-              const userData = userDoc.data();
+              currentUser = userDoc.data();
               const greetEl = document.getElementById("greeting");
               const hour = new Date().getHours();
               const sal =
@@ -298,7 +287,7 @@
                   : hour < 18
                   ? "Good Afternoon"
                   : "Good Evening";
-              greetEl.textContent = `${sal}, ${userData.firstName}`;
+              greetEl.textContent = `${sal}, ${currentUser.firstName}`;
               await loadAppointments(user.uid);
               await loadDoctors();
             }
@@ -318,24 +307,30 @@
           const querySnapshot = await getDocs(q);
           const tbody = document.getElementById("appointmentsTable");
           tbody.innerHTML = "";
-          querySnapshot.forEach(async (doc) => {
-            const appointment = doc.data();
+          querySnapshot.forEach(async (docSnap) => {
+            const appointment = docSnap.data();
             const doctorDoc = await getDoc(
               doc(db, "doctors", appointment.doctorId)
             );
             const doctorName = doctorDoc.exists()
               ? doctorDoc.data().name
               : "Unknown";
+            const appointmentDate = appointment.date.toDate();
+            const dateStr = appointmentDate.toLocaleDateString();
+            const timeStr = appointmentDate.toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
             const row = document.createElement("tr");
             row.innerHTML = `
-              <td>${appointment.date}</td>
-              <td>${appointment.time}</td>
+              <td>${dateStr}</td>
+              <td>${timeStr}</td>
               <td>${doctorName}</td>
               <td>${appointment.status}</td>
               <td>
-                <button class="btn" onclick="handleAppointment('${doc.id}', '${
-              appointment.status
-            }')">
+                <button class="btn" onclick="handleAppointment('${
+                  docSnap.id
+                }', '${appointment.status}')">
                   ${
                     appointment.status === "Confirmed" ? "Reschedule" : "Cancel"
                   }
@@ -349,15 +344,90 @@
         }
       }
 
-      // Handle appointment actions
+      // Handle appointment actions (reschedule or cancel)
       window.handleAppointment = async (appointmentId, status) => {
-        // TODO: Implement appointment rescheduling/cancellation logic
+        // Placeholder for rescheduling/cancellation logic
         alert(
           `Appointment ${
             status === "Confirmed" ? "rescheduling" : "cancellation"
           } functionality coming soon!`
         );
       };
+
+      // Load doctors into the dropdown
+      async function loadDoctors() {
+        try {
+          const doctorsRef = collection(db, "doctors");
+          const querySnapshot = await getDocs(doctorsRef);
+          const doctorSelect = document.getElementById("doctorSelect");
+          doctorSelect.innerHTML = '<option value="">Select Doctor</option>';
+          querySnapshot.forEach((doc) => {
+            const doctor = doc.data();
+            const option = document.createElement("option");
+            option.value = doc.id;
+            option.textContent = doctor.name;
+            doctorSelect.appendChild(option);
+          });
+        } catch (error) {
+          console.error("Error loading doctors:", error);
+        }
+      }
+
+      // Modal event listeners
+      const modal = document.getElementById("appointmentModal");
+      const bookBtn = document.getElementById("bookAppointmentBtn");
+      const closeModalBtn = document.getElementById("closeModal");
+
+      bookBtn.addEventListener("click", () => {
+        modal.style.display = "flex";
+      });
+
+      closeModalBtn.addEventListener("click", () => {
+        modal.style.display = "none";
+      });
+
+      window.addEventListener("click", (event) => {
+        if (event.target === modal) {
+          modal.style.display = "none";
+        }
+      });
+
+      // Appointment form submission handler
+      document
+        .getElementById("appointmentForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          try {
+            const user = auth.currentUser;
+            if (user && currentUser) {
+              const doctorId = document.getElementById("doctorSelect").value;
+              const dateStr = document.getElementById("appointmentDate").value;
+              const timeStr = document.getElementById("appointmentTime").value;
+              const [hours, minutes] = timeStr.split(":");
+              const appointmentDate = new Date(dateStr);
+              appointmentDate.setHours(hours, minutes, 0, 0);
+              const appointmentTime = Timestamp.fromDate(appointmentDate);
+              const patientName = `${currentUser.firstName} ${currentUser.lastName}`;
+
+              await setDoc(
+                doc(db, "appointments", `${user.uid}_${Date.now()}`),
+                {
+                  patientId: user.uid,
+                  doctorId,
+                  date: appointmentTime,
+                  status: "Pending",
+                  patientName,
+                }
+              );
+              await loadAppointments(user.uid);
+              modal.style.display = "none";
+              alert("Appointment booked successfully!");
+            }
+          } catch (error) {
+            console.error("Error booking appointment:", error);
+            alert("Failed to book appointment.");
+          }
+        });
 
       // Logout functionality
       document
@@ -384,74 +454,6 @@
       }
       setInterval(updateStatus, 10000);
       updateStatus();
-
-      // Add these functions to your existing script
-      async function loadDoctors() {
-        try {
-          const doctorsRef = collection(db, "doctors");
-          const querySnapshot = await getDocs(doctorsRef);
-          const doctorSelect = document.getElementById("doctorSelect");
-          querySnapshot.forEach((doc) => {
-            const doctor = doc.data();
-            const option = document.createElement("option");
-            option.value = doc.id;
-            option.textContent = doctor.name;
-            doctorSelect.appendChild(option);
-          });
-        } catch (error) {
-          console.error("Error loading doctors:", error);
-        }
-      }
-
-      // Add modal event listeners
-      const modal = document.getElementById("appointmentModal");
-      const bookBtn = document.getElementById("bookAppointmentBtn");
-      const closeModal = document.getElementById("closeModal");
-
-      bookBtn.addEventListener("click", () => {
-        modal.style.display = "flex";
-      });
-
-      closeModal.addEventListener("click", () => {
-        modal.style.display = "none";
-      });
-
-      window.addEventListener("click", (event) => {
-        if (event.target === modal) {
-          modal.style.display = "none";
-        }
-      });
-
-      // Add appointment form submission handler
-      document
-        .getElementById("appointmentForm")
-        .addEventListener("submit", async (e) => {
-          e.preventDefault();
-          try {
-            const user = auth.currentUser;
-            if (user) {
-              const doctorId = document.getElementById("doctorSelect").value;
-              const date = document.getElementById("appointmentDate").value;
-              const time = document.getElementById("appointmentTime").value;
-              await setDoc(
-                doc(db, "appointments", `${user.uid}_${Date.now()}`),
-                {
-                  patientId: user.uid,
-                  doctorId,
-                  date,
-                  time,
-                  status: "Pending",
-                }
-              );
-              await loadAppointments(user.uid);
-              modal.style.display = "none";
-              alert("Appointment booked successfully!");
-            }
-          } catch (error) {
-            console.error("Error booking appointment:", error);
-            alert("Failed to book appointment.");
-          }
-        });
     </script>
   </body>
 </html>
