@@ -428,7 +428,12 @@
         formElements.forEach((el) => (el.disabled = true));
         document.getElementById("saveProfile").style.display = "none";
       }
+      const localData = JSON.parse(localStorage.getItem("profileData"));
+            if (localData) {
+              userData = { ...userData, ...localData };
+            }
 
+            populateForm(userData);
       // Check authentication state
       onAuthStateChanged(auth, async (user) => {
         if (user) {
@@ -534,6 +539,42 @@
             hideLoading();
           }
         });
+        document.getElementById("profileForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        showLoading();
+        try {
+          const user = auth.currentUser;
+          if (user) {
+            const userDocRef = doc(db, "users", user.uid);
+            const formData = {
+              firstName: document.getElementById("firstName").value,
+              lastName: document.getElementById("lastName").value,
+              dateOfBirth: document.getElementById("dateOfBirth").value
+                ? Timestamp.fromDate(new Date(document.getElementById("dateOfBirth").value))
+                : null,
+              gender: document.getElementById("gender").value,
+              address: document.getElementById("address").value,
+              phone: document.getElementById("phone").value,
+              email: document.getElementById("email").value,
+              allergies: document.getElementById("allergies").value,
+              medications: document.getElementById("medications").value,
+              medicalHistory: document.getElementById("medicalHistory").value,
+              emergencyContact: document.getElementById("emergencyContact").value,
+              updatedAt: serverTimestamp(),
+            };
+
+            await updateDoc(userDocRef, formData);
+            localStorage.removeItem("profileData"); // Clear local storage after sync
+            showSuccess("Profile updated successfully!");
+          }
+        } catch (error) {
+          console.error("Error saving profile:", error);
+          showError("Failed to save profile.");
+        } finally {
+          hideLoading();
+        }
+      });
+
 
       // Status indicator
       const statusDot = document.getElementById("statusIndicator");
@@ -578,6 +619,21 @@
         }
       });
 
+      document.getElementById("profileForm").addEventListener("input", () => {
+        const formData = {
+          firstName: document.getElementById("firstName").value,
+          lastName: document.getElementById("lastName").value,
+          dateOfBirth: document.getElementById("dateOfBirth").value,
+          gender: document.getElementById("gender").value,
+          address: document.getElementById("address").value,
+          phone: document.getElementById("phone").value,
+          allergies: document.getElementById("allergies").value,
+          medications: document.getElementById("medications").value,
+          medicalHistory: document.getElementById("medicalHistory").value,
+          emergencyContact: document.getElementById("emergencyContact").value,
+        };
+        localStorage.setItem("profileData", JSON.stringify(formData));
+      });
       document
         .getElementById("logoutBtn")
         .addEventListener("click", async () => {
