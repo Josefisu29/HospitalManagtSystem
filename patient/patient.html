@@ -53,14 +53,16 @@
         width: 12px;
         height: 12px;
         border-radius: 50%;
-        background: #dc3545;
         transition: background var(--transition);
       }
       .status-indicator.online {
         background: #28a745;
       }
-      .status-indicator.sync {
-        background: #ffc107;
+      .status-indicator.offline {
+        background: #dc3545;
+      }
+      .status-indicator.disconnected {
+        background: #6c757d;
       }
       .btn {
         padding: 0.5rem 1rem;
@@ -187,6 +189,16 @@
         align-items: center;
         z-index: 1000;
       }
+      .beat-loader {
+        stroke-dasharray: 175;
+        stroke-dashoffset: 350;
+        animation: draw 1.4s linear infinite;
+      }
+      @keyframes draw {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
       .spinner {
         width: 40px;
         height: 40px;
@@ -206,6 +218,24 @@
     </style>
   </head>
   <body>
+    <div id="loading">
+      <svg
+        width="108px"
+        height="128px"
+        viewBox="0 0 54 64"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          class="beat-loader"
+          id="beat-loader"
+          d="M0.5,38.5 L16,38.5 L19,25.5 L24.5,57.5 L31.5,7.5 L37.5,46.5 L43,38.5 L53.5,38.5"
+          stroke="#6c757d"
+          stroke-width="2"
+          fill="none"
+        />
+      </svg>
+    </div>
     <header>
       <div class="header-inner">
         <div class="brand">Dashboard</div>
@@ -356,22 +386,37 @@
       // function generatePatientId() {
       //   return "PAT-" + Math.random().toString(36).substr(2, 9).toUpperCase();
       // }
-      async function generatePatientId() {
-        const counterRef = doc(db, "counters", "patientId");
-        const counterSnap = await getDoc(counterRef);
+      // async function generatePatientId() {
+      //   const counterRef = doc(db, "counters", "patientId");
+      //   const counterSnap = await getDoc(counterRef);
 
-        if (!counterSnap.exists()) {
-          // Initialize the counter if it doesn't exist
-          await setDoc(counterRef, { lastId: 0 });
+      //   if (!counterSnap.exists()) {
+      //     // Initialize the counter if it doesn't exist
+      //     await setDoc(counterRef, { lastId: 0 });
+      //   }
+
+      //   // Increment the counter
+      //   const lastId = counterSnap.exists() ? counterSnap.data().lastId : 0;
+      //   const newId = lastId + 1;
+      //   await updateDoc(counterRef, { lastId: newId });
+
+      //   // Format the ID as a 3-digit string (e.g., 001, 002, ...)
+      //   return String(newId).padStart(3, "0");
+      // }
+      function generateRandomId(length = 6) {
+        const characters =
+          "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        let result = "";
+        for (let i = 0; i < length; i++) {
+          result += characters.charAt(
+            Math.floor(Math.random() * characters.length)
+          );
         }
+        return result;
+      }
 
-        // Increment the counter
-        const lastId = counterSnap.exists() ? counterSnap.data().lastId : 0;
-        const newId = lastId + 1;
-        await updateDoc(counterRef, { lastId: newId });
-
-        // Format the ID as a 3-digit string (e.g., 001, 002, ...)
-        return String(newId).padStart(3, "0");
+      function generatePatientId() {
+        return `PAT-${generateRandomId(6)}`;
       }
 
       // Function to disable form inputs
@@ -462,6 +507,11 @@
 
             // Set email from auth object
             userData.email = user.email;
+            if (!userData.patientId) {
+              userData.patientId = generatePatientId();
+              await updateDoc(userDocRef, { patientId: userData.patientId });
+            }
+
             populateForm(userData);
 
             // Real-time updates
@@ -508,11 +558,11 @@
                 medicalHistory: document.getElementById("medicalHistory").value,
                 emergencyContact:
                   document.getElementById("emergencyContact").value,
+                updatedAt: serverTimestamp(),
               };
 
               await updateDoc(userDocRef, formData);
               showSuccess("Profile updated successfully!");
-              disableFormInputs(); // Make form static after saving
             }
           } catch (error) {
             console.error("Error saving profile:", error);
@@ -524,23 +574,38 @@
 
       // Status indicator
       const statusDot = document.getElementById("statusIndicator");
+      const beatLoader = document.getElementById("beat-loader");
       async function updateStatus() {
         try {
           const res = await fetch("/api/system-status");
-          const { status } = await res.json();
-          statusDot.className = "status-indicator " + (status || "offline");
+          if (res.ok) {
+            const { status } = await res.json();
+            statusDot.className = `status-indicator ${status || "offline"}`;
+            beatLoader.setAttribute(
+              "stroke",
+              status === "online"
+                ? "#28a745"
+                : status === "offline"
+                ? "#dc3545"
+                : "#6c757d"
+            );
+          } else {
+            statusDot.className = "status-indicator disconnected";
+            beatLoader.setAttribute("stroke", "#6c757d");
+          }
         } catch {
-          statusDot.className = "status-indicator offline";
+          statusDot.className = "status-indicator disconnected";
+          beatLoader.setAttribute("stroke", "#6c757d");
         }
       }
       setInterval(updateStatus, 15000);
       updateStatus();
 
       // Mobile nav toggle
-      const navToggle = document.getElementById("navToggle");
-      const navMenu = document.getElementById("navMenu");
-      navToggle.addEventListener("click", () => {
-        navMenu.classList.toggle("open");
+      document.querySelectorAll(".nav-menu a").forEach((a) => {
+        if (window.location.pathname.endsWith(a.getAttribute("href"))) {
+          a.classList.add("active");
+        }
       });
 
       // Highlight active link
