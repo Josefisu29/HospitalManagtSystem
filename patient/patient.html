@@ -284,13 +284,24 @@ button:hover {
         animation: spin 1s linear infinite;
       }
       @keyframes spin {
-        0% {
-          transform: rotate(0deg);
-        }
-        100% {
-          transform: rotate(360deg);
-        }
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
       }
+      #error-message {
+        color: #e53e3e;
+        text-align: center;
+        margin-bottom: 1rem;
+      }
+      .status-indicator {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-left: 0.5rem;
+      }
+      .status-indicator.online { background-color: #28a745; }
+      .status-indicator.offline { background-color: #ffc107; }
+      .status-indicator.disconnected { background-color: #dc3545; }
+      
     </style>
   </head>
   <body>
@@ -694,6 +705,32 @@ button:hover {
           a.classList.add("active");
         }
       });
+      console.log("Starting to load data...");
+      showLoading();
+      setTimeout(() => {
+        hideLoading();
+        console.log("Loading animation stopped after 3 seconds.");
+      }, 3000);
+      (async () => {
+        try {
+          const userData = await fetchUserData();
+          if (!userData.id) {
+            userData.id = await generateId();
+            await saveId(userData.id);
+          }
+          populateForm(userData);
+          hideError();
+          updateStatus("online");
+        } catch (error) {
+          console.error("Error:", error);
+          showError("Failed to fetch data. Please try again later.");
+          updateStatus("disconnected");
+        }
+      })();
+
+      // Example status updates (replace with real logic)
+      setTimeout(() => updateStatus("offline"), 4000);
+      setTimeout(() => updateStatus("online"), 6000);
 
       document.getElementById("profileForm").addEventListener("input", () => {
         const formData = {
