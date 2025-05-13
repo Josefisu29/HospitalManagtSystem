@@ -692,6 +692,121 @@ button:hover {
       setInterval(updateStatus, 15000);
       updateStatus();
 
+      function checkNetworkAndLoad() {
+        if (!navigator.onLine) {
+          showError("No internet connection. Please check your network.");
+          hideLoading();
+          return false;
+        }
+        return true;
+      }
+
+      onAuthStateChanged(auth, async (user) => {
+        if (user) {
+          showLoading();
+          if (!checkNetworkAndLoad()) return;
+
+          try {
+            const userDocRef = doc(db, "users", user.uid);
+            const userDocSnap = await getDoc(userDocRef);
+            let userData = userDocSnap.exists() ? userDocSnap.data() : {};
+
+            if (!userData.patientId) {
+              userData.patientId = generatePatientId();
+              await setDoc(userDocRef, { patientId: userData.patientId }, { merge: true });
+            }
+
+            userData.email = user.email;
+            const localData = JSON.parse(localStorage.getItem("profileData"));
+            if (localData) {
+              userData = { ...userData, ...localData };
+            }
+
+            populateForm(userData);
+
+            onSnapshot(userDocRef, (snap) => {
+              if (snap.exists()) {
+                populateForm(snap.data());
+              }
+            });
+          } catch (err) {
+            console.error("Error loading user data:", err);
+            showError("Failed to load user data. Please try again.");
+          } finally {
+            hideLoading();
+          }
+        } else {
+          window.location.href = "/index.html";
+        }
+      });
+
+      document.getElementById("profileForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        showLoading();
+        if (!checkNetworkAndLoad()) return;
+
+        try {
+          const user = auth.currentUser;
+          if (user) {
+            const userDocRef = doc(db, "users", user.uid);
+            const formData = {
+              firstName: document.getElementById("firstName").value,
+              lastName: document.getElementById("lastName").value,
+              dateOfBirth: document.getElementById("dateOfBirth").value
+                ? Timestamp.fromDate(new Date(document.getElementById("dateOfBirth").value))
+                : null,
+              gender: document.getElementById("gender").value,
+              address: document.getElementById("address").value,
+              phone: document.getElementById("phone").value,
+              email: document.getElementById("email").value,
+              allergies: document.getElementById("allergies").value,
+              medications: document.getElementById("medications").value,
+              medicalHistory: document.getElementById("medicalHistory").value,
+              emergencyContact: document.getElementById("emergencyContact").value,
+              updatedAt: Timestamp.now(),
+            };
+
+            await updateDoc(userDocRef, formData);
+            localStorage.removeItem("profileData");
+            showSuccess("Profile updated successfully!");
+          }
+        } catch (error) {
+          console.error("Error saving profile:", error);
+          showError("Failed to save profile.");
+        } finally {
+          hideLoading();
+        }
+      });
+
+      // const statusDot = document.getElementById("statusIndicator");
+      // const beatLoader = document.getElementById("beat-loader");
+      // async function updateStatus() {
+      //   if (!navigator.onLine) {
+      //     statusDot.className = "status-indicator offline";
+      //     beatLoader.setAttribute("stroke", "#dc3545");
+      //     return;
+      //   }
+      //   try {
+      //     const res = await fetch("/api/system-status");
+      //     if (res.ok) {
+      //       const { status } = await res.json();
+      //       statusDot.className = `status-indicator ${status || "offline"}`;
+      //       beatLoader.setAttribute(
+      //         "stroke",
+      //         status === "online" ? "#28a745" : status === "offline" ? "#dc3545" : "#6c757d"
+      //       );
+      //     } else {
+      //       statusDot.className = "status-indicator disconnected";
+      //       beatLoader.setAttribute("stroke", "#6c757d");
+      //     }
+      //   } catch {
+      //     statusDot.className = "status-indicator disconnected";
+      //     beatLoader.setAttribute("stroke", "#6c757d");
+      //   }
+      // }
+      // setInterval(updateStatus, 15000);
+      // updateStatus();
+
       // Mobile nav toggle
       document.querySelectorAll(".nav-menu a").forEach((a) => {
         if (window.location.pathname.endsWith(a.getAttribute("href"))) {
