@@ -267,63 +267,26 @@
     </header>
 
     <main>
-      <section class="card">
-        <h2>Your Profile</h2>
-        <form id="profileForm">
-          <div class="form-group">
-            <label for="patientId">Patient ID</label>
-            <input type="text" id="patientId" readonly />
-          </div>
-          <div class="form-group">
-            <label for="firstName">First Name</label>
-            <input type="text" id="firstName" required />
-          </div>
-          <div class="form-group">
-            <label for="lastName">Last Name</label>
-            <input type="text" id="lastName" required />
-          </div>
-          <div class="form-group">
-            <label for="dateOfBirth">Date of Birth</label>
-            <input type="date" id="dateOfBirth" required />
-          </div>
-          <div class="form-group">
-            <label for="gender">Gender</label>
-            <select id="gender" required>
-              <option value="">Select Gender</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="address">Address</label>
-            <textarea id="address" required></textarea>
-          </div>
-          <div class="form-group">
-            <label for="phone">Phone Number</label>
-            <input type="tel" id="phone" required />
-          </div>
-          <div class="form-group">
-            <label for="email">Email</label>
-            <input type="email" id="email" readonly />
-          </div>
-          <div class="form-group">
-            <label for="allergies">Allergies</label>
-            <textarea id="allergies"></textarea>
-          </div>
-          <div class="form-group">
-            <label for="medications">Current Medications</label>
-            <textarea id="medications"></textarea>
-          </div>
-          <div class="form-group">
-            <label for="medicalHistory">Medical History</label>
-            <textarea id="medicalHistory"></textarea>
-          </div>
-          <div class="form-group">
-            <label for="emergencyContact">Emergency Contact</label>
-            <input type="text" id="emergencyContact" />
-          </div>
-          <button type="submit" id="saveProfile">Save</button>
-        </form>
+      <form id="profileForm">
+        <label>Patient ID: <input type="text" id="patientId" readonly /></label>
+        <label>First Name: <input type="text" id="firstName" required /></label>
+        <label>Last Name: <input type="text" id="lastName" required /></label>
+        <label>Date of Birth: <input type="date" id="dateOfBirth" /></label>
+        <label>Gender: <select id="gender">
+          <option value="">Select</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+          <!-- <option value="Other">Other</option> -->
+        </select></label>
+        <label>Address: <textarea id="address"></textarea></label>
+        <label>Phone: <input type="tel" id="phone" /></label>
+        <label>Email: <input type="email" id="email" readonly /></label>
+        <label>Allergies: <textarea id="allergies"></textarea></label>
+        <label>Medications: <textarea id="medications"></textarea></label>
+        <label>Medical History: <textarea id="medicalHistory"></textarea></label>
+        <label>Emergency Contact: <input type="tel" id="emergencyContact" /></label>
+        <button type="submit">Save Profile</button>
+      </form>
       </section>
     </main>
 
