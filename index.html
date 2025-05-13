@@ -535,9 +535,7 @@
         >
           <div class="modal-content">
             <span class="close-modal" aria-label="Close modal">×</span>
-            <p id="success-message">
-              Registration successful! You can now log in.
-            </p>
+            <p id="success-message">Registration successful!.</p>
           </div>
         </div>
       </div>
@@ -1034,7 +1032,24 @@
           passwordInput.type = this.checked ? "text" : "password";
           confirmInput.type = this.checked ? "text" : "password";
         });
+      function setupShowToggle(checkboxId, inputIds) {
+        const checkbox = document.getElementById(checkboxId);
+        checkbox.addEventListener("change", () => {
+          inputIds.forEach((id) => {
+            const inp = document.getElementById(id);
+            if (inp) inp.type = checkbox.checked ? "text" : "password";
+          });
+        });
+      }
+
+      // Login: toggle only #login-password
+      setupShowToggle("show-login-password", ["login-password"]);
+
+      // Signup: toggle both #signup-password & #signup-confirm
+      setupShowToggle("show-signup-password", [
+        "signup-password",
+        "signup-confirm",
+      ]);
     </script>
   </body>
-  
 </html>
