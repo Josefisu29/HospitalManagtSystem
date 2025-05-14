@@ -253,19 +253,54 @@ button:hover {
     margin-top: 5px;
   }
 }
-      #loading {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(255, 255, 255, 0.8);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-      }
-      .beat-loader {
+      /* Full‑screen loading overlay */
+#loading {
+  position: fixed;
+  inset: 0;
+  background: rgba(255,255,255,0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  transition: opacity 0.3s ease;
+}
+
+/* Hidden state */
+#loading.loading--hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Beat animation */
+#beat-loader {
+  stroke-dasharray: 200;
+  stroke-dashoffset: 200;
+  animation: beat 1s ease-in-out infinite;
+}
+
+@keyframes beat {
+  0%,100% { stroke-dashoffset: 200; }
+  50%     { stroke-dashoffset:   0; }
+}
+
+/* Status‑dot styles */
+.status-indicator {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #dc3545; /* offline default */
+  transition: background 0.3s ease;
+}
+
+.status-indicator.online      { background: #28a745; }
+.status-indicator.offline     { background: #dc3545; }
+.status-indicator.disconnected{ background: #6c757d; }
+
+      
+      /* .beat-loader {
         stroke-dasharray: 175;
         stroke-dashoffset: 350;
         animation: draw 1.4s linear infinite;
@@ -274,7 +309,7 @@ button:hover {
         to {
           stroke-dashoffset: 0;
         }
-      }
+      } */
       .spinner {
         width: 40px;
         height: 40px;
@@ -292,7 +327,7 @@ button:hover {
         text-align: center;
         margin-bottom: 1rem;
       }
-      .status-indicator {
+      /* .status-indicator {
         width: 10px;
         height: 10px;
         border-radius: 50%;
@@ -300,7 +335,7 @@ button:hover {
       }
       .status-indicator.online { background-color: #28a745; }
       .status-indicator.offline { background-color: #ffc107; }
-      .status-indicator.disconnected { background-color: #dc3545; }
+      .status-indicator.disconnected { background-color: #dc3545; } */
       
     </style>
   </head>
@@ -664,33 +699,94 @@ button:hover {
 
 
       // Status indicator
-      const statusDot = document.getElementById("statusIndicator");
-      const beatLoader = document.getElementById("beat-loader");
-      async function updateStatus() {
-        try {
-          const res = await fetch("/api/system-status");
-          if (res.ok) {
-            const { status } = await res.json();
-            statusDot.className = `status-indicator ${status || "offline"}`;
-            beatLoader.setAttribute(
-              "stroke",
-              status === "online"
-                ? "#28a745"
-                : status === "offline"
-                ? "#dc3545"
-                : "#6c757d"
-            );
-          } else {
-            statusDot.className = "status-indicator disconnected";
-            beatLoader.setAttribute("stroke", "#6c757d");
-          }
-        } catch {
-          statusDot.className = "status-indicator disconnected";
-          beatLoader.setAttribute("stroke", "#6c757d");
-        }
-      }
-      setInterval(updateStatus, 15000);
-      updateStatus();
+      // const statusDot = document.getElementById("statusIndicator");
+      // const beatLoader = document.getElementById("beat-loader");
+      // async function updateStatus() {
+      //   try {
+      //     const res = await fetch("/api/system-status");
+      //     if (res.ok) {
+      //       const { status } = await res.json();
+      //       statusDot.className = `status-indicator ${status || "offline"}`;
+      //       beatLoader.setAttribute(
+      //         "stroke",
+      //         status === "online"
+      //           ? "#28a745"
+      //           : status === "offline"
+      //           ? "#dc3545"
+      //           : "#6c757d"
+      //       );
+      //     } else {
+      //       statusDot.className = "status-indicator disconnected";
+      //       beatLoader.setAttribute("stroke", "#6c757d");
+      //     }
+      //   } catch {
+      //     statusDot.className = "status-indicator disconnected";
+      //     beatLoader.setAttribute("stroke", "#6c757d");
+      //   }
+      // }
+      // setInterval(updateStatus, 15000);
+      // updateStatus();
+
+      // Grab elements
+const loadingEl    = document.getElementById('loading');
+const loaderPath   = document.getElementById('beat-loader');
+const statusDot    = document.getElementById('statusIndicator');
+
+// Color map for loader stroke
+const strokeColors = {
+  online:  '#28a745',
+  offline: '#dc3545',
+  syncing: '#6c757d'
+};
+
+// Show loader with a given status color; auto‑hide after 2s
+function showLoader(status = 'online') {
+  loaderPath.setAttribute('stroke', strokeColors[status] || strokeColors.syncing);
+  loadingEl.classList.remove('loading--hidden');
+  clearTimeout(showLoader._timeout);
+  showLoader._timeout = setTimeout(hideLoader, 2000);
+}
+
+// Hide loader immediately
+function hideLoader() {
+  clearTimeout(showLoader._timeout);
+  loadingEl.classList.add('loading--hidden');
+}
+
+// Update the status dot and loader stroke from your API
+async function updateStatus() {
+  try {
+    const res = await fetch('/api/system-status');
+    if (!res.ok) throw new Error('Network error');
+    const { status } = await res.json();
+
+    // Update dot
+    statusDot.className = `status-indicator ${status || 'offline'}`;
+    statusDot.title     = status.charAt(0).toUpperCase() + status.slice(1);
+
+    // Update loader color if it’s visible
+    loaderPath.setAttribute('stroke',
+      strokeColors[status] || strokeColors.syncing
+    );
+  } catch {
+    statusDot.className = 'status-indicator disconnected';
+    loaderPath.setAttribute('stroke', strokeColors.syncing);
+  }
+}
+
+// Listen for online/offline and show loader accordingly
+window.addEventListener('online',  () => showLoader('online'));
+window.addEventListener('offline', () => showLoader('offline'));
+
+// Poll the API every 15s
+setInterval(updateStatus, 15000);
+updateStatus();  // initial call
+
+// Show loader on initial page load
+document.addEventListener('DOMContentLoaded', () => {
+  const initStatus = navigator.onLine ? 'online' : 'offline';
+  showLoader(initStatus);
+});
 
       function checkNetworkAndLoad() {
         if (!navigator.onLine) {
