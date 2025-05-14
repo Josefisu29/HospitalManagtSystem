@@ -899,3 +899,15 @@ showStatus(navigator.onLine ? "online" : "offline");
 
 window.addEventListener("online", () => showStatus("online"));
 window.addEventListener("offline", () => showStatus("offline"));
+document.getElementById("logoutBtn").addEventListener("click", async () => {
+  try {
+    showLoading();
+    await signOut(auth);
+    window.location.href = "/index.html";
+  } catch (error) {
+    console.error("Error signing out:", error);
+    showError("Failed to sign out");
+  } finally {
+    hideLoading();
+  }
+});
