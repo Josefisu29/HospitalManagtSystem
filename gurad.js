@@ -79,3 +79,8 @@ export function initHospitalStaffPage() {
 export function initPatientPage() {
   /* loadPatientAppointments() */
 }
+if (idRes.claims.role === "admin") {
+  document.getElementById("login-box").style.display = "none";
+  document.getElementById("admin-dashboard").style.display = "block";
+  loadDashboard();
+}
