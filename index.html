@@ -371,9 +371,144 @@
         gap: 1rem;
         justify-content: center;
       }
+      /* }/
+
+            #loading {
+              position: fixed;
+              inset: 0;
+              background: rgba(255, 255, 255, 0.9);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              z-index: 9999;
+              transition: opacity 0.5s ease;
+            }
+            #loading.loading--hidden {
+              opacity: 0;
+              pointer-events: none;
+            }
+            #beat‑loader {
+              stroke-dasharray: 200;
+              stroke-dashoffset: 200;
+              animation: beat 2s ease-in-out infinite;
+            }
+            @keyframes beat {
+              0%,
+              100% {
+                stroke-dashoffset: 200;
+              }
+              50% {
+                stroke-dashoffset: 0;
+              }
+            } */
+      /* container covers full screen */
+      .network-loader {
+        position: fixed;
+        bottom: -100px; /* hidden below screen */
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--offline-color, #dc3545);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 4px 4px 0 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        z-index: 10000;
+        transition: bottom 0.5s ease, background 0.3s ease;
+      }
+
+      /* icon animation */
+      #beat-path {
+        stroke: currentColor;
+        stroke-dasharray: 200;
+        stroke-dashoffset: 200;
+        animation: beat 1s ease-in-out infinite;
+      }
+      @keyframes beat {
+        0%,
+        100% {
+          stroke-dashoffset: 200;
+        }
+        50% {
+          stroke-dashoffset: 0;
+        }
+      }
+
+      /* states */
+      .network-loader.online {
+        --offline-color: #28a745;
+      }
+      .network-loader.offline {
+        --offline-color: #dc3545;
+      }
+      .network-loader.syncing {
+        --offline-color: #6c757d;
+      }
+
+      /* when visible */
+      .network-loader.visible {
+        bottom: 0;
+      }
+
+      /* responsive sizing */
+      @media (max-width: 600px) {
+        .network-loader {
+          width: 90%;
+          padding: 0.75rem;
+        }
+        .network-loader svg {
+          width: 40px;
+          height: 40px;
+        }
+      }
+
+      #auth-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(2px);
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+      }
     </style>
   </head>
   <body>
+    <!-- <div id="loading">
+      <svg
+        width="108px"
+        height="128px"
+        viewBox="0 0 54 64"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          id="beat-loader"
+          d="M0.5,38.5 L16,38.5 L19,25.5 L24.5,57.5 L31.5,7.5 L37.5,46.5 L43,38.5 L53.5,38.5"
+          stroke="#6c757d"
+          stroke-width="2"
+          fill="none"
+        />
+      </svg>
+    </div> -->
+
+    <div id="network-loader" class="network-loader offline">
+      <svg
+        width="60"
+        height="60"
+        viewBox="0 0 54 64"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          id="beat-path"
+          d="M0.5,38.5 L16,38.5 L19,25.5 L24.5,57.5 L31.5,7.5 L37.5,46.5 L43,38.5 L53.5,38.5"
+          stroke-width="2"
+          fill="none"
+        />
+      </svg>
+      <span id="network-text">Offline</span>
+    </div>
     <header data-aos="fade-down">
       <h1>HMS</h1>
       <nav>
@@ -546,11 +681,20 @@
     </footer>
 
     <!-- AOS -->
+     <script src="/index.js"></script>
     <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
     <script>
       AOS.init({
         duration: 800,
         once: true,
+      });
+    </script>
+    <script>
+      window.addEventListener("load", () => {
+        const loader = document.getElementById("loading");
+        loader.classList.add("loading--hidden");
+        // remove from DOM after fade
+        setTimeout(() => loader.remove(), 500);
       });
     </script>
     <script src="/index.js"></script>
