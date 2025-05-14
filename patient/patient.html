@@ -466,6 +466,7 @@ button:hover {
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app);
       const db = getFirestore(app);
+      const res = await fetch('https://us-central1-yourproj.cloudfunctions.net/systemStatus');
 
       // Function to generate a unique patient ID
       // function generatePatientId() {

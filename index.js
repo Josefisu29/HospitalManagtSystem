@@ -663,6 +663,15 @@ export function updateStatusIndicator(status) {
   if (ind) ind.className = `status-indicator ${status}`;
   if (status === "online") syncLocalData();
 }
+// functions/index.js
+import * as functions from "firebase-functions";
+import * as admin from "firebase-admin";
+admin.initializeApp();
+
+export const systemStatus = functions.https.onRequest((req, res) => {
+  // Optional: perform any backend checks here
+  res.json({ status: "online" });
+});
 
 /**
  * Saves data locally when offline, and syncs all local data when online.
