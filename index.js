@@ -509,16 +509,30 @@ import {
 const firebaseConfig = {
   apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
   authDomain: "hospitalmanagtsystem.firebaseapp.com",
+  databaseURL:
+    "https://hospitalmanagtsystem-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "hospitalmanagtsystem",
   storageBucket: "hospitalmanagtsystem.firsebasestorage.app",
   messagingSenderId: "771158568788",
   appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
 };
 
+import { initializeApp } from "firebase/app";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
+import { getDatabase } from "firebase/database";
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
-const googleProvider = new GoogleAuthProvider();
+// const db = getFirestore(app);
+// const googleProvider = new GoogleAuthProvider();
+// const app = initializeApp(firebaseConfig);
+// const db = getDatabase(app);
+
+// export { db, ref, onValue, set };
+
+export const firestoreDB = getFirestore(app);
+export const realtimeDB = getDatabase(app);
 
 // --- Authentication Utilities ---
 
@@ -542,6 +556,29 @@ export async function signup(
   });
   // Optionally set custom claim via Cloud Function here...
   return cred.user;
+}
+// src/readProfile.js
+import { db, ref, onValue } from "./index2";
+
+// Listen for changes at /patients/{uid}
+export function subscribePatientProfile(uid, callback) {
+  const patientRef = ref(db, `patients/${uid}`);
+  onValue(patientRef, (snapshot) => {
+    const data = snapshot.val(); // JSON data object :contentReference[oaicite:3]{index=3}
+    callback(data);
+  });
+}
+// src/writeProfile.js
+import { db, ref, set } from "./index2";
+
+/**
+ * Save the patient profile under /patients/{uid}.
+ * Overwrites existing data at that path.
+ */
+export function savePatientProfile(uid, profile) {
+  return set(ref(db, `patients/${uid}`), profile) // returns a Promise :contentReference[oaicite:4]{index=4}
+    .then(() => console.log("Profile saved"))
+    .catch((err) => console.error("Save failed", err));
 }
 
 /**
