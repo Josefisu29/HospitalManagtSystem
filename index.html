@@ -945,35 +945,34 @@
             hideLoading("signup-form");
           }
         });
-
       // Google Sign-In Handler
-      document
-        .getElementById("btn-google-login")
-        .addEventListener("click", async () => {
-          try {
-            showLoading("login-form");
-            const result = await signInWithPopup(auth, provider);
-            const user = result.user;
+      // document
+      //   .getElementById("btn-google-login")
+      //   .addEventListener("click", async () => {
+      //     try {
+      //       showLoading("login-form");
+      //       const result = await signInWithPopup(auth, provider);
+      //       const user = result.user;
 
-            const userDoc = await getDoc(doc(db, "users", user.uid));
-            if (!userDoc.exists()) {
-              await setDoc(doc(db, "users", user.uid), {
-                firstName: user.displayName?.split(" ")[0] || "",
-                lastName: user.displayName?.split(" ")[1] || "",
-                email: user.email,
-                role: "patient",
-                createdAt: serverTimestamp(),
-              });
-            }
+      //       const userDoc = await getDoc(doc(db, "users", user.uid));
+      //       if (!userDoc.exists()) {
+      //         await setDoc(doc(db, "users", user.uid), {
+      //           firstName: user.displayName?.split(" ")[0] || "",
+      //           lastName: user.displayName?.split(" ")[1] || "",
+      //           email: user.email,
+      //           role: "patient",
+      //           createdAt: serverTimestamp(),
+      //         });
+      //       }
 
-            window.location.href = rolePages.patient;
-          } catch (error) {
-            console.error("Google sign-in error:", error);
-            showError(error.message);
-          } finally {
-            hideLoading("login-form");
-          }
-        });
+      //     window.location.href = rolePages.patient;
+      //   } catch (error) {
+      //     console.error("Google sign-in error:", error);
+      //     showError(error.message);
+      //   } finally {
+      //     hideLoading("login-form");
+      //   }
+      // });
 
       // Success Modal Functions
       function showSuccessModal() {
