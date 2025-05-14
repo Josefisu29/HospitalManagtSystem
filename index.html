@@ -689,13 +689,13 @@
         once: true,
       });
     </script>
-    <script>
+    <!-- <script>
       window.addEventListener("load", () => {
         const loader = document.getElementById("loading");
         loader.classList.add("loading--hidden");
         // remove from DOM after fade
-        setTimeout(() => loader.remove(), 500);
-      });
+        setTimeout(() => loader.remove(), 5000);
+      }); -->
     </script>
     <script src="/index.js"></script>
     <script src="/server.js"></script>
@@ -757,6 +757,33 @@
         hospitalStaff: "/hospital/hospital.html",
         patient: "patient/patient.html",
       };
+const loader = document.getElementById("network-loader");
+const text = document.getElementById("network-text");
+
+let hideTimeout;
+
+function showStatus(status) {
+  // clear any pending hide
+  clearTimeout(hideTimeout);
+
+  // update class & text
+  loader.className = `network-loader visible ${status}`;
+  text.textContent = status === "online" ? "Online" : "Offline";
+
+  // if we just came online, auto-hide after 5s
+  if (status === "online") {
+    hideTimeout = setTimeout(() => {
+      loader.classList.remove("visible");
+    }, 5000);
+  }
+  // if offline, keep showing until reconnect
+}
+
+// initial state
+showStatus(navigator.onLine ? "online" : "offline");
+
+window.addEventListener("online", () => showStatus("online"));
+window.addEventListener("offline", () => showStatus("offline"));
 
       // Security checks
       const securityChecks = {
