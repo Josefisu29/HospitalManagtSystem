@@ -700,6 +700,47 @@ button:hover {
         }
         return true;
       }
+      // Grab elements
+const loadingEl = document.getElementById('loading');
+const loaderPath = document.getElementById('beat-loader');
+
+// Utility to show the loader
+function showLoader(status = 'online') {
+  // Set stroke color based on status
+  const colors = {
+    online:  '#28a745', // green
+    offline: '#dc3545', // red
+    syncing: '#6c757d'  // grey
+  };
+  loaderPath.setAttribute('stroke', colors[status] || colors.syncing);
+
+  // Show overlay
+  loadingEl.classList.remove('loading--hidden');
+
+  // Auto‐hide after 2s
+  clearTimeout(showLoader._timeout);
+  showLoader._timeout = setTimeout(hideLoader, 2000);
+}
+
+// Utility to hide the loader immediately
+function hideLoader() {
+  clearTimeout(showLoader._timeout);
+  loadingEl.classList.add('loading--hidden');
+}
+
+// Listen for network changes
+window.addEventListener('online',  () => showLoader('online'));
+window.addEventListener('offline', () => showLoader('offline'));
+
+// Example: call showLoader('syncing') when you start a sync
+// and hideLoader() once sync completes.
+
+// On initial page load
+document.addEventListener('DOMContentLoaded', () => {
+  const initStatus = navigator.onLine ? 'online' : 'offline';
+  showLoader(initStatus);
+});
+
 
       onAuthStateChanged(auth, async (user) => {
         if (user) {
