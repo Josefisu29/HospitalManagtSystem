@@ -698,95 +698,56 @@ button:hover {
       });
 
 
-      // Status indicator
-      // const statusDot = document.getElementById("statusIndicator");
-      // const beatLoader = document.getElementById("beat-loader");
-      // async function updateStatus() {
-      //   try {
-      //     const res = await fetch("/api/system-status");
-      //     if (res.ok) {
-      //       const { status } = await res.json();
-      //       statusDot.className = `status-indicator ${status || "offline"}`;
-      //       beatLoader.setAttribute(
-      //         "stroke",
-      //         status === "online"
-      //           ? "#28a745"
-      //           : status === "offline"
-      //           ? "#dc3545"
-      //           : "#6c757d"
-      //       );
-      //     } else {
-      //       statusDot.className = "status-indicator disconnected";
-      //       beatLoader.setAttribute("stroke", "#6c757d");
-      //     }
-      //   } catch {
-      //     statusDot.className = "status-indicator disconnected";
-      //     beatLoader.setAttribute("stroke", "#6c757d");
-      //   }
-      // }
-      // setInterval(updateStatus, 15000);
-      // updateStatus();
+      const loadingEl  = document.getElementById('loading');
+const loaderPath = document.getElementById('beat-loader');
+const statusDot  = document.getElementById('statusIndicator');
 
-      // Grab elements
-const loadingEl    = document.getElementById('loading');
-const loaderPath   = document.getElementById('beat-loader');
-const statusDot    = document.getElementById('statusIndicator');
+const strokeColors = { online: '#28a745', offline: '#dc3545', syncing: '#6c757d' };
+let loaderTimeout;
 
-// Color map for loader stroke
-const strokeColors = {
-  online:  '#28a745',
-  offline: '#dc3545',
-  syncing: '#6c757d'
-};
-
-// Show loader with a given status color; auto‑hide after 2s
-function showLoader(status = 'online') {
+// Show or update loader overlay
+export function showLoader(status = 'online') {
   loaderPath.setAttribute('stroke', strokeColors[status] || strokeColors.syncing);
   loadingEl.classList.remove('loading--hidden');
-  clearTimeout(showLoader._timeout);
-  showLoader._timeout = setTimeout(hideLoader, 2000);
+  clearTimeout(loaderTimeout);
+  loaderTimeout = setTimeout(hideLoader, 2000);
 }
 
 // Hide loader immediately
-function hideLoader() {
-  clearTimeout(showLoader._timeout);
+export function hideLoader() {
+  clearTimeout(loaderTimeout);
   loadingEl.classList.add('loading--hidden');
 }
 
-// Update the status dot and loader stroke from your API
-async function updateStatus() {
+// Fetch system status and update dot + loader color
+export async function updateStatus() {
+  if (!navigator.onLine) {
+    statusDot.className = 'status-indicator offline';
+    loaderPath.setAttribute('stroke', strokeColors.offline);
+    return;
+  }
   try {
     const res = await fetch('/api/system-status');
-    if (!res.ok) throw new Error('Network error');
+    if (!res.ok) throw new Error();
     const { status } = await res.json();
-
-    // Update dot
     statusDot.className = `status-indicator ${status || 'offline'}`;
     statusDot.title     = status.charAt(0).toUpperCase() + status.slice(1);
-
-    // Update loader color if it’s visible
-    loaderPath.setAttribute('stroke',
-      strokeColors[status] || strokeColors.syncing
-    );
+    loaderPath.setAttribute('stroke', strokeColors[status] || strokeColors.syncing);
   } catch {
     statusDot.className = 'status-indicator disconnected';
     loaderPath.setAttribute('stroke', strokeColors.syncing);
   }
 }
 
-// Listen for online/offline and show loader accordingly
+// Initialize loader and status listeners
 window.addEventListener('online',  () => showLoader('online'));
 window.addEventListener('offline', () => showLoader('offline'));
-
-// Poll the API every 15s
 setInterval(updateStatus, 15000);
-updateStatus();  // initial call
-
-// Show loader on initial page load
+updateStatus();
 document.addEventListener('DOMContentLoaded', () => {
-  const initStatus = navigator.onLine ? 'online' : 'offline';
-  showLoader(initStatus);
+  showLoader(navigator.onLine ? 'online' : 'offline');
 });
+
 
       function checkNetworkAndLoad() {
         if (!navigator.onLine) {
@@ -797,8 +758,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return true;
       }
       // Grab elements
-const loadingEl = document.getElementById('loading');
-const loaderPath = document.getElementById('beat-loader');
+const loading = document.getElementById('loading');
+const loader= document.getElementById('beat-loader');
 
 // Utility to show the loader
 function showLoader(status = 'online') {
