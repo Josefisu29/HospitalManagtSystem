@@ -548,8 +548,19 @@
         </div>
       </div>
     </div>
-<script src="/index.js"></script>
-<script src="/server.js"></script>
+    <script src="/index.js"></script>
+    <script src="/server.js"></script>
+    <script src="/gurads.js"></script>
+    <script type="module">
+      import { guardPage, initAdminPage } from "./guards.js";
+
+      guardPage("admin", {
+        loginContainer: "#login-box",
+        appContainer: "#admin-dashboard",
+        onSuccess: initAdminPage,
+      });
+    </script>
+
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
       import {
