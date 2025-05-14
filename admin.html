@@ -262,9 +262,49 @@
         flex-direction: column;
         gap: 1rem;
       }
+      #loading {
+        position: fixed;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        transition: opacity 0.3s ease;
+      }
+      #loading.loading--hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #beat-loader {
+        stroke-dasharray: 200;
+        stroke-dashoffset: 200;
+        animation: beat 1s ease-in-out infinite;
+      }
+      @keyframes beat {
+        0%,
+        100% {
+          stroke-dashoffset: 200;
+        }
+        50% {
+          stroke-dashoffset: 0;
+        }
+      }
     </style>
   </head>
   <body>
+    <div id="loading" class="loading--hidden">
+      <svg width="108" height="128" viewBox="0 0 54 64">
+        <path
+          id="beat-loader"
+          d="M0.5,38.5 L16,38.5 L19,25.5 L24.5,57.5 L31.5,7.5 L37.5,46.5 L43,38.5 L53.5,38.5"
+          stroke="#6c757d"
+          stroke-width="2"
+          fill="none"
+        />
+      </svg>
+    </div>
+
     <!-- Login Box -->
     <div class="centered" id="login-box">
       <h2>Admin Login</h2>
@@ -508,7 +548,8 @@
         </div>
       </div>
     </div>
-
+<script src="/index.js"></script>
+<script src="/server.js"></script>
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
       import {

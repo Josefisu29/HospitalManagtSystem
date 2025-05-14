@@ -715,3 +715,153 @@ export async function setData(path, data) {
   }
   await setDoc(doc(db, ...path.split("/")), data, { merge: true });
 }
+document.addEventListener("DOMContentLoaded", () => {
+  showLoader("syncing");
+  loadDoctorAppointments((docs) => {
+    const tbody = document.getElementById("appt-tbody");
+    tbody.innerHTML = "";
+    docs.forEach((a) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${a.patientId}</td>
+        <td>${new Date(a.dateTime.seconds * 1000).toLocaleString()}</td>
+        <td>
+          <button class="edit-appointment" data-id="${a.id}">Edit</button>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+    hideLoader();
+  });
+});
+document.addEventListener("click", async (e) => {
+  if (e.target.matches(".edit-appointment")) {
+    const id = e.target.dataset.id;
+    showLoader("syncing");
+    const docSnap = await getDoc(doc(db, "appointments", id));
+    hideLoader();
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      // populate modal fields, then:
+      document.getElementById("appointmentModal").style.display = "flex";
+    }
+  }
+});
+document
+  .getElementById("appointmentForm")
+  .addEventListener("submit", async (e) => {
+    e.preventDefault();
+    showLoader("syncing");
+    const id = document.getElementById("editAppointmentId").value;
+    const updated = {
+      /* gather from form */
+    };
+    await updateDoc(doc(db, "appointments", id), {
+      ...updated,
+      updatedAt: serverTimestamp(),
+    });
+    hideLoader();
+    document.getElementById("appointmentModal").style.display = "none";
+  });
+
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+
+const auth = getAuth();
+
+// Login form submit
+document.getElementById("admin-login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const email = e.target["admin-email"].value;
+  const password = e.target["admin-password"].value;
+  try {
+    // Sign in
+    const { user } = await signInWithEmailAndPassword(auth, email, password);
+    // Force token refresh to get latest claims
+    const idToken = await user.getIdTokenResult(true);
+    if (idToken.claims.role !== "admin") {
+      await signOut(auth);
+      throw new Error("Unauthorized: Admin access required.");
+    }
+    // If we reach here, user is admin → show dashboard
+    document.getElementById("login-box").style.display = "none";
+    document.getElementById("admin-dashboard").style.display = "block";
+  } catch (err) {
+    document.getElementById("error-msg").textContent = err.message;
+  }
+});
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      // Not signed in → show login box
+      document.getElementById("login-box").style.display = "flex";
+      document.getElementById("admin-dashboard").style.display = "none";
+      return;
+    }
+  
+    try {
+      // Refresh token so we get the latest custom claims
+      const idRes = await user.getIdTokenResult(true);
+      if (idRes.claims.role !== "admin") {
+        // Signed in but not an admin → sign out & redirect
+        await signOut(auth);
+        alert("Only admins may access this page.");
+        window.location.href = "/index.html";
+        return;
+      }
+      // Signed in as admin → show dashboard
+      document.getElementById("login-box").style.display = "none";
+      document.getElementById("admin-dashboard").style.display = "block";
+      loadDashboard();  // your function that hooks up onSnapshot, etc.
+    } catch (error) {
+      console.error("Auth guard error:", error);
+      await signOut(auth);
+      window.location.href = "/index.html";
+    }
+  });
+  // Grab loader elements
+const loadingEl  = document.getElementById('loading');
+const loaderPath = document.getElementById('beat-loader');
+
+// Define stroke colors
+const strokeColors = {
+  online:  '#28a745',  // green
+  offline: '#dc3545',  // red
+  syncing: '#6c757d'   // grey
+};
+
+let loaderTimer;
+
+/**
+ * Show the loader with the given status color for 2 seconds.
+ * @param {'online'|'offline'|'syncing'} status
+ */
+function showLoader(status = 'online') {
+  // Set the stroke color
+  loaderPath.setAttribute('stroke', strokeColors[status]);
+  // Un‑hide loader
+  loadingEl.classList.remove('loading--hidden');
+  // Schedule auto‑hide
+  clearTimeout(loaderTimer);
+  loaderTimer = setTimeout(() => {
+    hideLoader();
+    // If offline, also show a message
+    if (status === 'offline') {
+      alert('You are offline');
+    }
+  }, 2000);
+}
+
+/** Hide the loader immediately */
+function hideLoader() {
+  clearTimeout(loaderTimer);
+  loadingEl.classList.add('loading--hidden');
+}
+
+// 1) On initial page load, show green if online, red if offline
+document.addEventListener('DOMContentLoaded', () => {
+  showLoader(navigator.onLine ? 'online' : 'offline');
+});
+
+// 2) Listen for connectivity changes
+window.addEventListener('online',  () => showLoader('online'));
+window.addEventListener('offline', () => showLoader('offline'));
+
