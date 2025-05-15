@@ -12,13 +12,24 @@
         "destination": "/doctor/doctor.html"
       },
       {
-        "source": "/doctor/*",
-        "destination": "/doctor/*.html"
+        "source": "/doctor/**",
+        "destination": "/doctor/doctor.html"
+      },
+      {
+        "source": "/patient",
+        "destination": "/patient/patient.html"
+      },
+      {
+        "source": "/patient/**",
+        "destination": "/patient/patient.html"
       },
       {
         "source": "**",
         "destination": "/index.html"
       }
-    ]},
+    ]
+  },
   "database": {
-    "rules": "database.rules.json"},
+    "rules": "database.rules.json"
+  }
+}
