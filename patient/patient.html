@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>HMS – Patient Portal</title>
     <link rel="stylesheet" href="css/all.css" />
     <link rel="stylesheet" href="css/common.css" />
@@ -163,10 +163,10 @@
         border-radius: 4px;
       }
       .form-group textarea {
-        resize: vertical;
+        ㅤresize: vertical;
       }
       button {
-        padding: 0.75rem 1.5rem;
+        padding: 0.75.rem 1.5rem;
         border: none;
         border-radius: 4px;
         background: var(--primary);
@@ -178,138 +178,87 @@
         background: #003d99;
       }
       #profileForm {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 20px;
-  background-color: #f9f9f9;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-label {
-  display: flex;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-label input,
-label select {
-  flex: 1;
-  margin-left: 10px;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 16px;
-}
-
-label textarea {
-  flex: 1;
-  margin-left: 10px;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 16px;
-  height: 100px;
-}
-
-input[readonly] {
-  background-color: #e9e9e9;
-  cursor: not-allowed;
-}
-
-input:focus,
-textarea:focus,
-select:focus {
-  border-color: var(--primary);
-  outline: none;
-  box-shadow: 0 0 5px rgba(0,82,204,0.5);
-}
-
-button {
-  display: block;
-  margin: 20px auto 0;
-  padding: 10px 20px;
-  background-color: var(--primary);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
-}
-
-button:hover {
-  background-color: #0047b3;
-}
-
-@media (max-width: 600px) {
-  label {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  label input,
-  label textarea,
-  label select {
-    margin-left: 0;
-    margin-top: 5px;
-  }
-}
-      /* Full‑screen loading overlay */
-#loading {
-  position: fixed;
-  inset: 0;
-  background: rgba(255,255,255,0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  transition: opacity 0.3s ease;
-}
-
-/* Hidden state */
-#loading.loading--hidden {
-  opacity: 0;
-  pointer-events: none;
-}
-
-/* Beat animation */
-#beat-loader {
-  stroke-dasharray: 200;
-  stroke-dashoffset: 200;
-  animation: beat 1s ease-in-out infinite;
-}
-
-@keyframes beat {
-  0%,100% { stroke-dashoffset: 200; }
-  50%     { stroke-dashoffset:   0; }
-}
-
-/* Status‑dot styles */
-.status-indicator {
-  position: fixed;
-  bottom: 1rem;
-  right: 1rem;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #dc3545; /* offline default */
-  transition: background 0.3s ease;
-}
-
-.status-indicator.online      { background: #28a745; }
-.status-indicator.offline     { background: #dc3545; }
-.status-indicator.disconnected{ background: #6c757d; }
-
-      
-      /* .beat-loader {
-        stroke-dasharray: 175;
-        stroke-dashoffset: 350;
-        animation: draw 1.4s linear infinite;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f9f9f9;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
-      @keyframes draw {
-        to {
-          stroke-dashoffset: 0;
+      label {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      label input,
+      label select {
+        flex: 1;
+        margin-left: 10px;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 16px;
+      }
+      label textarea {
+        flex: 1;
+        margin-left: 10px;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 16px;
+        height: 100px;
+      }
+      input[readonly] {
+        background-color: #e9e9e9;
+        cursor: not-allowed;
+      }
+      input:focus,
+      textarea:focus,
+      select:focus {
+        border-color: var(--primary);
+        outline: none;
+        box-shadow: 0 0 5px rgba(0, 82, 204, 0.5);
+      }
+      button {
+        display: block;
+        margin: 20px auto 0;
+        padding: 10px 20px;
+        background-color: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+      button:hover {
+        background-color: #0047b3;
+      }
+      @media (max-width: 600px) {
+        label {
+          flex-direction: column;
+          align-items: flex-start;
         }
-      } */
+        label input,
+        label textarea,
+        label select {
+          margin-left: 0;
+          margin-top: 5px;
+        }
+      }
+      #loading {
+        position: fixed;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        transition: opacity 0.3s ease;
+      }
+      #loading.loading--hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
       .spinner {
         width: 40px;
         height: 40px;
@@ -319,45 +268,43 @@ button:hover {
         animation: spin 1s linear infinite;
       }
       @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
       }
       #error-message {
         color: #e53e3e;
         text-align: center;
         margin-bottom: 1rem;
       }
-      /* .status-indicator {
-        width: 10px;
-        height: 10px;
+      .status-indicator {
+        position: fixed;
+        bottom: 1rem;
+        right: 1rem;
+        width: 12px;
+        height: 12px;
         border-radius: 50%;
-        margin-left: 0.5rem;
+        background: #dc3545;
+        transition: background 0.3s ease;
       }
-      .status-indicator.online { background-color: #28a745; }
-      .status-indicator.offline { background-color: #ffc107; }
-      .status-indicator.disconnected { background-color: #dc3545; } */
-      
+      .status-indicator.online {
+        background: #28a745;
+      }
+      .status-indicator.offline {
+        background: #dc3545;
+      }
+      .status-indicator.disconnected {
+        background: #6c757d;
+      }
     </style>
   </head>
   <body>
-    <!-- <div id="loading">
-      <svg
-        width="108px"
-        height="128px"
-        viewBox="0 0 54 64"
-        version="1.1"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          class="beat-loader"
-          id="beat-loader"
-          d="M0.5,38.5 L16,38.5 L19,25.5 L24.5,57.5 L31.5,7.5 L37.5,46.5 L43,38.5 L53.5,38.5"
-          stroke="#6c757d"
-          stroke-width="2"
-          fill="none"
-        />
-      </svg>
-    </div> -->
+    <div id="loading" class="loading--hidden">
+      <div class="spinner"></div>
+    </div>
     <header>
       <div class="header-inner">
         <div class="brand">Dashboard</div>
@@ -387,52 +334,35 @@ button:hover {
         </div>
       </nav>
     </header>
-
     <main>
+      <div id="error-message"></div>
       <form id="profileForm">
         <label>Patient ID: <input type="text" id="patientId" readonly /></label>
         <label>First Name: <input type="text" id="firstName" required /></label>
         <label>Last Name: <input type="text" id="lastName" required /></label>
         <label>Date of Birth: <input type="date" id="dateOfBirth" /></label>
-        <label>Gender: <select id="gender">
-          <option value="">Select</option>
-          <option value="Male">Male</option>
-          <option value="Female">Female</option>
-          <!-- <option value="Other">Other</option> -->
-        </select></label>
+        <label
+          >Gender:
+          <select id="gender">
+            <option value="">Select</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+          </select></label
+        >
         <label>Address: <textarea id="address"></textarea></label>
         <label>Phone: <input type="tel" id="phone" /></label>
         <label>Email: <input type="email" id="email" readonly /></label>
         <label>Allergies: <textarea id="allergies"></textarea></label>
         <label>Medications: <textarea id="medications"></textarea></label>
-        <label>Medical History: <textarea id="medicalHistory"></textarea></label>
-        <label>Emergency Contact: <input type="tel" id="emergencyContact" /></label>
+        <label
+          >Medical History: <textarea id="medicalHistory"></textarea>
+        </label>
+        <label
+          >Emergency Contact: <input type="tel" id="emergencyContact"
+        /></label>
         <button type="submit">Save Profile</button>
       </form>
-      </section>
     </main>
-<script src="/patient/js/com.js"></script>
-    <script src="/patient/js/index.js"></script>
-    <script src="/patient/js/index.js"></script>
-    <script src="/patient/js/index1.js"></script>
-    <script src="/patient/js/common.js"></script>
-    <script src="/patient/js/security.js"></script>
-    <script src="/patient/js/securityMiddleware.js"></script>
-    <script src="/patient/js/securityLogger.js"></script>
-    <script src="/patient/js/profile.js"></script>
-    <script src="/gurad.js"></script>
-    <script src="patient/js/index.js"></script>
-    <script src="/base.js"></script>
-    <script src="/rol.js"></script>
-    <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        const navToggle = document.getElementById("navToggle");
-        const navMenu = document.getElementById("navMenu");
-        navToggle.addEventListener("click", () => {
-          navMenu.classList.toggle("open");
-        });
-      });
-    </script>
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
       import {
@@ -445,17 +375,10 @@ button:hover {
         doc,
         getDoc,
         setDoc,
-        Timestamp,
         updateDoc,
         onSnapshot,
+        Timestamp,
       } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
-      import {
-        showLoading,
-        hideLoading,
-        showError,
-        showSuccess,
-      } from "./js/common.js";
-      import securityMiddleware from "./js/securityMiddleware.js";
 
       // Firebase configuration
       const firebaseConfig = {
@@ -471,34 +394,37 @@ button:hover {
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app);
       const db = getFirestore(app);
-      const res = await fetch('https://us-central1-yourproj.cloudfunctions.net/systemStatus');
 
-      // Function to generate a unique patient ID
-      // function generatePatientId() {
-      //   return "PAT-" + Math.random().toString(36).substr(2, 9).toUpperCase();
-      // }
-      // async function generatePatientId() {
-      //   const counterRef = doc(db, "counters", "patientId");
-      //   const counterSnap = await getDoc(counterRef);
+      // DOM elements
+      const loadingEl = document.getElementById("loading");
+      const statusDot = document.getElementById("statusIndicator");
+      const errorMessage = document.getElementById("error-message");
+      const profileForm = document.getElementById("profileForm");
 
-      //   if (!counterSnap.exists()) {
-      //     // Initialize the counter if it doesn't exist
-      //     await setDoc(counterRef, { lastId: 0 });
-      //   }
+      // Utility functions
+      function showLoading() {
+        loadingEl.classList.remove("loading--hidden");
+      }
+      function hideLoading() {
+        loadingEl.classList.add("loading--hidden");
+      }
+      function showError(message) {
+        errorMessage.textContent = message;
+        setTimeout(() => (errorMessage.textContent = ""), 5000);
+      }
+      function showSuccess(message) {
+        errorMessage.style.color = "#28a745";
+        errorMessage.textContent = message;
+        setTimeout(() => {
+          errorMessage.textContent = "";
+          errorMessage.style.color = "#e53e3e";
+        }, 5000);
+      }
 
-      //   // Increment the counter
-      //   const lastId = counterSnap.exists() ? counterSnap.data().lastId : 0;
-      //   const newId = lastId + 1;
-      //   await updateDoc(counterRef, { lastId: newId });
-
-      //   // Format the ID as a 3-digit string (e.g., 001, 002, ...)
-      //   return String(newId).padStart(3, "0");
-      // }
-      function generateRandomId(length = 6) {
-        const characters =
-          "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        let result = "";
-        for (let i = 0; i < length; i++) {
+      function generatePatientId() {
+        const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        let result = "PAT-";
+        for (let i = 0; i < 6; i++) {
           result += characters.charAt(
             Math.floor(Math.random() * characters.length)
           );
@@ -506,20 +432,6 @@ button:hover {
         return result;
       }
 
-      function generatePatientId() {
-        return `PAT-${generateRandomId(6)}`;
-      }
-
-      // Function to disable form inputs
-      function disableFormInputs() {
-        const formElements = document.querySelectorAll(
-          "#profileForm input, #profileForm textarea, #profileForm select"
-        );
-        formElements.forEach((el) => (el.disabled = true));
-        document.getElementById("saveProfile").style.display = "none";
-      }
-
-      // Function to populate form with user data
       function populateForm(userData) {
         const greetEl = document.getElementById("greeting");
         const hour = new Date().getHours();
@@ -549,267 +461,35 @@ button:hover {
         document.getElementById("emergencyContact").value =
           userData.emergencyContact || "";
       }
-      function disableFormInputs() {
-        const formElements = document.querySelectorAll(
-          "#profileForm input, #profileForm textarea, #profileForm select"
-        );
-        formElements.forEach((el) => (el.disabled = true));
-        document.getElementById("saveProfile").style.display = "none";
-      }
-      const localData = JSON.parse(localStorage.getItem("profileData"));
-            if (localData) {
-              userData = { ...userData, ...localData };
-            }
 
-            populateForm(userData);
-      // Check authentication state
-      onAuthStateChanged(auth, async (user) => {
-        if (user) {
-          showLoading();
-          try {
-            const userDocRef = doc(db, "users", user.uid);
-
-            const userDocSnap = await getDoc(userDocRef);
-            if (userDocSnap.exists()) {
-              userData = userDocSnap.data();
-            } else {
-              userData = {
-                email: user.email,
-                patientId: await generatePatientId(),
-                firstName: "",
-                lastName: "",
-                dateOfBirth: null,
-                gender: "",
-                address: "",
-                phone: "",
-                allergies: "",
-                medications: "",
-                medicalHistory: "",
-                emergencyContact: "",
-              };
-              await setDoc(userDocRef, userData);
-            }
-
-            // Initial data load
-            // const userDocSnap = await getDoc(userDocRef);
-            let userData = userDocSnap.exists() ? userDocSnap.data() : {};
-
-            // Generate and save patient ID if it doesn't exist
-            if (!userData.patientId) {
-              const patientId = generatePatientId();
-              await setDoc(userDocRef, { patientId }, { merge: true });
-              userData.patientId = patientId;
-            }
-
-            // Set email from auth object
-            userData.email = user.email;
-            if (!userData.patientId) {
-              userData.patientId = generatePatientId();
-              await updateDoc(userDocRef, { patientId: userData.patientId });
-            }
-
-            populateForm(userData);
-
-            // Real-time updates
-            onSnapshot(userDocRef, (snap) => {
-              if (snap.exists()) {
-                populateForm(snap.data());
-              }
-            });
-          } catch (err) {
-            console.error("Error loading user data:", err);
-            showError("Failed to load user data. Please try again.");
-          } finally {
-            hideLoading();
-          }
-        } else {
-          window.location.href = "/index.html";
-        }
-      });
-
-      // Form submission handler
-      document
-        .getElementById("profileForm")
-        .addEventListener("submit", async (e) => {
-          e.preventDefault();
-          showLoading();
-          try {
-            const user = auth.currentUser;
-            if (user) {
-              const userDocRef = doc(db, "users", user.uid);
-              const formData = {
-                firstName: document.getElementById("firstName").value,
-                lastName: document.getElementById("lastName").value,
-                dateOfBirth: document.getElementById("dateOfBirth").value
-                  ? Timestamp.fromDate(
-                      new Date(document.getElementById("dateOfBirth").value)
-                    )
-                  : null,
-                gender: document.getElementById("gender").value,
-                address: document.getElementById("address").value,
-                phone: document.getElementById("phone").value,
-                email: document.getElementById("email").value,
-                allergies: document.getElementById("allergies").value,
-                medications: document.getElementById("medications").value,
-                medicalHistory: document.getElementById("medicalHistory").value,
-                emergencyContact:
-                  document.getElementById("emergencyContact").value,
-                updatedAt: serverTimestamp(),
-              };
-
-              await updateDoc(userDocRef, formData);
-              showSuccess("Profile updated successfully!");
-            }
-          } catch (error) {
-            console.error("Error saving profile:", error);
-            showError("Failed to save profile. Please try again.");
-          } finally {
-            hideLoading();
-          }
-        });
-        document.getElementById("profileForm").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        showLoading();
-        try {
-          const user = auth.currentUser;
-          if (user) {
-            const userDocRef = doc(db, "users", user.uid);
-            const formData = {
-              firstName: document.getElementById("firstName").value,
-              lastName: document.getElementById("lastName").value,
-              dateOfBirth: document.getElementById("dateOfBirth").value
-                ? Timestamp.fromDate(new Date(document.getElementById("dateOfBirth").value))
-                : null,
-              gender: document.getElementById("gender").value,
-              address: document.getElementById("address").value,
-              phone: document.getElementById("phone").value,
-              email: document.getElementById("email").value,
-              allergies: document.getElementById("allergies").value,
-              medications: document.getElementById("medications").value,
-              medicalHistory: document.getElementById("medicalHistory").value,
-              emergencyContact: document.getElementById("emergencyContact").value,
-              updatedAt: serverTimestamp(),
-            };
-
-            await updateDoc(userDocRef, formData);
-            localStorage.removeItem("profileData"); // Clear local storage after sync
-            showSuccess("Profile updated successfully!");
-          }
-        } catch (error) {
-          console.error("Error saving profile:", error);
-          showError("Failed to save profile.");
-        } finally {
-          hideLoading();
-        }
-      });
-
-
-      const loadingEl  = document.getElementById('loading');
-const loaderPath = document.getElementById('beat-loader');
-const statusDot  = document.getElementById('statusIndicator');
-
-const strokeColors = { online: '#28a745', offline: '#dc3545', syncing: '#6c757d' };
-let loaderTimeout;
-
-// Show or update loader overlay
-export function showLoader(status = 'online') {
-  loaderPath.setAttribute('stroke', strokeColors[status] || strokeColors.syncing);
-  loadingEl.classList.remove('loading--hidden');
-  clearTimeout(loaderTimeout);
-  loaderTimeout = setTimeout(hideLoader, 2000);
-}
-
-// Hide loader immediately
-export function hideLoader() {
-  clearTimeout(loaderTimeout);
-  loadingEl.classList.add('loading--hidden');
-}
-
-// Fetch system status and update dot + loader color
-export async function updateStatus() {
-  if (!navigator.onLine) {
-    statusDot.className = 'status-indicator offline';
-    loaderPath.setAttribute('stroke', strokeColors.offline);
-    return;
-  }
-  try {
-    const res = await fetch('/api/system-status');
-    if (!res.ok) throw new Error();
-    const { status } = await res.json();
-    statusDot.className = `status-indicator ${status || 'offline'}`;
-    statusDot.title     = status.charAt(0).toUpperCase() + status.slice(1);
-    loaderPath.setAttribute('stroke', strokeColors[status] || strokeColors.syncing);
-  } catch {
-    statusDot.className = 'status-indicator disconnected';
-    loaderPath.setAttribute('stroke', strokeColors.syncing);
-  }
-}
-
-// Initialize loader and status listeners
-window.addEventListener('online',  () => showLoader('online'));
-window.addEventListener('offline', () => showLoader('offline'));
-setInterval(updateStatus, 15000);
-updateStatus();
-document.addEventListener('DOMContentLoaded', () => {
-  showLoader(navigator.onLine ? 'online' : 'offline');
-});
-
-
-      function checkNetworkAndLoad() {
+      async function updateStatus() {
         if (!navigator.onLine) {
-          showError("No internet connection. Please check your network.");
-          hideLoading();
-          return false;
+          statusDot.className = "status-indicator offline";
+          statusDot.title = "Offline";
+          return;
         }
-        return true;
+        try {
+          const res = await fetch(
+            "https://us-central1-hospitalmanagtsystem.cloudfunctions.net/systemStatus"
+          );
+          if (res.ok) {
+            const { status } = await res.json();
+            statusDot.className = `status-indicator ${status || "offline"}`;
+            statusDot.title = status.charAt(0).toUpperCase() + status.slice(1);
+          } else {
+            statusDot.className = "status-indicator disconnected";
+            statusDot.title = "Disconnected";
+          }
+        } catch {
+          statusDot.className = "status-indicator disconnected";
+          statusDot.title = "Disconnected";
+        }
       }
-      // Grab elements
-const loading = document.getElementById('loading');
-const loader= document.getElementById('beat-loader');
 
-// Utility to show the loader
-function showLoader(status = 'online') {
-  // Set stroke color based on status
-  const colors = {
-    online:  '#28a745', // green
-    offline: '#dc3545', // red
-    syncing: '#6c757d'  // grey
-  };
-  loaderPath.setAttribute('stroke', colors[status] || colors.syncing);
-
-  // Show overlay
-  loadingEl.classList.remove('loading--hidden');
-
-  // Auto‐hide after 2s
-  clearTimeout(showLoader._timeout);
-  showLoader._timeout = setTimeout(hideLoader, 2000);
-}
-
-// Utility to hide the loader immediately
-function hideLoader() {
-  clearTimeout(showLoader._timeout);
-  loadingEl.classList.add('loading--hidden');
-}
-
-// Listen for network changes
-window.addEventListener('online',  () => showLoader('online'));
-window.addEventListener('offline', () => showLoader('offline'));
-
-// Example: call showLoader('syncing') when you start a sync
-// and hideLoader() once sync completes.
-
-// On initial page load
-document.addEventListener('DOMContentLoaded', () => {
-  const initStatus = navigator.onLine ? 'online' : 'offline';
-  showLoader(initStatus);
-});
-
-
+      // Authentication state listener
       onAuthStateChanged(auth, async (user) => {
         if (user) {
           showLoading();
-          if (!checkNetworkAndLoad()) return;
-
           try {
             const userDocRef = doc(db, "users", user.uid);
             const userDocSnap = await getDoc(userDocRef);
@@ -817,13 +497,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!userData.patientId) {
               userData.patientId = generatePatientId();
-              await setDoc(userDocRef, { patientId: userData.patientId }, { merge: true });
+              await setDoc(
+                userDocRef,
+                { patientId: userData.patientId, email: user.email },
+                { merge: true }
+              );
             }
 
             userData.email = user.email;
             const localData = JSON.parse(localStorage.getItem("profileData"));
             if (localData) {
               userData = { ...userData, ...localData };
+              if (navigator.onLine) {
+                await updateDoc(userDocRef, localData);
+                localStorage.removeItem("profileData");
+              }
             }
 
             populateForm(userData);
@@ -844,11 +532,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
 
-      document.getElementById("profileForm").addEventListener("submit", async (e) => {
+      // Form submission
+      profileForm.addEventListener("submit", async (e) => {
         e.preventDefault();
         showLoading();
-        if (!checkNetworkAndLoad()) return;
-
         try {
           const user = auth.currentUser;
           if (user) {
@@ -857,7 +544,9 @@ document.addEventListener('DOMContentLoaded', () => {
               firstName: document.getElementById("firstName").value,
               lastName: document.getElementById("lastName").value,
               dateOfBirth: document.getElementById("dateOfBirth").value
-                ? Timestamp.fromDate(new Date(document.getElementById("dateOfBirth").value))
+                ? Timestamp.fromDate(
+                    new Date(document.getElementById("dateOfBirth").value)
+                  )
                 : null,
               gender: document.getElementById("gender").value,
               address: document.getElementById("address").value,
@@ -866,92 +555,32 @@ document.addEventListener('DOMContentLoaded', () => {
               allergies: document.getElementById("allergies").value,
               medications: document.getElementById("medications").value,
               medicalHistory: document.getElementById("medicalHistory").value,
-              emergencyContact: document.getElementById("emergencyContact").value,
+              emergencyContact:
+                document.getElementById("emergencyContact").value,
               updatedAt: Timestamp.now(),
             };
 
-            await updateDoc(userDocRef, formData);
-            localStorage.removeItem("profileData");
-            showSuccess("Profile updated successfully!");
+            if (navigator.onLine) {
+              await updateDoc(userDocRef, formData);
+              localStorage.removeItem("profileData");
+              showSuccess("Profile updated successfully!");
+            } else {
+              localStorage.setItem("profileData", JSON.stringify(formData));
+              showError(
+                "Offline: Changes saved locally. Will sync when online."
+              );
+            }
           }
         } catch (error) {
           console.error("Error saving profile:", error);
-          showError("Failed to save profile.");
+          showError("Failed to save profile. Please try again.");
         } finally {
           hideLoading();
         }
       });
 
-      // const statusDot = document.getElementById("statusIndicator");
-      // const beatLoader = document.getElementById("beat-loader");
-      // async function updateStatus() {
-      //   if (!navigator.onLine) {
-      //     statusDot.className = "status-indicator offline";
-      //     beatLoader.setAttribute("stroke", "#dc3545");
-      //     return;
-      //   }
-      //   try {
-      //     const res = await fetch("/api/system-status");
-      //     if (res.ok) {
-      //       const { status } = await res.json();
-      //       statusDot.className = `status-indicator ${status || "offline"}`;
-      //       beatLoader.setAttribute(
-      //         "stroke",
-      //         status === "online" ? "#28a745" : status === "offline" ? "#dc3545" : "#6c757d"
-      //       );
-      //     } else {
-      //       statusDot.className = "status-indicator disconnected";
-      //       beatLoader.setAttribute("stroke", "#6c757d");
-      //     }
-      //   } catch {
-      //     statusDot.className = "status-indicator disconnected";
-      //     beatLoader.setAttribute("stroke", "#6c757d");
-      //   }
-      // }
-      // setInterval(updateStatus, 15000);
-      // updateStatus();
-
-      // Mobile nav toggle
-      document.querySelectorAll(".nav-menu a").forEach((a) => {
-        if (window.location.pathname.endsWith(a.getAttribute("href"))) {
-          a.classList.add("active");
-        }
-      });
-
-      // Highlight active link
-      document.querySelectorAll(".nav-menu a").forEach((a) => {
-        if (window.location.pathname.endsWith(a.getAttribute("href"))) {
-          a.classList.add("active");
-        }
-      });
-      console.log("loading data.....");
-      showLoading();
-      setTimeout(() => {
-        hideLoading();
-        // console.log("Loading animation stopped after 3 seconds.");
-      }, 2000);
-      (async () => {
-        try {
-          const userData = await fetchUserData();
-          if (!userData.id) {
-            userData.id = await generateId();
-            await saveId(userData.id);
-          }
-          populateForm(userData);
-          hideError();
-          updateStatus("online");
-        } catch (error) {
-          console.error("Error:", error);
-          showError("Failed to fetch data. Please try again later.");
-          updateStatus("disconnected");
-        }
-      })();
-
-      // Example status updates (replace with real logic)
-      setTimeout(() => updateStatus("offline"), 4000);
-      setTimeout(() => updateStatus("online"), 6000);
-
-      document.getElementById("profileForm").addEventListener("input", () => {
+      // Local storage on input
+      profileForm.addEventListener("input", () => {
         const formData = {
           firstName: document.getElementById("firstName").value,
           lastName: document.getElementById("lastName").value,
@@ -966,6 +595,8 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         localStorage.setItem("profileData", JSON.stringify(formData));
       });
+
+      // Logout
       document
         .getElementById("logoutBtn")
         .addEventListener("click", async () => {
@@ -975,11 +606,44 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = "/index.html";
           } catch (error) {
             console.error("Error signing out:", error);
-            showError("Failed to sign out");
+            showError("Failed to sign out.");
           } finally {
             hideLoading();
           }
         });
+
+      // Mobile nav toggle
+      document.getElementById("navToggle").addEventListener("click", () => {
+        document.getElementById("navMenu").classList.toggle("open");
+      });
+
+      // Highlight active link
+      document.querySelectorAll(".nav-menu a").forEach((a) => {
+        if (window.location.pathname.endsWith(a.getAttribute("href"))) {
+          a.classList.add("active");
+        }
+      });
+
+      // Status updates
+      window.addEventListener("online", () => {
+        statusDot.className = "status-indicator online";
+        statusDot.title = "Online";
+        const localData = JSON.parse(localStorage.getItem("profileData"));
+        if (localData && auth.currentUser) {
+          updateDoc(doc(db, "users", auth.currentUser.uid), localData).then(
+            () => {
+              localStorage.removeItem("profileData");
+              showSuccess("Offline changes synced!");
+            }
+          );
+        }
+      });
+      window.addEventListener("offline", () => {
+        statusDot.className = "status-indicator offline";
+        statusDot.title = "Offline";
+      });
+      setInterval(updateStatus, 15000);
+      updateStatus();
     </script>
   </body>
 </html>

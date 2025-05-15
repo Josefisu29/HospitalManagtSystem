@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HMS – Patient Portal</title>
+    <link rel="stylesheet" href="../css/common.css" />
+    <link rel="stylesheet" href="css/all.css" />
+    <link rel="stylesheet" href="css/common.css" />
+    <link rel="stylesheet" href="css/security.css" />
+    <style>
+      /* Additional inline styles for this page */
+      #profileForm {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f9f9f9;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      label {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      label input,
+      label select {
+        flex: 1;
+        margin-left: 10px;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 16px;
+      }
+      label textarea {
+        flex: 1;
+        margin-left: 10px;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 16px;
+        height: 100px;
+      }
+      input[readonly] {
+        background-color: #e9e9e9;
+        cursor: not-allowed;
+      }
+      input:focus,
+      textarea:focus,
+      select:focus {
+        border-color: var(--primary);
+        outline: none;
+        box-shadow: 0 0 5px rgba(0, 82, 204, 0.5);
+      }
+      button {
+        display: block;
+        margin: 20px auto 0;
+        padding: 10px 20px;
+        background-color: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+      button:hover {
+        background-color: #0047b3;
+      }
+      .status-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-top: 20px;
+      }
+      .status-buttons button {
+        padding: 8px 16px;
+        font-size: 14px;
+      }
+      @media (max-width: 600px) {
+        label {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        label input,
+        label textarea,
+        label select {
+          margin-left: 0;
+          margin-top: 5px;
+        }
+        .status-buttons {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loading">
+      <svg
+        width="108px"
+        height="128px"
+        viewBox="0 0 54 64"
+        version="1.1"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          class="beat-loader"
+          id="beat-loader"
+          d="M0.5,38.5 L16,38.5 L19,25.5 L24.5,57.5 L31.5,7.5 L37.5,46.5 L43,38.5 L53.5,38.5"
+          stroke="#6c757d"
+          stroke-width="2"
+          fill="none"
+        />
+      </svg>
+    </div>
+    <header>
+      <div class="header-inner">
+        <div class="brand">Dashboard</div>
+        <div style="display: flex; align-items: center">
+          <div id="greeting" class="greeting">Good Morning,</div>
+          <div id="statusIndicator" class="status-indicator disconnected"></div>
+          <button id="logoutBtn" class="btn" style="margin-left: 1rem">
+            Logout
+          </button>
+        </div>
+      </div>
+      <nav>
+        <div class="nav-inner">
+          <div class="nav-toggle" id="navToggle">☰</div>
+          <ul class="nav-menu" id="navMenu">
+            <li><a href="patient.html" class="active">Profile</a></li>
+            <li><a href="patient-appointments.html">Appointment</a></li>
+            <li><a href="patient-records.html">Medical Record</a></li>
+            <li><a href="patient-results.html">Lab Result</a></li>
+            <li><a href="patient-billing.html">Billing & Payment</a></li>
+            <li><a href="Help.html">Get-Help</a></li>
+          </ul>
+        </div>
+      </nav>
+    </header>
+    <main>
+      <section class="card">
+        <h2>Your Profile</h2>
+        <div id="error-message"></div>
+        <form id="profileForm">
+          <label
+            >Patient ID: <input type="text" id="patientId" readonly
+          /></label>
+          <label
+            >First Name: <input type="text" id="firstName" required
+          /></label>
+          <label>Last Name: <input type="text" id="lastName" required /></label>
+          <label>Date of Birth: <input type="date" id="dateOfBirth" /></label>
+          <label
+            >Gender:
+            <select id="gender">
+              <option value="">Select</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select></label
+          >
+          <label>Address: <textarea id="address"></textarea></label>
+          <label>Phone: <input type="tel" id="phone" /></label>
+          <label>Email: <input type="email" id="email" readonly /></label>
+          <label>Allergies: <textarea id="allergies"></textarea></label>
+          <label>Medications: <textarea id="medications"></textarea></label>
+          <label
+            >Medical History: <textarea id="medicalHistory"></textarea>
+          </label>
+          <label
+            >Emergency Contact: <input type="tel" id="emergencyContact"
+          /></label>
+          <button type="submit">Save Profile</button>
+        </form>
+        <div class="status-buttons">
+          <button onclick="toggleOnlineMode()">Go Online</button>
+          <button onclick="toggleOfflineMode()">Go Offline</button>
+          <button onclick="syncLocalData()">Sync Data</button>
+        </div>
+      </section>
+    </main>
+    <script src="/patient/js/com.js"></script>
+    <script src="/patient/js/index.js"></script>
+    <script src="/patient/js/index.js"></script>
+    <script src="/patient/js/index1.js"></script>
+    <script src="/patient/js/common.js"></script>
+    <script src="/patient/js/security.js"></script>
+    <script src="/patient/js/securityMiddleware.js"></script>
+    <script src="/patient/js/securityLogger.js"></script>
+    <script src="/patient/js/profile.js"></script>
+    <script src="/gurad.js"></script>
+    <script src="patient/js/index.js"></script>
+    <script src="/base.js"></script>
+    <script src="/rol.js"></script>
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+      import {
+        getAuth,
+        onAuthStateChanged,
+        signOut,
+      } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+      import {
+        getFirestore,
+        doc,
+        getDoc,
+        setDoc,
+        updateDoc,
+        onSnapshot,
+        Timestamp,
+        serverTimestamp,
+      } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+      import {
+        showLoading,
+        hideLoading,
+        showError,
+        showSuccess,
+        toggleOnlineMode,
+        toggleOfflineMode,
+        syncLocalData,
+      } from "../js/common.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
+        authDomain: "hospitalmanagtsystem.firebaseapp.com",
+        projectId: "hospitalmanagtsystem",
+        storageBucket: "hospitalmanagtsystem.firebasestorage.app",
+        messagingSenderId: "771158568788",
+        appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+
+      const form = document.getElementById("profileForm");
+      const draftKey = "profileDraft";
+
+      function generateRandomId(length = 6) {
+        const characters =
+          "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        let result = "";
+        for (let i = 0; i < length; i++) {
+          result += characters.charAt(
+            Math.floor(Math.random() * characters.length)
+          );
+        }
+        return result;
+      }
+
+      function generatePatientId() {
+        return `PAT-${generateRandomId(6)}`;
+      }
+
+      function populateForm(data) {
+        const greetEl = document.getElementById("greeting");
+        const hour = new Date().getHours();
+        const sal =
+          hour < 12
+            ? "Good Morning"
+            : hour < 18
+            ? "Good Afternoon"
+            : "Good Evening";
+        greetEl.textContent = `${sal}, ${data.firstName || "User"}`;
+
+        Object.entries(data).forEach(([key, value]) => {
+          const el = document.getElementById(key);
+          if (el) {
+            el.value = value?.toDate
+              ? value.toDate().toISOString().split("T")[0]
+              : value || "";
+          }
+        });
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const draft = localStorage.getItem(draftKey);
+        if (draft) {
+          try {
+            populateForm(JSON.parse(draft));
+          } catch (e) {
+            console.error("Error loading draft:", e);
+          }
+        }
+
+        const navToggle = document.getElementById("navToggle");
+        const navMenu = document.getElementById("navMenu");
+        navToggle.addEventListener("click", () => {
+          navMenu.classList.toggle("open");
+        });
+
+        document.querySelectorAll(".nav-menu a").forEach((a) => {
+          if (window.location.pathname.endsWith(a.getAttribute("href"))) {
+            a.classList.add("active");
+          }
+        });
+      });
+
+      form.addEventListener("input", () => {
+        const data = Array.from(form.elements)
+          .filter((e) => e.id)
+          .reduce((o, e) => ({ ...o, [e.id]: e.value }), {});
+        localStorage.setItem(draftKey, JSON.stringify(data));
+      });
+
+      onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+          window.location.href = "/index.html";
+          return;
+        }
+
+        showLoading();
+        let loadingTimeout = setTimeout(hideLoading, 3000);
+
+        try {
+          const idTokenResult = await user.getIdTokenResult(true);
+          if (idTokenResult.claims.role !== "patient") {
+            await signOut(auth);
+            showError("Unauthorized access. Redirecting to login...");
+            setTimeout(() => (window.location.href = "/index.html"), 2000);
+            return;
+          }
+
+          const userRef = doc(db, "users", user.uid);
+          let snap = await getDoc(userRef);
+          let data = snap.exists() ? snap.data() : { email: user.email };
+
+          if (!data.patientId) {
+            data.patientId = generatePatientId();
+            await setDoc(
+              userRef,
+              { patientId: data.patientId },
+              { merge: true }
+            );
+          }
+
+          const draft = localStorage.getItem(draftKey);
+          if (draft) {
+            data = { ...data, ...JSON.parse(draft) };
+          }
+
+          populateForm({ ...data, email: user.email });
+
+          onSnapshot(userRef, (snap) => {
+            if (snap.exists()) {
+              populateForm(snap.data());
+            }
+          });
+        } catch (err) {
+          console.error("Error loading user data:", err);
+          showError("Failed to load user data. Please try again.");
+        } finally {
+          clearTimeout(loadingTimeout);
+          hideLoading();
+        }
+      });
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        showLoading();
+        let loadingTimeout = setTimeout(hideLoading, 3000);
+
+        try {
+          const user = auth.currentUser;
+          if (!user) throw new Error("Not authenticated");
+
+          const userRef = doc(db, "users", user.uid);
+          const payload = Array.from(form.elements)
+            .filter((el) => el.id && el.id !== "email")
+            .reduce((o, el) => {
+              o[el.id] =
+                el.type === "date" && el.value
+                  ? Timestamp.fromDate(new Date(el.value))
+                  : el.value;
+              return o;
+            }, {});
+          payload.updatedAt = serverTimestamp();
+
+          await updateDoc(userRef, payload);
+          localStorage.removeItem(draftKey);
+          showSuccess(
+            navigator.onLine
+              ? "Profile saved successfully"
+              : "Profile saved locally. Will sync when online."
+          );
+        } catch (error) {
+          console.error("Error saving profile:", error);
+          showError("Failed to save profile: " + error.message);
+        } finally {
+          clearTimeout(loadingTimeout);
+          hideLoading();
+        }
+      });
+
+      document
+        .getElementById("logoutBtn")
+        .addEventListener("click", async () => {
+          showLoading();
+          let loadingTimeout = setTimeout(hideLoading, 3000);
+          try {
+            await signOut(auth);
+            window.location.href = "/index.html";
+          } catch (error) {
+            console.error("Error signing out:", error);
+            showError("Failed to sign out: " + error.message);
+          } finally {
+            clearTimeout(loadingTimeout);
+            hideLoading();
+          }
+        });
+    </script>
+  </body>
+</html>
