@@ -1,9 +1,9 @@
-"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+// "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 
-"https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-"https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-// const app = initializeApp(firebaseConfig);
+// "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+// "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+// "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+// // const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const rtdb = getDatabase(app);
