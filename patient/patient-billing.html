@@ -2,9 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>HMS – Billing & Payments</title>
     <link rel="stylesheet" href="css/all.css" />
+    <link rel="stylesheet" href="css/common.css" />
     <style>
       :root {
         --primary: #0052cc;
@@ -121,6 +122,15 @@
       .status-unpaid {
         color: #dc3545;
       }
+      .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #666;
+      }
+      .empty-state i {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+      }
       @media (max-width: 768px) {
         nav ul {
           flex-direction: column;
@@ -130,65 +140,80 @@
           overflow-x: auto;
         }
       }
+      .tooltip {
+        position: relative;
+        display: inline-block;
+      }
+      .tooltip .tooltiptext {
+        visibility: hidden;
+        width: 120px;
+        background-color: #555;
+        color: #fff;
+        text-align: center;
+        border-radius: 6px;
+        padding: 5px;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -60px;
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+      .tooltip:hover .tooltiptext {
+        visibility: visible;
+        opacity: 1;
+      }
     </style>
   </head>
   <body>
     <header>
-      <!-- <h1>HMS Patient</h1> -->
       <div style="display: flex; align-items: center">
         <span id="greeting" class="greeting"></span>
-        <span id="statusIndicator" class="status-indicator offline"></span>
-        <button id="logoutBtn" class="btn" style="margin-left: 1rem">
-          Logout
-        </button>
+        <span id="statusIndicator" class="status-indicator offline tooltip">
+          <span class="tooltiptext" id="statusTooltip">Offline</span>
+        </span>
+        <button id="logoutBtn" class="btn" style="margin-left: 1rem">Logout</button>
       </div>
     </header>
     <nav>
       <div class="nav-inner">
         <div class="nav-toggle" id="navToggle">☰</div>
         <ul class="nav-menu" id="navMenu">
-          <li><a href="patient.html" class="active">Profile</a></li>
-          <li>
-            <a href="patient-appointments.html">Appointment</a>
-          </li>
-          <li><a href="patient-records.html">Medical Record</a></li>
-          <li><a href="patient-results.html">Lab Result</a></li>
-          <li>
-            <a href="patient-billing.html">Billing & Payment</a>
-          </li>
-          <li>
-            <a href="Help.html">Get-Help</a>
-          </li>
+          <li><a href="patient.html">Profile</a></li>
+          <li><a href="patient-appointments.html">Appointments</a></li>
+          <li><a href="patient-records.html">Medical Records</a></li>
+          <li><a href="patient-results.html">Lab Results</a></li>
+          <li><a href="patient-billing.html" class="active">Billing & Payments</a></li>
+          <li><a href="Help.html">Get-Help</a></li>
         </ul>
       </div>
     </nav>
     <main>
       <section class="card">
         <h2>My Invoices</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Invoice #</th>
-              <th>Date</th>
-              <th>Amount</th>
-              <th>Status</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody id="invoicesTable">
-            <!-- Invoices will be loaded dynamically -->
-          </tbody>
-        </table>
+        <div id="invoicesTableContainer">
+          <table>
+            <thead>
+              <tr>
+                <th>Invoice #</th>
+                <th>Date</th>
+                <th>Description</th>
+                <th>Provider</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="invoicesTable"></tbody>
+          </table>
+        </div>
       </section>
     </main>
 
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-      import {
-        getAuth,
-        onAuthStateChanged,
-        signOut,
-      } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+      import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
       import {
         getFirestore,
         doc,
@@ -196,11 +221,13 @@
         collection,
         query,
         where,
-        getDocs,
+        onSnapshot,
         updateDoc,
+        Timestamp,
+        enableIndexedDbPersistence,
       } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+      import { showLoading, hideLoading, showError, showSuccess, setupTableSorting, setupTableFiltering } from "./js/common.js";
 
-      // Firebase configuration
       const firebaseConfig = {
         apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
         authDomain: "hospitalmanagtsystem.firebaseapp.com",
@@ -210,15 +237,16 @@
         appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
       };
 
-      // Initialize Firebase
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app);
       const db = getFirestore(app);
 
-      // Check authentication state
+      enableIndexedDbPersistence(db).catch((err) => console.warn("Offline persistence failed:", err));
+
       onAuthStateChanged(auth, async (user) => {
         if (user) {
           try {
+            showLoading();
             const userDoc = await getDoc(doc(db, "users", user.uid));
             if (userDoc.exists()) {
               const userData = userDoc.data();
@@ -226,94 +254,157 @@
               const hour = new Date().getHours();
               const sal = hour < 12 ? "Good Morning" : hour < 18 ? "Good Afternoon" : "Good Evening";
               greetEl.textContent = `${sal}, ${userData.firstName}`;
-
               await loadInvoices(user.uid);
+            } else {
+              showError("User profile not found.");
+              window.location.href = "/index.html";
             }
           } catch (error) {
             console.error("Error loading user data:", error);
+            showError("Failed to load user data. Please try again.");
+          } finally {
+            hideLoading();
           }
         } else {
           window.location.href = "/index.html";
         }
       });
 
-      // Load invoices
       async function loadInvoices(userId) {
         try {
+          showLoading();
           const invoicesRef = collection(db, "invoices");
           const q = query(invoicesRef, where("patientId", "==", userId));
-          const querySnapshot = await getDocs(q);
-
-          const tbody = document.getElementById("invoicesTable");
-          tbody.innerHTML = "";
-
-          querySnapshot.forEach((doc) => {
-            const invoice = doc.data();
-            const row = document.createElement("tr");
-            row.innerHTML = `
-              <td>${invoice.invoiceNumber}</td>
-              <td>${invoice.date}</td>
-              <td class="amount">$${invoice.amount.toFixed(2)}</td>
-              <td class="status-${invoice.status.toLowerCase()}">${invoice.status}</td>
-              <td>
-                <button class="btn" ${invoice.status === "Paid" ? "disabled" : ""} onclick="handlePayment('${doc.id}', ${invoice.amount})">
-                  ${invoice.status === "Paid" ? "Paid" : "Pay Now"}
-                </button>
-              </td>
-            `;
-            tbody.appendChild(row);
+          onSnapshot(q, async (querySnapshot) => {
+            const tbody = document.getElementById("invoicesTable");
+            const container = document.getElementById("invoicesTableContainer");
+            tbody.innerHTML = "";
+            if (querySnapshot.empty) {
+              container.innerHTML = `
+                <div class="empty-state">
+                  <i class="fas fa-file-invoice"></i>
+                  <p>No invoices found.</p>
+                </div>`;
+              return;
+            }
+            container.innerHTML = `
+              <table>
+                <thead>
+                  <tr>
+                    <th>Invoice #</th>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Provider</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="invoicesTable"></tbody>
+              </table>`;
+            const newTbody = document.getElementById("invoicesTable");
+            for (const doc of querySnapshot.docs) {
+              const invoice = doc.data();
+              let providerName = "N/A";
+              if (invoice.doctorId) {
+                const doctorDoc = await getDoc(doc(db, "doctors", invoice.doctorId));
+                if (doctorDoc.exists()) {
+                  const doctorData = doctorDoc.data();
+                  providerName = `Dr. ${doctorData.firstName} ${doctorData.lastName}`;
+                }
+              } else if (invoice.pharmacistId) {
+                const pharmacistDoc = await getDoc(doc(db, "users", invoice.pharmacistId));
+                if (pharmacistDoc.exists()) {
+                  const pharmacistData = pharmacistDoc.data();
+                  providerName = `${pharmacistData.firstName} ${pharmacistData.lastName} (Pharmacist)`;
+                }
+              }
+              const row = document.createElement("tr");
+              row.innerHTML = `
+                <td>${invoice.invoiceNumber}</td>
+                <td>${invoice.date.toDate().toLocaleDateString()}</td>
+                <td>${invoice.description}</td>
+                <td>${providerName}</td>
+                <td class="amount">$${invoice.amount.toFixed(2)}</td>
+                <td class="status-${invoice.status.toLowerCase()}">${invoice.status}</td>
+                <td>
+                  <button class="btn" ${invoice.status === "paid" ? "disabled" : ""} onclick="handlePayment('${doc.id}', ${invoice.amount})">
+                    ${invoice.status === "paid" ? "Paid" : "Pay Now"}
+                  </button>
+                </td>
+              `;
+              newTbody.appendChild(row);
+            }
+            setupTableSorting("invoicesTable", [0, 1, 2, 3, 4, 5]);
+            setupTableFiltering("invoicesTable", [0, 2, 3, 5]);
           });
         } catch (error) {
           console.error("Error loading invoices:", error);
+          showError("Failed to load invoices. Please try again.");
+        } finally {
+          hideLoading();
         }
       }
 
-      // Handle payment
       window.handlePayment = async (invoiceId, amount) => {
         try {
-          // Placeholder: Update invoice status to "Paid"
-          // TODO: Integrate with payment gateway (e.g., Stripe, PayPal)
+          showLoading();
+          // Mock payment processing
           await updateDoc(doc(db, "invoices", invoiceId), {
-            status: "Paid",
+            status: "paid",
+            updatedAt: Timestamp.now(),
           });
-          await loadInvoices(auth.currentUser.uid);
-          alert(`Payment of $${amount.toFixed(2)} marked as paid.`);
+          showSuccess(`Payment of $${amount.toFixed(2)} processed successfully.`);
         } catch (error) {
-          console.error("Error paying invoice:", error);
-          alert("Failed to process payment.");
+          console.error("Error processing payment:", error);
+          showError("Failed to process payment. Please try again.");
+        } finally {
+          hideLoading();
         }
       };
 
-      // Logout functionality
-      document
-        .getElementById("logoutBtn")
-        .addEventListener("click", async () => {
-          try {
-            await signOut(auth);
-            window.location.href = "/index.html";
-          } catch (error) {
-            console.error("Error signing out:", error);
-          }
-        });
+      document.getElementById("logoutBtn").addEventListener("click", async () => {
+        try {
+          showLoading();
+          await signOut(auth);
+          window.location.href = "/index.html";
+        } catch (error) {
+          console.error("Error signing out:", error);
+          showError("Failed to sign out. Please try again.");
+        } finally {
+          hideLoading();
+        }
+      });
 
-      // Status indicator
       const statusDot = document.getElementById("statusIndicator");
+      const statusTooltip = document.getElementById("statusTooltip");
       async function updateStatus() {
         try {
-          const res = await fetch("/api/system-status");
-          const { status } = await res.json();
-          statusDot.className = "status-indicator " + (status || "offline");
+          const res = await fetch("https://us-central1-hospitalmanagtsystem.cloudfunctions.net/systemStatus");
+          if (res.ok) {
+            const { status } = await res.json();
+            statusDot.className = `status-indicator ${status || "offline"}`;
+            statusTooltip.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+          } else {
+            statusDot.className = "status-indicator offline";
+            statusTooltip.textContent = "Offline";
+          }
         } catch {
           statusDot.className = "status-indicator offline";
+          statusTooltip.textContent = "Offline";
         }
       }
-      setInterval(updateStatus, 10000);
+      window.addEventListener("online", () => updateStatus());
+      window.addEventListener("offline", () => {
+        statusDot.className = "status-indicator offline";
+        statusTooltip.textContent = "Offline";
+      });
+      setInterval(updateStatus, 15000);
       updateStatus();
-    </script>
-  </body>
-</html>
 
-     
+      document.getElementById("navToggle").addEventListener("click", () => {
+        document.getElementById("navMenu").classList.toggle("active");
+      });
     </script>
   </body>
 </html>

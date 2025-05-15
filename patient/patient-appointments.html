@@ -2,9 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>HMS –Appointments</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HMS – Appointments</title>
     <link rel="stylesheet" href="css/all.css" />
+    <link rel="stylesheet" href="css/common.css" />
     <style>
       :root {
         --primary: #0052cc;
@@ -111,6 +112,32 @@
         background: #ccc;
         cursor: not-allowed;
       }
+      .status-badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+      .status-badge.pending {
+        background: #fff3cd;
+        color: #856404;
+      }
+      .status-badge.confirmed {
+        background: #d4edda;
+        color: #155724;
+      }
+      .status-badge.in-progress {
+        background: #cce5ff;
+        color: #004085;
+      }
+      .status-badge.completed {
+        background: #e2e3e5;
+        color: #383d41;
+      }
+      .status-badge.cancelled {
+        background: #f8d7da;
+        color: #721c24;
+      }
       @media (max-width: 768px) {
         nav ul {
           flex-direction: column;
@@ -161,13 +188,45 @@
         border: 1px solid #ccc;
         border-radius: 4px;
       }
+      .modal-content textarea {
+        padding: 0.5rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        resize: vertical;
+      }
+      .tooltip {
+        position: relative;
+        display: inline-block;
+      }
+      .tooltip .tooltiptext {
+        visibility: hidden;
+        width: 120px;
+        background-color: #555;
+        color: #fff;
+        text-align: center;
+        border-radius: 6px;
+        padding: 5px;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -60px;
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+      .tooltip:hover .tooltiptext {
+        visibility: visible;
+        opacity: 1;
+      }
     </style>
   </head>
   <body>
     <header>
       <div style="display: flex; align-items: center">
         <span id="greeting" class="greeting"></span>
-        <span id="statusIndicator" class="status-indicator offline"></span>
+        <span id="statusIndicator" class="status-indicator offline tooltip">
+          <span class="tooltiptext" id="statusTooltip">Offline</span>
+        </span>
         <button id="logoutBtn" class="btn" style="margin-left: 1rem">
           Logout
         </button>
@@ -179,11 +238,11 @@
         <ul class="nav-menu" id="navMenu">
           <li><a href="patient.html">Profile</a></li>
           <li>
-            <a href="patient-appointments.html" class="active">Appointment</a>
+            <a href="patient-appointments.html" class="active">Appointments</a>
           </li>
-          <li><a href="patient-records.html">Medical Record</a></li>
-          <li><a href="patient-results.html">Lab Result</a></li>
-          <li><a href="patient-billing.html">Billing & Payment</a></li>
+          <li><a href="patient-records.html">Medical Records</a></li>
+          <li><a href="patient-results.html">Lab Results</a></li>
+          <li><a href="patient-billing.html">Billing & Payments</a></li>
           <li><a href="Help.html">Get-Help</a></li>
         </ul>
       </div>
@@ -194,20 +253,22 @@
         <button class="btn" id="bookAppointmentBtn">
           Book New Appointment
         </button>
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Time</th>
-              <th>Doctor</th>
-              <th>Status</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody id="appointmentsTable">
-            <!-- Appointments will be loaded dynamically -->
-          </tbody>
-        </table>
+        <div id="appointmentsTableContainer">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Doctor</th>
+                <th>Type</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="appointmentsTable"></tbody>
+          </table>
+        </div>
       </section>
     </main>
 
@@ -220,7 +281,13 @@
             <label for="doctorSelect">Doctor</label>
             <select id="doctorSelect" required>
               <option value="">Select Doctor</option>
-              <!-- Doctors will be loaded dynamically -->
+            </select>
+          </div>
+          <div>
+            <label for="appointmentType">Type</label>
+            <select id="appointmentType" required>
+              <option value="in-person">In-Person</option>
+              <option value="virtual">Virtual</option>
             </select>
           </div>
           <div>
@@ -231,7 +298,30 @@
             <label for="appointmentTime">Time</label>
             <input type="time" id="appointmentTime" required />
           </div>
+          <div>
+            <label for="appointmentReason">Reason</label>
+            <textarea id="appointmentReason" rows="4" required></textarea>
+          </div>
           <button type="submit" class="btn">Book</button>
+        </form>
+      </div>
+    </div>
+
+    <div id="rescheduleModal" class="modal">
+      <div class="modal-content">
+        <span class="close" id="rescheduleCloseModal">×</span>
+        <h2>Reschedule Appointment</h2>
+        <form id="rescheduleForm">
+          <input type="hidden" id="rescheduleAppointmentId" />
+          <div>
+            <label for="rescheduleDate">Date</label>
+            <input type="date" id="rescheduleDate" required />
+          </div>
+          <div>
+            <label for="rescheduleTime">Time</label>
+            <input type="time" id="rescheduleTime" required />
+          </div>
+          <button type="submit" class="btn">Reschedule</button>
         </form>
       </div>
     </div>
@@ -250,12 +340,21 @@
         collection,
         query,
         where,
-        getDocs,
+        onSnapshot,
         setDoc,
+        updateDoc,
         Timestamp,
+        enableIndexedDbPersistence,
       } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+      import {
+        showLoading,
+        hideLoading,
+        showError,
+        showSuccess,
+        setupTableSorting,
+        setupTableFiltering,
+      } from "./js/common.js";
 
-      // Firebase configuration
       const firebaseConfig = {
         apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
         authDomain: "hospitalmanagtsystem.firebaseapp.com",
@@ -265,17 +364,20 @@
         appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
       };
 
-      // Initialize Firebase
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app);
       const db = getFirestore(app);
 
+      enableIndexedDbPersistence(db).catch((err) =>
+        console.warn("Offline persistence failed:", err)
+      );
+
       let currentUser = null;
 
-      // Check authentication state
       onAuthStateChanged(auth, async (user) => {
         if (user) {
           try {
+            showLoading();
             const userDoc = await getDoc(doc(db, "users", user.uid));
             if (userDoc.exists()) {
               currentUser = userDoc.data();
@@ -288,75 +390,26 @@
                   ? "Good Afternoon"
                   : "Good Evening";
               greetEl.textContent = `${sal}, ${currentUser.firstName}`;
-              await loadAppointments(user.uid);
               await loadDoctors();
+              await loadAppointments(user.uid);
+            } else {
+              showError("User profile not found.");
+              window.location.href = "/index.html";
             }
           } catch (error) {
             console.error("Error loading user data:", error);
+            showError("Failed to load user data. Please try again.");
+          } finally {
+            hideLoading();
           }
         } else {
           window.location.href = "/index.html";
         }
       });
 
-      // Load appointments
-      async function loadAppointments(userId) {
-        try {
-          const appointmentsRef = collection(db, "appointments");
-          const q = query(appointmentsRef, where("patientId", "==", userId));
-          const querySnapshot = await getDocs(q);
-          const tbody = document.getElementById("appointmentsTable");
-          tbody.innerHTML = "";
-          querySnapshot.forEach(async (docSnap) => {
-            const appointment = docSnap.data();
-            const doctorDoc = await getDoc(
-              doc(db, "doctors", appointment.doctorId)
-            );
-            const doctorName = doctorDoc.exists()
-              ? doctorDoc.data().name
-              : "Unknown";
-            const appointmentDate = appointment.date.toDate();
-            const dateStr = appointmentDate.toLocaleDateString();
-            const timeStr = appointmentDate.toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            });
-            const row = document.createElement("tr");
-            row.innerHTML = `
-              <td>${dateStr}</td>
-              <td>${timeStr}</td>
-              <td>${doctorName}</td>
-              <td>${appointment.status}</td>
-              <td>
-                <button class="btn" onclick="handleAppointment('${
-                  docSnap.id
-                }', '${appointment.status}')">
-                  ${
-                    appointment.status === "Confirmed" ? "Reschedule" : "Cancel"
-                  }
-                </button>
-              </td>
-            `;
-            tbody.appendChild(row);
-          });
-        } catch (error) {
-          console.error("Error loading appointments:", error);
-        }
-      }
-
-      // Handle appointment actions (reschedule or cancel)
-      window.handleAppointment = async (appointmentId, status) => {
-        // Placeholder for rescheduling/cancellation logic
-        alert(
-          `Appointment ${
-            status === "Confirmed" ? "rescheduling" : "cancellation"
-          } functionality coming soon!`
-        );
-      };
-
-      // Load doctors into the dropdown
       async function loadDoctors() {
         try {
+          showLoading();
           const doctorsRef = collection(db, "doctors");
           const querySnapshot = await getDocs(doctorsRef);
           const doctorSelect = document.getElementById("doctorSelect");
@@ -365,18 +418,147 @@
             const doctor = doc.data();
             const option = document.createElement("option");
             option.value = doc.id;
-            option.textContent = doctor.name;
+            option.textContent = `Dr. ${doctor.firstName} ${doctor.lastName} (${doctor.specialty})`;
             doctorSelect.appendChild(option);
           });
         } catch (error) {
           console.error("Error loading doctors:", error);
+          showError("Failed to load doctors.");
+        } finally {
+          hideLoading();
         }
       }
 
-      // Modal event listeners
+      async function loadAppointments(userId) {
+        try {
+          showLoading();
+          const appointmentsRef = collection(db, "appointments");
+          const q = query(appointmentsRef, where("patientId", "==", userId));
+          onSnapshot(q, async (querySnapshot) => {
+            const tbody = document.getElementById("appointmentsTable");
+            const container = document.getElementById(
+              "appointmentsTableContainer"
+            );
+            tbody.innerHTML = "";
+            if (querySnapshot.empty) {
+              container.innerHTML = `
+                <div class="empty-state">
+                  <i class="fas fa-calendar"></i>
+                  <p>No appointments found.</p>
+                </div>`;
+              return;
+            }
+            container.innerHTML = `
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Doctor</th>
+                    <th>Type</th>
+                    <th>Reason</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="appointmentsTable"></tbody>
+              </table>`;
+            const newTbody = document.getElementById("appointmentsTable");
+            for (const docSnap of querySnapshot.docs) {
+              const appointment = docSnap.data();
+              const doctorDoc = await getDoc(
+                doc(db, "doctors", appointment.doctorId)
+              );
+              const doctorName = doctorDoc.exists()
+                ? `Dr. ${doctorDoc.data().firstName} ${
+                    doctorDoc.data().lastName
+                  }`
+                : "Unknown";
+              const appointmentDate = appointment.date.toDate();
+              const dateStr = appointmentDate.toLocaleDateString();
+              const timeStr = appointmentDate.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+              const row = document.createElement("tr");
+              row.innerHTML = `
+                <td>${dateStr}</td>
+                <td>${timeStr}</td>
+                <td>${doctorName}</td>
+                <td>${appointment.type}</td>
+                <td>${appointment.reason}</td>
+                <td><span class="status-badge ${appointment.status}">${
+                appointment.status
+              }</span></td>
+                <td>
+                  <button class="btn reschedule-btn" data-id="${docSnap.id}" ${
+                ["confirmed", "pending"].includes(appointment.status)
+                  ? ""
+                  : "disabled"
+              }>Reschedule</button>
+                  <button class="btn cancel-btn" data-id="${docSnap.id}" ${
+                ["confirmed", "pending"].includes(appointment.status)
+                  ? ""
+                  : "disabled"
+              }>Cancel</button>
+                </td>
+              `;
+              newTbody.appendChild(row);
+            }
+            setupTableSorting("appointmentsTable", [0, 1, 2, 3, 4, 5]);
+            setupTableFiltering("appointmentsTable", [2, 3, 4, 5]);
+            document
+              .querySelectorAll(".reschedule-btn")
+              .forEach((btn) =>
+                btn.addEventListener("click", () =>
+                  openRescheduleModal(btn.dataset.id)
+                )
+              );
+            document
+              .querySelectorAll(".cancel-btn")
+              .forEach((btn) =>
+                btn.addEventListener("click", () =>
+                  cancelAppointment(btn.dataset.id)
+                )
+              );
+          });
+        } catch (error) {
+          console.error("Error loading appointments:", error);
+          showError("Failed to load appointments.");
+        } finally {
+          hideLoading();
+        }
+      }
+
+      async function cancelAppointment(appointmentId) {
+        try {
+          showLoading();
+          await updateDoc(doc(db, "appointments", appointmentId), {
+            status: "cancelled",
+            updatedAt: Timestamp.now(),
+          });
+          showSuccess("Appointment cancelled successfully.");
+        } catch (error) {
+          console.error("Error cancelling appointment:", error);
+          showError("Failed to cancel appointment.");
+        } finally {
+          hideLoading();
+        }
+      }
+
+      function openRescheduleModal(appointmentId) {
+        document.getElementById("rescheduleAppointmentId").value =
+          appointmentId;
+        document.getElementById("rescheduleModal").style.display = "flex";
+      }
+
       const modal = document.getElementById("appointmentModal");
       const bookBtn = document.getElementById("bookAppointmentBtn");
       const closeModalBtn = document.getElementById("closeModal");
+      const rescheduleModal = document.getElementById("rescheduleModal");
+      const rescheduleCloseModalBtn = document.getElementById(
+        "rescheduleCloseModal"
+      );
 
       bookBtn.addEventListener("click", () => {
         modal.style.display = "flex";
@@ -386,74 +568,137 @@
         modal.style.display = "none";
       });
 
-      window.addEventListener("click", (event) => {
-        if (event.target === modal) {
-          modal.style.display = "none";
-        }
+      rescheduleCloseModalBtn.addEventListener("click", () => {
+        rescheduleModal.style.display = "none";
       });
 
-      // Appointment form submission handler
+      window.addEventListener("click", (event) => {
+        if (event.target === modal) modal.style.display = "none";
+        if (event.target === rescheduleModal)
+          rescheduleModal.style.display = "none";
+      });
+
       document
         .getElementById("appointmentForm")
         .addEventListener("submit", async (e) => {
           e.preventDefault();
           try {
+            showLoading();
             const user = auth.currentUser;
             if (user && currentUser) {
               const doctorId = document.getElementById("doctorSelect").value;
+              const appointmentType =
+                document.getElementById("appointmentType").value;
               const dateStr = document.getElementById("appointmentDate").value;
               const timeStr = document.getElementById("appointmentTime").value;
+              const reason = document.getElementById("appointmentReason").value;
               const [hours, minutes] = timeStr.split(":");
               const appointmentDate = new Date(dateStr);
               appointmentDate.setHours(hours, minutes, 0, 0);
               const appointmentTime = Timestamp.fromDate(appointmentDate);
               const patientName = `${currentUser.firstName} ${currentUser.lastName}`;
-
-              await setDoc(
-                doc(db, "appointments", `${user.uid}_${Date.now()}`),
-                {
-                  patientId: user.uid,
-                  doctorId,
-                  date: appointmentTime,
-                  status: "Pending",
-                  patientName,
-                }
-              );
-              await loadAppointments(user.uid);
+              const appointmentId = `${user.uid}_${Date.now()}`;
+              await setDoc(doc(db, "appointments", appointmentId), {
+                patientId: user.uid,
+                patientName,
+                doctorId,
+                date: appointmentTime,
+                type: appointmentType,
+                reason,
+                status: "pending",
+                createdAt: Timestamp.now(),
+                updatedAt: Timestamp.now(),
+              });
+              showSuccess("Appointment booked successfully!");
               modal.style.display = "none";
-              alert("Appointment booked successfully!");
+              document.getElementById("appointmentForm").reset();
             }
           } catch (error) {
             console.error("Error booking appointment:", error);
-            alert("Failed to book appointment.");
+            showError("Failed to book appointment.");
+          } finally {
+            hideLoading();
           }
         });
 
-      // Logout functionality
+      document
+        .getElementById("rescheduleForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          try {
+            showLoading();
+            const appointmentId = document.getElementById(
+              "rescheduleAppointmentId"
+            ).value;
+            const dateStr = document.getElementById("rescheduleDate").value;
+            const timeStr = document.getElementById("rescheduleTime").value;
+            const [hours, minutes] = timeStr.split(":");
+            const appointmentDate = new Date(dateStr);
+            appointmentDate.setHours(hours, minutes, 0, 0);
+            const appointmentTime = Timestamp.fromDate(appointmentDate);
+            await updateDoc(doc(db, "appointments", appointmentId), {
+              date: appointmentTime,
+              status: "pending",
+              updatedAt: Timestamp.now(),
+            });
+            showSuccess("Appointment rescheduled successfully!");
+            rescheduleModal.style.display = "none";
+            document.getElementById("rescheduleForm").reset();
+          } catch (error) {
+            console.error("Error rescheduling appointment:", error);
+            showError("Failed to reschedule appointment.");
+          } finally {
+            hideLoading();
+          }
+        });
+
       document
         .getElementById("logoutBtn")
         .addEventListener("click", async () => {
           try {
+            showLoading();
             await signOut(auth);
             window.location.href = "/index.html";
           } catch (error) {
             console.error("Error signing out:", error);
+            showError("Failed to sign out.");
+          } finally {
+            hideLoading();
           }
         });
 
-      // Status indicator
       const statusDot = document.getElementById("statusIndicator");
+      const statusTooltip = document.getElementById("statusTooltip");
       async function updateStatus() {
         try {
-          const res = await fetch("/api/system-status");
-          const { status } = await res.json();
-          statusDot.className = "status-indicator " + (status || "offline");
+          const res = await fetch(
+            "https://us-central1-hospitalmanagtsystem.cloudfunctions.net/systemStatus"
+          );
+          if (res.ok) {
+            const { status } = await res.json();
+            statusDot.className = `status-indicator ${status || "offline"}`;
+            statusTooltip.textContent =
+              status.charAt(0).toUpperCase() + status.slice(1);
+          } else {
+            statusDot.className = "status-indicator offline";
+            statusTooltip.textContent = "Offline";
+          }
         } catch {
           statusDot.className = "status-indicator offline";
+          statusTooltip.textContent = "Offline";
         }
       }
-      setInterval(updateStatus, 10000);
+      window.addEventListener("online", () => updateStatus());
+      window.addEventListener("offline", () => {
+        statusDot.className = "status-indicator offline";
+        statusTooltip.textContent = "Offline";
+      });
+      setInterval(updateStatus, 15000);
       updateStatus();
+
+      document.getElementById("navToggle").addEventListener("click", () => {
+        document.getElementById("navMenu").classList.toggle("active");
+      });
     </script>
   </body>
 </html>

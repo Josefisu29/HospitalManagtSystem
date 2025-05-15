@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>HMS – Medical Records</title>
     <link rel="stylesheet" href="css/all.css" />
     <link rel="stylesheet" href="css/common.css" />
@@ -110,6 +110,15 @@
       .btn:hover {
         background: #0047b3;
       }
+      .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #666;
+      }
+      .empty-state i {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+      }
       @media (max-width: 768px) {
         nav ul {
           flex-direction: column;
@@ -119,14 +128,39 @@
           overflow-x: auto;
         }
       }
+      .tooltip {
+        position: relative;
+        display: inline-block;
+      }
+      .tooltip .tooltiptext {
+        visibility: hidden;
+        width: 120px;
+        background-color: #555;
+        color: #fff;
+        text-align: center;
+        border-radius: 6px;
+        padding: 5px;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -60px;
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+      .tooltip:hover .tooltiptext {
+        visibility: visible;
+        opacity: 1;
+      }
     </style>
   </head>
   <body>
     <header>
-      <!-- <h1>HMS</h1> -->
       <div style="display: flex; align-items: center">
         <span id="greeting" class="greeting"></span>
-        <span id="statusIndicator" class="status-indicator offline"></span>
+        <span id="statusIndicator" class="status-indicator offline tooltip">
+          <span class="tooltiptext" id="statusTooltip">Offline</span>
+        </span>
         <button id="logoutBtn" class="btn" style="margin-left: 1rem">
           Logout
         </button>
@@ -136,18 +170,14 @@
       <div class="nav-inner">
         <div class="nav-toggle" id="navToggle">☰</div>
         <ul class="nav-menu" id="navMenu">
-          <li><a href="patient.html" class="active">Profile</a></li>
+          <li><a href="patient.html">Profile</a></li>
+          <li><a href="patient-appointments.html">Appointments</a></li>
           <li>
-            <a href="patient-appointments.html">Appointment</a>
+            <a href="patient-records.html" class="active">Medical Records</a>
           </li>
-          <li><a href="patient-records.html">Medical Record</a></li>
-          <li><a href="patient-results.html">Lab Result</a></li>
-          <li>
-            <a href="patient-billing.html">Billing & Payment</a>
-          </li>
-          <li>
-            <a href="Help.html">Get-Help</a>
-          </li>
+          <li><a href="patient-results.html">Lab Results</a></li>
+          <li><a href="patient-billing.html">Billing & Payments</a></li>
+          <li><a href="Help.html">Get-Help</a></li>
         </ul>
       </div>
     </nav>
@@ -161,12 +191,11 @@
                 <th>Record ID</th>
                 <th>Date</th>
                 <th>Description</th>
+                <th>Created By</th>
                 <th>Download</th>
               </tr>
             </thead>
-            <tbody>
-              <!-- Records will be loaded dynamically -->
-            </tbody>
+            <tbody></tbody>
           </table>
         </div>
       </section>
@@ -186,7 +215,8 @@
         collection,
         query,
         where,
-        getDocs,
+        onSnapshot,
+        enableIndexedDbPersistence,
       } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
       import {
         getStorage,
@@ -202,7 +232,6 @@
         setupTableFiltering,
       } from "./js/common.js";
 
-      // Firebase configuration
       const firebaseConfig = {
         apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
         authDomain: "hospitalmanagtsystem.firebaseapp.com",
@@ -212,22 +241,22 @@
         appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
       };
 
-      // Initialize Firebase
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app);
       const db = getFirestore(app);
       const storage = getStorage(app);
 
-      // Check authentication state
+      enableIndexedDbPersistence(db).catch((err) =>
+        console.warn("Offline persistence failed:", err)
+      );
+
       onAuthStateChanged(auth, async (user) => {
         if (user) {
           try {
             showLoading();
-            // Get user data
             const userDoc = await getDoc(doc(db, "users", user.uid));
             if (userDoc.exists()) {
               const userData = userDoc.data();
-              // Update greeting
               const greetEl = document.getElementById("greeting");
               const hour = new Date().getHours();
               const sal =
@@ -237,9 +266,10 @@
                   ? "Good Afternoon"
                   : "Good Evening";
               greetEl.textContent = `${sal}, ${userData.firstName}`;
-
-              // Load medical records
               await loadMedicalRecords(user.uid);
+            } else {
+              showError("User profile not found.");
+              window.location.href = "/index.html";
             }
           } catch (error) {
             console.error("Error loading user data:", error);
@@ -252,51 +282,71 @@
         }
       });
 
-      // Load medical records
       async function loadMedicalRecords(userId) {
         try {
           showLoading();
           const recordsRef = collection(db, "medicalRecords");
           const q = query(recordsRef, where("patientId", "==", userId));
-          const querySnapshot = await getDocs(q);
-
-          const tbody = document
-            .getElementById("recordsTable")
-            .querySelector("tbody");
-          tbody.innerHTML = "";
-
-          if (querySnapshot.empty) {
+          onSnapshot(q, async (querySnapshot) => {
+            const tbody = document.querySelector("#recordsTable tbody");
             const container = document.getElementById("recordsTableContainer");
+            tbody.innerHTML = "";
+            if (querySnapshot.empty) {
+              container.innerHTML = `
+                <div class="empty-state">
+                  <i class="fas fa-file-medical"></i>
+                  <p>No medical records found.</p>
+                </div>`;
+              return;
+            }
             container.innerHTML = `
-              <div class="empty-state">
-                <i class="fas fa-file-medical"></i>
-                <p>No medical records found.</p>
-              </div>
-            `;
-            return;
-          }
-
-          for (const doc of querySnapshot.docs) {
-            const record = doc.data();
-            const downloadUrl = await getDownloadURL(
-              ref(storage, record.filePath)
-            );
-
-            const row = document.createElement("tr");
-            row.innerHTML = `
-              <td>${record.recordId}</td>
-              <td>${record.date}</td>
-              <td>${record.description}</td>
-              <td>
-                <a href="${downloadUrl}" class="btn" target="_blank">Download</a>
-              </td>
-            `;
-            tbody.appendChild(row);
-          }
-
-          // Setup table sorting and filtering
-          setupTableSorting("recordsTable", [0, 1, 2]); // Sortable columns: Record ID, Date, Description
-          setupTableFiltering("recordsTable", [1, 2]); // Filterable columns: Date, Description
+              <table id="recordsTable">
+                <thead>
+                  <tr>
+                    <th>Record ID</th>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Created By</th>
+                    <th>Download</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>`;
+            const newTbody = document.querySelector("#recordsTable tbody");
+            for (const doc of querySnapshot.docs) {
+              const record = doc.data();
+              let creatorName = "Unknown";
+              if (record.createdBy) {
+                const creatorDoc = await getDoc(
+                  doc(
+                    db,
+                    record.createdBy.includes("doctor") ? "doctors" : "users",
+                    record.createdBy
+                  )
+                );
+                if (creatorDoc.exists()) {
+                  const creatorData = creatorDoc.data();
+                  creatorName = record.createdBy.includes("doctor")
+                    ? `Dr. ${creatorData.firstName} ${creatorData.lastName}`
+                    : `${creatorData.firstName} ${creatorData.lastName} (Clerk)`;
+                }
+              }
+              const downloadUrl = await getDownloadURL(
+                ref(storage, record.filePath)
+              );
+              const row = document.createElement("tr");
+              row.innerHTML = `
+                <td>${record.recordId}</td>
+                <td>${record.date.toDate().toLocaleDateString()}</td>
+                <td>${record.description}</td>
+                <td>${creatorName}</td>
+                <td><a href="${downloadUrl}" class="btn" target="_blank">Download</a></td>
+              `;
+              newTbody.appendChild(row);
+            }
+            setupTableSorting("recordsTable", [0, 1, 2, 3]);
+            setupTableFiltering("recordsTable", [1, 2, 3]);
+          });
         } catch (error) {
           console.error("Error loading medical records:", error);
           showError("Failed to load medical records. Please try again.");
@@ -305,7 +355,6 @@
         }
       }
 
-      // Logout functionality
       document
         .getElementById("logoutBtn")
         .addEventListener("click", async () => {
@@ -321,19 +370,38 @@
           }
         });
 
-      // Status indicator
       const statusDot = document.getElementById("statusIndicator");
+      const statusTooltip = document.getElementById("statusTooltip");
       async function updateStatus() {
         try {
-          const res = await fetch("/api/system-status");
-          const { status } = await res.json();
-          statusDot.className = "status-indicator " + (status || "offline");
+          const res = await fetch(
+            "https://us-central1-hospitalmanagtsystem.cloudfunctions.net/systemStatus"
+          );
+          if (res.ok) {
+            const { status } = await res.json();
+            statusDot.className = `status-indicator ${status || "offline"}`;
+            statusTooltip.textContent =
+              status.charAt(0).toUpperCase() + status.slice(1);
+          } else {
+            statusDot.className = "status-indicator offline";
+            statusTooltip.textContent = "Offline";
+          }
         } catch {
           statusDot.className = "status-indicator offline";
+          statusTooltip.textContent = "Offline";
         }
       }
-      setInterval(updateStatus, 10000);
+      window.addEventListener("online", () => updateStatus());
+      window.addEventListener("offline", () => {
+        statusDot.className = "status-indicator offline";
+        statusTooltip.textContent = "Offline";
+      });
+      setInterval(updateStatus, 15000);
       updateStatus();
+
+      document.getElementById("navToggle").addEventListener("click", () => {
+        document.getElementById("navMenu").classList.toggle("active");
+      });
     </script>
   </body>
 </html>
