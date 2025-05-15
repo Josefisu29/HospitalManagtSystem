@@ -1,28 +1,12 @@
 {
   "hosting": {
-    "public": ".",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "public": "public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
     "rewrites": [
-      {
-        "source": "/admin",
-        "destination": "/admin.html"
-      },
-      {
-        "source": "/doctor",
-        "destination": "/doctor/doctor.html"
-      },
-      {
-        "source": "/doctor/**",
-        "destination": "/doctor/doctor.html"
-      },
-      {
-        "source": "/patient",
-        "destination": "/patient/patient.html"
-      },
-      {
-        "source": "/patient/**",
-        "destination": "/patient/patient.html"
-      },
       {
         "source": "**",
         "destination": "/index.html"
@@ -31,5 +15,13 @@
   },
   "database": {
     "rules": "database.rules.json"
+  },
+  "emulators": {
+    "dataconnect": {
+      "dataDir": "dataconnect/.dataconnect/pgliteData"
+    }
+  },
+  "dataconnect": {
+    "source": "dataconnect"
   }
 }

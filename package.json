@@ -4,6 +4,7 @@
         "fdw-setup": "node fdw-setup.js"
     },
     "dependencies": {
+        "@firebasegen/default-connector": "file:dataconnect-generated/js/default-connector",
         "dotenv": "^16.0.0",
         "firebase": "^11.7.1",
         "pg": "^8.0.0"
