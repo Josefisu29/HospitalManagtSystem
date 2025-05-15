@@ -2,17 +2,169 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>HMS – Doctor Appointments</title>
     <link rel="stylesheet" href="doc.css" />
     <link rel="stylesheet" href="common.css" />
+    <style>
+      :root {
+        --primary: #0052cc;
+        --bg: #f9fbfd;
+        --card-bg: #fff;
+        --transition: 0.3s ease;
+      }
+      body {
+        font-family: Arial, sans-serif;
+        background: var(--bg);
+        margin: 0;
+      }
+      header {
+        background: var(--card-bg);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      nav {
+        background: var(--primary);
+        padding: 0.5rem;
+      }
+      nav ul {
+        list-style: none;
+        display: flex;
+        gap: 1rem;
+        margin: 0;
+        padding: 0;
+      }
+      nav ul li a {
+        color: white;
+        text-decoration: none;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+      }
+      nav ul li a.active,
+      nav ul li a:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+      main {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+      }
+      .card {
+        background: var(--card-bg);
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+      }
+      .filters {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+      .status-badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+      .status-badge.pending {
+        background: #fff3cd;
+        color: #856404;
+      }
+      .status-badge.confirmed {
+        background: #d4edda;
+        color: #155724;
+      }
+      .status-badge.in-progress {
+        background: #cce5ff;
+        color: #004085;
+      }
+      .status-badge.completed {
+        background: #e2e3e5;
+        color: #383d41;
+      }
+      .status-badge.cancelled {
+        background: #f8d7da;
+        color: #721c24;
+      }
+      .btn {
+        padding: 0.5rem 1rem;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .btn:hover {
+        background: #003d99;
+      }
+      .btn-danger {
+        background: #dc3545;
+      }
+      .btn-danger:hover {
+        background: #c82333;
+      }
+      .loading-spinner {
+        width: 24px;
+        height: 24px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: auto;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      .error-message {
+        color: #e53e3e;
+        text-align: center;
+        margin-bottom: 1rem;
+      }
+      .status-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+      .status-indicator.online {
+        background: #28a745;
+      }
+      .status-indicator.offline {
+        background: #dc3545;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        padding: 0.75rem;
+        border-bottom: 1px solid #dee2e6;
+        text-align: left;
+      }
+      th {
+        background: #f1f3f5;
+      }
+    </style>
   </head>
   <body>
+    <div id="loading" class="loading-spinner" style="display: none"></div>
+    <div id="error-message" class="error-message"></div>
     <header>
       <h1>HMS Doctor</h1>
       <div>
         <span id="greeting">Dr.</span>
-        <span class="status-indicator offline"></span>
+        <span id="statusIndicator" class="status-indicator offline"></span>
+        <button id="logoutBtn" class="btn">Logout</button>
       </div>
     </header>
     <nav>
@@ -26,68 +178,42 @@
     </nav>
     <main>
       <section class="card">
-        <h2>Today's Appointment</h2>
+        <h2>Appointments</h2>
         <div class="filters">
           <select id="statusFilter">
             <option value="all">All Status</option>
-            <option value="confirmed">Confirmed</option>
             <option value="pending">Pending</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="in-progress">In-Progress</option>
             <option value="completed">Completed</option>
             <option value="cancelled">Cancelled</option>
           </select>
-          <select id="typeFilter">
-            <option value="all">All Types</option>
-            <option value="in-person">In-Person</option>
-            <option value="virtual">Virtual</option>
-          </select>
+          <input type="date" id="dateFilter" />
         </div>
-        <div id="today-appointments">
-          <p class="loading">Loading appointments...</p>
-        </div>
-      </section>
-
-      <section class="card">
-        <h2>Upcoming Appointments</h2>
-        <div id="upcoming-appointments">
+        <div id="appointmentsList">
           <p class="loading">Loading appointments...</p>
         </div>
       </section>
     </main>
-
-    <!-- Appointment Modal -->
-    <div id="appointmentModal" class="modal">
-      <div class="modal-content">
-        <h2>Appointment Details</h2>
-        <div id="appointmentDetails"></div>
-        <div class="modal-actions">
-          <button class="btn" id="startAppointment">Start Appointment</button>
-          <button class="btn btn-secondary" id="cancelAppointment">
-            Cancel
-          </button>
-          <button class="btn btn-secondary" id="closeModal">Close</button>
-        </div>
-      </div>
-    </div>
-
     <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
       import {
         getAuth,
         onAuthStateChanged,
         signOut,
-      } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+      } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
       import {
         getFirestore,
         collection,
         query,
         where,
         orderBy,
-        limit,
         onSnapshot,
-        updateDoc,
         doc,
+        getDoc,
+        updateDoc,
         Timestamp,
-      } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+      } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
       const firebaseConfig = {
         apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
@@ -102,13 +228,213 @@
       const auth = getAuth(app);
       const db = getFirestore(app);
 
-      // Check authentication and role
+      const loadingEl = document.getElementById("loading");
+      const errorEl = document.getElementById("error-message");
+      const statusDot = document.getElementById("statusIndicator");
+
+      function showLoading() {
+        loadingEl.style.display = "block";
+      }
+      function hideLoading() {
+        loadingEl.style.display = "none";
+      }
+      function showError(message) {
+        errorEl.textContent = message;
+        setTimeout(() => (errorEl.textContent = ""), 5000);
+      }
+
+      async function updateStatus() {
+        if (!navigator.onLine) {
+          statusDot.className = "status-indicator offline";
+          statusDot.title = "Offline";
+          return;
+        }
+        try {
+          const res = await fetch(
+            "https://us-central1-hospitalmanagtsystem.cloudfunctions.net/systemStatus"
+          );
+          if (res.ok) {
+            const { status } = await res.json();
+            statusDot.className = `status-indicator ${status || "offline"}`;
+            statusDot.title = status.charAt(0).toUpperCase() + status.slice(1);
+          } else {
+            statusDot.className = "status-indicator offline";
+            statusDot.title = "Offline";
+          }
+        } catch {
+          statusDot.className = "status-indicator offline";
+          statusDot.title = "Offline";
+        }
+      }
+
+      async function loadAppointments(doctorId) {
+        showLoading();
+        const appointmentsQuery = query(
+          collection(db, "appointments"),
+          where("doctorId", "==", doctorId),
+          orderBy("date", "asc")
+        );
+        onSnapshot(
+          appointmentsQuery,
+          (snapshot) => {
+            const appointmentsDiv = document.getElementById("appointmentsList");
+            if (snapshot.empty) {
+              appointmentsDiv.innerHTML = "<p>No appointments found</p>";
+              hideLoading();
+              return;
+            }
+            let html =
+              "<table><thead><tr><th>Date & Time</th><th>Patient</th><th>Type</th><th>Reason</th><th>Status</th><th>Actions</th></tr></thead><tbody>";
+            snapshot.forEach((doc) => {
+              const appointment = doc.data();
+              const date = appointment.date.toDate();
+              html += `
+              <tr data-id="${doc.id}">
+                <td>${date.toLocaleDateString()} ${date.toLocaleTimeString()}</td>
+                <td>${appointment.patientName}</td>
+                <td>${appointment.type}</td>
+                <td>${appointment.reason}</td>
+                <td><span class="status-badge ${appointment.status}">${
+                appointment.status
+              }</span></td>
+                <td>
+                  ${
+                    appointment.status === "confirmed"
+                      ? `<button class="btn start-appointment" data-id="${doc.id}">Start</button>`
+                      : ""
+                  }
+                  <button class="btn view-details" data-id="${
+                    doc.id
+                  }">View</button>
+                  ${
+                    appointment.status !== "cancelled" &&
+                    appointment.status !== "completed"
+                      ? `<button class="btn btn-danger cancel-appointment" data-id="${doc.id}">Cancel</button>`
+                      : ""
+                  }
+                </td>
+              </tr>
+            `;
+            });
+            html += "</tbody></table>";
+            appointmentsDiv.innerHTML = html;
+
+            document.querySelectorAll(".start-appointment").forEach((btn) => {
+              btn.addEventListener("click", () =>
+                startAppointment(btn.dataset.id)
+              );
+            });
+            document.querySelectorAll(".view-details").forEach((btn) => {
+              btn.addEventListener("click", () =>
+                viewAppointment(btn.dataset.id)
+              );
+            });
+            document.querySelectorAll(".cancel-appointment").forEach((btn) => {
+              btn.addEventListener("click", () =>
+                cancelAppointment(btn.dataset.id)
+              );
+            });
+            hideLoading();
+          },
+          (error) => {
+            showError("Failed to load appointments.");
+            hideLoading();
+          }
+        );
+      }
+
+      async function startAppointment(appointmentId) {
+        showLoading();
+        try {
+          await updateDoc(doc(db, "appointments", appointmentId), {
+            status: "in-progress",
+            startedAt: Timestamp.now(),
+            updatedAt: Timestamp.now(),
+          });
+          showError("Appointment started successfully.");
+        } catch (error) {
+          showError("Failed to start appointment.");
+        } finally {
+          hideLoading();
+        }
+      }
+
+      async function cancelAppointment(appointmentId) {
+        showLoading();
+        try {
+          await updateDoc(doc(db, "appointments", appointmentId), {
+            status: "cancelled",
+            updatedAt: Timestamp.now(),
+          });
+          showError("Appointment cancelled successfully.");
+        } catch (error) {
+          showError("Failed to cancel appointment.");
+        } finally {
+          hideLoading();
+        }
+      }
+
+      async function viewAppointment(appointmentId) {
+        showLoading();
+        try {
+          const appointmentDoc = await getDoc(
+            doc(db, "appointments", appointmentId)
+          );
+          if (appointmentDoc.exists()) {
+            const appointment = appointmentDoc.data();
+            alert(`
+              Patient: ${appointment.patientName}
+              Date: ${appointment.date.toDate().toLocaleString()}
+              Type: ${appointment.type}
+              Reason: ${appointment.reason}
+              Status: ${appointment.status}
+              Created: ${appointment.createdAt.toDate().toLocaleDateString()}
+            `);
+          }
+        } catch (error) {
+          showError("Failed to load appointment details.");
+        } finally {
+          hideLoading();
+        }
+      }
+
+      document
+        .getElementById("statusFilter")
+        .addEventListener("change", (e) => {
+          const status = e.target.value;
+          const rows = document.querySelectorAll(
+            "#appointmentsList table tbody tr"
+          );
+          rows.forEach((row) => {
+            const rowStatus = row.querySelector(".status-badge").textContent;
+            row.style.display =
+              status === "all" || rowStatus === status ? "" : "none";
+          });
+        });
+
+      document.getElementById("dateFilter").addEventListener("change", (e) => {
+        const selectedDate = e.target.value;
+        if (!selectedDate) return;
+        const rows = document.querySelectorAll(
+          "#appointmentsList table tbody tr"
+        );
+        rows.forEach((row) => {
+          const dateCell = row.cells[0].textContent.split(" ")[0];
+          const [day, month, year] = dateCell.split("/");
+          const rowDate = `${year}-${month.padStart(2, "0")}-${day.padStart(
+            2,
+            "0"
+          )}`;
+          row.style.display = rowDate === selectedDate ? "" : "none";
+        });
+      });
+
       onAuthStateChanged(auth, async (user) => {
         if (!user) {
           window.location.href = "/index.html";
           return;
         }
-
+        showLoading();
         try {
           const idTokenResult = await user.getIdTokenResult();
           if (!idTokenResult.claims.doctor) {
@@ -116,252 +442,50 @@
             window.location.href = "/unauthorized.html";
             return;
           }
-
-          // Load appointments
+          const doctorDoc = await getDoc(doc(db, "doctors", user.uid));
+          if (doctorDoc.exists()) {
+            const doctor = doctorDoc.data();
+            const hour = new Date().getHours();
+            const sal =
+              hour < 12
+                ? "Good Morning"
+                : hour < 18
+                ? "Good Afternoon"
+                : "Good Evening";
+            document.getElementById("greeting").textContent = `${sal}, Dr. ${
+              doctor.firstName || "Doctor"
+            }`;
+          }
           loadAppointments(user.uid);
         } catch (error) {
-          console.error("Error verifying doctor status:", error);
-          alert("Failed to verify doctor status.");
+          showError("Failed to verify doctor status.");
+          window.location.href = "/index.html";
+        } finally {
+          hideLoading();
         }
       });
 
-      // Load appointments
-      function loadAppointments(doctorId) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        // Today's appointments
-        const todayQuery = query(
-          collection(db, "appointments"),
-          where("doctorId", "==", doctorId),
-          where("date", ">=", today),
-          where("date", "<", new Date(today.getTime() + 24 * 60 * 60 * 1000)),
-          orderBy("date", "asc")
-        );
-
-        onSnapshot(todayQuery, (snapshot) => {
-          const appointmentsDiv = document.getElementById("today-appointments");
-          if (snapshot.empty) {
-            appointmentsDiv.innerHTML = "<p>No appointments today</p>";
-            return;
-          }
-
-          let html =
-            "<table><thead><tr><th>Time</th><th>Patient</th><th>Type</th><th>Status</th><th>Action</th></tr></thead><tbody>";
-          snapshot.forEach((doc) => {
-            const appointment = doc.data();
-            html += `
-            <tr data-id="${doc.id}">
-              <td>${new Date(
-                appointment.date.toDate()
-              ).toLocaleTimeString()}</td>
-              <td>${appointment.patientName}</td>
-              <td>${appointment.type}</td>
-              <td>${appointment.status}</td>
-              <td>
-                <button class="btn view-appointment" data-id="${
-                  doc.id
-                }">View</button>
-                ${
-                  appointment.status === "confirmed"
-                    ? `<button class="btn start-appointment" data-id="${doc.id}">Start</button>`
-                    : ""
-                }
-              </td>
-            </tr>
-          `;
-          });
-          html += "</tbody></table>";
-          appointmentsDiv.innerHTML = html;
-
-          // Add event listeners
-          document.querySelectorAll(".view-appointment").forEach((btn) => {
-            btn.addEventListener("click", () =>
-              showAppointmentDetails(btn.dataset.id)
-            );
-          });
-          document.querySelectorAll(".start-appointment").forEach((btn) => {
-            btn.addEventListener("click", () =>
-              startAppointment(btn.dataset.id)
-            );
-          });
-        });
-
-        // Upcoming appointments
-        const upcomingQuery = query(
-          collection(db, "appointments"),
-          where("doctorId", "==", doctorId),
-          where("date", ">=", new Date(today.getTime() + 24 * 60 * 60 * 1000)),
-          orderBy("date", "asc"),
-          limit(10)
-        );
-
-        onSnapshot(upcomingQuery, (snapshot) => {
-          const appointmentsDiv = document.getElementById(
-            "upcoming-appointments"
-          );
-          if (snapshot.empty) {
-            appointmentsDiv.innerHTML = "<p>No upcoming appointments</p>";
-            return;
-          }
-
-          let html =
-            "<table><thead><tr><th>Date</th><th>Time</th><th>Patient</th><th>Type</th><th>Status</th></tr></thead><tbody>";
-          snapshot.forEach((doc) => {
-            const appointment = doc.data();
-            html += `
-            <tr>
-              <td>${appointment.date.toDate().toLocaleDateString()}</td>
-              <td>${appointment.date.toDate().toLocaleTimeString()}</td>
-              <td>${appointment.patientName}</td>
-              <td>${appointment.type}</td>
-              <td>${appointment.status}</td>
-            </tr>
-          `;
-          });
-          html += "</tbody></table>";
-          appointmentsDiv.innerHTML = html;
-        });
-      }
-
-      // Show appointment details
-      async function showAppointmentDetails(appointmentId) {
-        const modal = document.getElementById("appointmentModal");
-        const detailsDiv = document.getElementById("appointmentDetails");
-
-        try {
-          const appointmentDoc = await getDoc(
-            doc(db, "appointments", appointmentId)
-          );
-          if (appointmentDoc.exists()) {
-            const appointment = appointmentDoc.data();
-            detailsDiv.innerHTML = `
-            <p><strong>Patient:</strong> ${appointment.patientName}</p>
-            <p><strong>Date:</strong> ${appointment.date
-              .toDate()
-              .toLocaleDateString()}</p>
-            <p><strong>Time:</strong> ${appointment.date
-              .toDate()
-              .toLocaleTimeString()}</p>
-            <p><strong>Type:</strong> ${appointment.type}</p>
-            <p><strong>Status:</strong> ${appointment.status}</p>
-            <p><strong>Reason:</strong> ${
-              appointment.reason || "Not specified"
-            }</p>
-          `;
-            modal.style.display = "block";
-          }
-        } catch (error) {
-          console.error("Error loading appointment details:", error);
-          alert("Failed to load appointment details.");
-        }
-      }
-
-      // Start appointment
-      async function startAppointment(appointmentId) {
-        try {
-          await updateDoc(doc(db, "appointments", appointmentId), {
-            status: "in-progress",
-            startedAt: Timestamp.now(),
-          });
-
-          // Redirect to virtual consultation if it's a virtual appointment
-          const appointmentDoc = await getDoc(
-            doc(db, "appointments", appointmentId)
-          );
-          if (
-            appointmentDoc.exists() &&
-            appointmentDoc.data().type === "virtual"
-          ) {
-            window.location.href = `/consultation.html?appointmentId=${appointmentId}`;
-          }
-        } catch (error) {
-          console.error("Error starting appointment:", error);
-          alert("Failed to start appointment.");
-        }
-      }
-
-      // Modal close button
-      document.getElementById("closeModal").addEventListener("click", () => {
-        document.getElementById("appointmentModal").style.display = "none";
-      });
-
-      // Filter handlers
       document
-        .getElementById("statusFilter")
-        .addEventListener("change", (e) => {
-          // Implement status filtering
+        .getElementById("logoutBtn")
+        .addEventListener("click", async () => {
+          showLoading();
+          try {
+            await signOut(auth);
+            window.location.href = "/index.html";
+          } catch (error) {
+            showError("Failed to sign out.");
+          } finally {
+            hideLoading();
+          }
         });
 
-      document.getElementById("typeFilter").addEventListener("change", (e) => {
-        // Implement type filtering
+      window.addEventListener("online", () => updateStatus());
+      window.addEventListener("offline", () => {
+        statusDot.className = "status-indicator offline";
+        statusDot.title = "Offline";
       });
-
-      // Time-based greeting
-      const greetEl = document.getElementById("greeting");
-      const hour = new Date().getHours();
-      const sal =
-        hour < 12
-          ? "Good Morning"
-          : hour < 18
-          ? "Good Afternoon"
-          : "Good Evening";
-      greetEl.textContent = `${sal}!`;
-
-      // System status polling
-      const statusDot = document.querySelector(".status-indicator");
-      async function updateStatus() {
-        try {
-          const res = await fetch("/api/system-status");
-          const { status } = await res.json();
-          statusDot.className = `status-indicator ${status}`;
-        } catch {
-          statusDot.className = "status-indicator offline";
-        }
-      }
-      setInterval(updateStatus, 5000);
+      setInterval(updateStatus, 15000);
       updateStatus();
     </script>
-
-    <style>
-      .filters {
-        display: flex;
-        gap: 1rem;
-        margin-bottom: 1rem;
-      }
-
-      .modal {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-      }
-
-      .modal-content {
-        background: white;
-        margin: 10% auto;
-        padding: 2rem;
-        width: 90%;
-        max-width: 500px;
-        border-radius: 8px;
-      }
-
-      .modal-actions {
-        display: flex;
-        gap: 1rem;
-        margin-top: 1rem;
-      }
-
-      .btn-secondary {
-        background: #6c757d;
-      }
-
-      .btn-secondary:hover {
-        background: #5a6268;
-      }
-    </style>
   </body>
 </html>

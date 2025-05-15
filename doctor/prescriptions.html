@@ -2,17 +2,200 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>HMS – Prescriptions</title>
     <link rel="stylesheet" href="doc.css" />
     <link rel="stylesheet" href="common.css" />
+    <style>
+      :root {
+        --primary: #0052cc;
+        --bg: #f9fbfd;
+        --card-bg: #fff;
+        --transition: 0.3s ease;
+      }
+      body {
+        font-family: Arial, sans-serif;
+        background: var(--bg);
+        margin: 0;
+      }
+      header {
+        background: var(--card-bg);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      nav {
+        background: var(--primary);
+        padding: 0.5rem;
+      }
+      nav ul {
+        list-style: none;
+        display: flex;
+        gap: 1rem;
+        margin: 0;
+        padding: 0;
+      }
+      nav ul li a {
+        color: white;
+        text-decoration: none;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+      }
+      nav ul li a.active,
+      nav ul li a:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+      main {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+      }
+      .card {
+        background: var(--card-bg);
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      .filters {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+      .status-badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+      .status-badge.active {
+        background: #d4edda;
+        color: #155724;
+      }
+      .status-badge.completed {
+        background: #cce5ff;
+        color: #004085;
+      }
+      .status-badge.cancelled {
+        background: #f8d7da;
+        color: #721c24;
+      }
+      .search-results {
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        max-height: 200px;
+        overflow-y: auto;
+        width: 100%;
+        z-index: 1000;
+      }
+      .medication-item {
+        padding: 0.5rem;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+      }
+      .medication-item:hover {
+        background: #f8f9fa;
+      }
+      .selected-medication {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+      }
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        overflow-y: auto;
+      }
+      .modal-content {
+        background: white;
+        margin: 5% auto;
+        padding: 2rem;
+        width: 90%;
+        max-width: 800px;
+        border-radius: 8px;
+      }
+      .form-group {
+        margin-bottom: 1rem;
+      }
+      .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1.5rem;
+      }
+      .btn {
+        padding: 0.5rem 1rem;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .btn-danger {
+        background: #dc3545;
+      }
+      .btn-danger:hover {
+        background: #c82333;
+      }
+      .btn-secondary {
+        background: #6c757d;
+      }
+      .btn-secondary:hover {
+        background: #5a6268;
+      }
+      .loading-spinner {
+        width: 24px;
+        height: 24px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: auto;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      .error-message {
+        color: #e53e3e;
+        text-align: center;
+        margin-bottom: 1rem;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        padding: 0.75rem;
+        border-bottom: 1px solid #dee2e6;
+        text-align: left;
+      }
+      th {
+        background: #f1f3f5;
+      }
+    </style>
   </head>
   <body>
+    <div id="loading" class="loading-spinner" style="display: none"></div>
+    <div id="error-message" class="error-message"></div>
     <header>
       <h1>HMS Doctor</h1>
       <div>
-        <span id="greeting">Dr</span>
-        <span class="status-indicator offline"></span>
+        <span id="greeting">Dr.</span>
+        <span id="statusIndicator" class="status-indicator offline"></span>
+        <button id="logoutBtn" class="btn">Logout</button>
       </div>
     </header>
     <nav>
@@ -44,8 +227,6 @@
         </div>
       </section>
     </main>
-
-    <!-- New/Edit Prescription Modal -->
     <div id="prescriptionModal" class="modal">
       <div class="modal-content">
         <h2 id="modalTitle">New Prescription</h2>
@@ -65,9 +246,7 @@
             />
             <div id="medicationResults" class="search-results"></div>
           </div>
-          <div id="selectedMedications">
-            <!-- Selected medications will be added here -->
-          </div>
+          <div id="selectedMedications"></div>
           <div class="form-group">
             <label for="prescriptionNotes">Additional Notes</label>
             <textarea id="prescriptionNotes" rows="4"></textarea>
@@ -89,8 +268,6 @@
         </form>
       </div>
     </div>
-
-    <!-- Medication Details Modal -->
     <div id="medicationModal" class="modal">
       <div class="modal-content">
         <h2>Medication Details</h2>
@@ -103,14 +280,13 @@
         </div>
       </div>
     </div>
-
     <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
       import {
         getAuth,
         onAuthStateChanged,
         signOut,
-      } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+      } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
       import {
         getFirestore,
         collection,
@@ -124,7 +300,7 @@
         addDoc,
         updateDoc,
         Timestamp,
-      } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+      } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
       const firebaseConfig = {
         apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
@@ -143,200 +319,294 @@
       let editingPrescriptionId = null;
       let selectedMedications = [];
 
-      // Check authentication and role
-      onAuthStateChanged(auth, async (user) => {
-        if (!user) {
-          window.location.href = "/index.html";
+      const loadingEl = document.getElementById("loading");
+      const errorEl = document.getElementById("error-message");
+      const statusDot = document.getElementById("statusIndicator");
+
+      function showLoading() {
+        loadingEl.style.display = "block";
+      }
+      function hideLoading() {
+        loadingEl.style.display = "none";
+      }
+      function showError(message) {
+        errorEl.textContent = message;
+        setTimeout(() => (errorEl.textContent = ""), 5000);
+      }
+
+      async function updateStatus() {
+        if (!navigator.onLine) {
+          statusDot.className = "status-indicator offline";
+          statusDot.title = "Offline";
           return;
         }
-
         try {
-          const idTokenResult = await user.getIdTokenResult();
-          if (!idTokenResult.claims.doctor) {
-            await signOut(auth);
-            window.location.href = "/unauthorized.html";
-            return;
+          const res = await fetch(
+            "https://us-central1-hospitalmanagtsystem.cloudfunctions.net/systemStatus"
+          );
+          if (res.ok) {
+            const { status } = await res.json();
+            statusDot.className = `status-indicator ${status || "offline"}`;
+            statusDot.title = status.charAt(0).toUpperCase() + status.slice(1);
+          } else {
+            statusDot.className = "status-indicator offline";
+            statusDot.title = "Offline";
           }
-
-          currentDoctorId = user.uid;
-          loadPatients();
-          loadPrescriptions(user.uid);
-        } catch (error) {
-          console.error("Error verifying doctor status:", error);
-          alert("Failed to verify doctor status.");
+        } catch {
+          statusDot.className = "status-indicator offline";
+          statusDot.title = "Offline";
         }
-      });
+      }
 
-      // Load patients for dropdown
       function loadPatients() {
+        showLoading();
         const patientsQuery = query(
-          collection(db, "patients"),
+          collection(db, "users"),
           where("doctorId", "==", currentDoctorId),
           orderBy("lastName", "asc")
         );
-
-        onSnapshot(patientsQuery, (snapshot) => {
-          const patientSelect = document.getElementById("patientSelect");
-          const patientFilter = document.getElementById("patientFilter");
-
-          let options = '<option value="">Select Patient</option>';
-          snapshot.forEach((doc) => {
-            const patient = doc.data();
-            const option = `<option value="${doc.id}">${patient.firstName} ${patient.lastName} (${patient.patientId})</option>`;
-            options += option;
-          });
-
-          patientSelect.innerHTML = options;
-          patientFilter.innerHTML = options;
-        });
+        onSnapshot(
+          patientsQuery,
+          (snapshot) => {
+            const patientSelect = document.getElementById("patientSelect");
+            const patientFilter = document.getElementById("patientFilter");
+            let options = '<option value="">Select Patient</option>';
+            snapshot.forEach((doc) => {
+              const patient = doc.data();
+              options += `<option value="${doc.id}">${patient.firstName} ${patient.lastName} (${patient.patientId})</option>`;
+            });
+            patientSelect.innerHTML = options;
+            patientFilter.innerHTML = options;
+            hideLoading();
+          },
+          (error) => {
+            showError("Failed to load patients.");
+            hideLoading();
+          }
+        );
       }
 
-      // Load prescriptions
       function loadPrescriptions(doctorId) {
+        showLoading();
         const prescriptionsQuery = query(
           collection(db, "prescriptions"),
           where("doctorId", "==", doctorId),
           orderBy("createdAt", "desc")
         );
+        onSnapshot(
+          prescriptionsQuery,
+          (snapshot) => {
+            const prescriptionsDiv =
+              document.getElementById("prescriptionsList");
+            if (snapshot.empty) {
+              prescriptionsDiv.innerHTML = "<p>No prescriptions found</p>";
+              hideLoading();
+              return;
+            }
+            let html =
+              "<table><thead><tr><th>Date</th><th>Patient</th><th>Medications</th><th>Status</th><th>Valid Until</th><th>Actions</th></tr></thead><tbody>";
+            snapshot.forEach((doc) => {
+              const prescription = doc.data();
+              html += `
+              <tr data-id="${doc.id}">
+                <td>${prescription.createdAt.toDate().toLocaleDateString()}</td>
+                <td>${prescription.patientName}</td>
+                <td>${prescription.medications.length} medication(s)</td>
+                <td><span class="status-badge ${prescription.status}">${
+                prescription.status
+              }</span></td>
+                <td>${prescription.validUntil
+                  .toDate()
+                  .toLocaleDateString()}</td>
+                <td>
+                  <button class="btn view-prescription" data-id="${
+                    doc.id
+                  }">View</button>
+                  <button class="btn edit-prescription" data-id="${
+                    doc.id
+                  }">Edit</button>
+                </td>
+              </tr>
+            `;
+            });
+            html += "</tbody></table>";
+            prescriptionsDiv.innerHTML = html;
 
-        onSnapshot(prescriptionsQuery, (snapshot) => {
-          const prescriptionsDiv = document.getElementById("prescriptionsList");
-          if (snapshot.empty) {
-            prescriptionsDiv.innerHTML = "<p>No prescriptions found</p>";
-            return;
+            document.querySelectorAll(".view-prescription").forEach((btn) => {
+              btn.addEventListener("click", () =>
+                viewPrescription(btn.dataset.id)
+              );
+            });
+            document.querySelectorAll(".edit-prescription").forEach((btn) => {
+              btn.addEventListener("click", () =>
+                editPrescription(btn.dataset.id)
+              );
+            });
+            hideLoading();
+          },
+          (error) => {
+            showError("Failed to load prescriptions.");
+            hideLoading();
           }
-
-          let html =
-            "<table><thead><tr><th>Date</th><th>Patient</th><th>Medications</th><th>Status</th><th>Valid Until</th><th>Actions</th></tr></thead><tbody>";
-          snapshot.forEach((doc) => {
-            const prescription = doc.data();
-            html += `
-            <tr data-id="${doc.id}">
-              <td>${prescription.createdAt.toDate().toLocaleDateString()}</td>
-              <td>${prescription.patientName}</td>
-              <td>${prescription.medications.length} medications</td>
-              <td><span class="status-badge ${prescription.status}">${
-              prescription.status
-            }</span></td>
-              <td>${prescription.validUntil.toDate().toLocaleDateString()}</td>
-              <td>
-                <button class="btn view-prescription" data-id="${
-                  doc.id
-                }">View</button>
-                <button class="btn edit-prescription" data-id="${
-                  doc.id
-                }">Edit</button>
-              </td>
-            </tr>
-          `;
-          });
-          html += "</tbody></table>";
-          prescriptionsDiv.innerHTML = html;
-
-          // Add event listeners
-          document.querySelectorAll(".view-prescription").forEach((btn) => {
-            btn.addEventListener("click", () =>
-              viewPrescription(btn.dataset.id)
-            );
-          });
-          document.querySelectorAll(".edit-prescription").forEach((btn) => {
-            btn.addEventListener("click", () =>
-              editPrescription(btn.dataset.id)
-            );
-          });
-        });
+        );
       }
 
-      // Search medications
+      async function viewPrescription(prescriptionId) {
+        showLoading();
+        try {
+          const prescriptionDoc = await getDoc(
+            doc(db, "prescriptions", prescriptionId)
+          );
+          if (prescriptionDoc.exists()) {
+            const prescription = prescriptionDoc.data();
+            let medDetails = prescription.medications
+              .map(
+                (med) => `
+              <p><strong>${med.name}</strong>: ${med.dosage}, ${med.frequency}, ${med.duration}</p>
+            `
+              )
+              .join("");
+            alert(`
+              Patient: ${prescription.patientName}
+              Date: ${prescription.createdAt.toDate().toLocaleDateString()}
+              Medications:
+              ${medDetails}
+              Notes: ${prescription.notes || "None"}
+              Status: ${prescription.status}
+              Valid Until: ${prescription.validUntil
+                .toDate()
+                .toLocaleDateString()}
+            `);
+          }
+        } catch (error) {
+          showError("Failed to load prescription details.");
+        } finally {
+          hideLoading();
+        }
+      }
+
+      async function editPrescription(prescriptionId) {
+        showLoading();
+        try {
+          const prescriptionDoc = await getDoc(
+            doc(db, "prescriptions", prescriptionId)
+          );
+          if (prescriptionDoc.exists()) {
+            const prescription = prescriptionDoc.data();
+            editingPrescriptionId = prescriptionId;
+            selectedMedications = prescription.medications;
+            document.getElementById("modalTitle").textContent =
+              "Edit Prescription";
+            document.getElementById("patientSelect").value =
+              prescription.patientId;
+            document.getElementById("prescriptionNotes").value =
+              prescription.notes || "";
+            document.getElementById("validUntil").value =
+              prescription.validUntil.toDate().toISOString().split("T")[0];
+            updateSelectedMedicationsList();
+            document.getElementById("prescriptionModal").style.display =
+              "block";
+          }
+        } catch (error) {
+          showError("Failed to load prescription for editing.");
+        } finally {
+          hideLoading();
+        }
+      }
+
       document
         .getElementById("medicationSearch")
         .addEventListener("input", async (e) => {
+          showLoading();
           const searchTerm = e.target.value.toLowerCase();
-          if (searchTerm.length < 3) {
-            document.getElementById("medicationResults").innerHTML = "";
-            return;
-          }
-
-          const medicationsQuery = query(
-            collection(db, "medications"),
-            where("searchTerms", "array-contains", searchTerm),
-            limit(5)
-          );
-
-          const snapshot = await getDocs(medicationsQuery);
           const resultsDiv = document.getElementById("medicationResults");
-
-          if (snapshot.empty) {
-            resultsDiv.innerHTML = "<p>No medications found</p>";
+          if (searchTerm.length < 3) {
+            resultsDiv.innerHTML = "";
+            hideLoading();
             return;
           }
-
-          let html = "<ul>";
-          snapshot.forEach((doc) => {
-            const med = doc.data();
-            html += `
-          <li data-id="${doc.id}" class="medication-item">
-            <strong>${med.name}</strong> (${med.code})
-            <small>${med.category}</small>
-          </li>
-        `;
-          });
-          html += "</ul>";
-          resultsDiv.innerHTML = html;
-
-          // Add click handlers
-          document.querySelectorAll(".medication-item").forEach((item) => {
-            item.addEventListener("click", () =>
-              showMedicationDetails(item.dataset.id)
+          try {
+            const medicationsQuery = query(
+              collection(db, "medications"),
+              where("searchTerms", "array-contains", searchTerm),
+              limit(5)
             );
-          });
+            const snapshot = await getDocs(medicationsQuery);
+            if (snapshot.empty) {
+              resultsDiv.innerHTML = "<p>No medications found</p>";
+              hideLoading();
+              return;
+            }
+            let html = "<ul>";
+            snapshot.forEach((doc) => {
+              const med = doc.data();
+              html += `
+              <li data-id="${doc.id}" class="medication-item">
+                <strong>${med.name}</strong> (${med.code})
+                <small>${med.category}</small>
+              </li>
+            `;
+            });
+            html += "</ul>";
+            resultsDiv.innerHTML = html;
+
+            document.querySelectorAll(".medication-item").forEach((item) => {
+              item.addEventListener("click", () =>
+                showMedicationDetails(item.dataset.id)
+              );
+            });
+          } catch (error) {
+            showError("Failed to search medications.");
+          } finally {
+            hideLoading();
+          }
         });
 
-      // Show medication details
       async function showMedicationDetails(medicationId) {
+        showLoading();
         try {
           const medDoc = await getDoc(doc(db, "medications", medicationId));
           if (medDoc.exists()) {
             const med = medDoc.data();
-            const detailsDiv = document.getElementById("medicationDetails");
-
-            detailsDiv.innerHTML = `
-            <h3>${med.name}</h3>
-            <p><strong>Code:</strong> ${med.code}</p>
-            <p><strong>Category:</strong> ${med.category}</p>
-            <p><strong>Description:</strong> ${med.description}</p>
-            <p><strong>Dosage Forms:</strong> ${med.dosageForms.join(", ")}</p>
-            <p><strong>Common Side Effects:</strong> ${med.sideEffects.join(
-              ", "
-            )}</p>
-            <div class="form-group">
-              <label for="dosage">Dosage</label>
-              <input type="text" id="dosage" placeholder="e.g., 500mg"/>
-            </div>
-            <div class="form-group">
-              <label for="frequency">Frequency</label>
-              <input type="text" id="frequency" placeholder="e.g., twice daily"/>
-            </div>
-            <div class="form-group">
-              <label for="duration">Duration</label>
-              <input type="text" id="duration" placeholder="e.g., 7 days"/>
-            </div>
-          `;
-
+            document.getElementById("medicationDetails").innerHTML = `
+              <h3>${med.name}</h3>
+              <p><strong>Code:</strong> ${med.code}</p>
+              <p><strong>Category:</strong> ${med.category}</p>
+              <p><strong>Description:</strong> ${med.description}</p>
+              <p><strong>Dosage Forms:</strong> ${med.dosageForms.join(
+                ", "
+              )}</p>
+              <p><strong>Side Effects:</strong> ${med.sideEffects.join(
+                ", "
+              )}</p>
+              <div class="form-group">
+                <label for="dosage">Dosage</label>
+                <input type="text" id="dosage" placeholder="e.g., 500mg"/>
+              </div>
+              <div class="form-group">
+                <label for="frequency">Frequency</label>
+                <input type="text" id="frequency" placeholder="e.g., twice daily"/>
+              </div>
+              <div class="form-group">
+                <label for="duration">Duration</label>
+                <input type="text" id="duration" placeholder="e.g., 7 days"/>
+              </div>
+            `;
             document.getElementById("medicationModal").style.display = "block";
             document.getElementById("addMedicationBtn").dataset.id =
               medicationId;
           }
         } catch (error) {
-          console.error("Error loading medication:", error);
-          alert("Failed to load medication details.");
+          showError("Failed to load medication details.");
+        } finally {
+          hideLoading();
         }
       }
 
-      // Add medication to prescription
       document
         .getElementById("addMedicationBtn")
-        .addEventListener("click", () => {
+        .addEventListener("click", async () => {
+          showLoading();
           const medicationId =
             document.getElementById("addMedicationBtn").dataset.id;
           const dosage = document.getElementById("dosage").value;
@@ -344,40 +614,48 @@
           const duration = document.getElementById("duration").value;
 
           if (!dosage || !frequency || !duration) {
-            alert("Please fill in all medication details");
+            showError("Please fill in all medication details.");
+            hideLoading();
             return;
           }
 
-          selectedMedications.push({
-            id: medicationId,
-            dosage,
-            frequency,
-            duration,
-          });
-
-          updateSelectedMedicationsList();
-          document.getElementById("medicationModal").style.display = "none";
+          try {
+            const medDoc = await getDoc(doc(db, "medications", medicationId));
+            if (medDoc.exists()) {
+              const med = medDoc.data();
+              selectedMedications.push({
+                id: medicationId,
+                name: med.name,
+                dosage,
+                frequency,
+                duration,
+              });
+              updateSelectedMedicationsList();
+              document.getElementById("medicationModal").style.display = "none";
+            }
+          } catch (error) {
+            showError("Failed to add medication.");
+          } finally {
+            hideLoading();
+          }
         });
 
-      // Update selected medications list
       function updateSelectedMedicationsList() {
         const container = document.getElementById("selectedMedications");
         container.innerHTML = "<h3>Selected Medications</h3>";
-
         selectedMedications.forEach((med, index) => {
           const div = document.createElement("div");
           div.className = "selected-medication";
           div.innerHTML = `
-          <p><strong>${med.name}</strong></p>
-          <p>Dosage: ${med.dosage}</p>
-          <p>Frequency: ${med.frequency}</p>
-          <p>Duration: ${med.duration}</p>
-          <button class="btn btn-danger remove-medication" data-index="${index}">Remove</button>
-        `;
+            <p><strong>${med.name}</strong></p>
+            <p>Dosage: ${med.dosage}</p>
+            <p>Frequency: ${med.frequency}</p>
+            <p>Duration: ${med.duration}</p>
+            <button class="btn btn-danger remove-medication" data-index="${index}">Remove</button>
+          `;
           container.appendChild(div);
         });
 
-        // Add remove handlers
         document.querySelectorAll(".remove-medication").forEach((btn) => {
           btn.addEventListener("click", () => {
             selectedMedications.splice(btn.dataset.index, 1);
@@ -386,10 +664,10 @@
         });
       }
 
-      // Event Listeners
       document
         .getElementById("newPrescriptionBtn")
         .addEventListener("click", () => {
+          showLoading();
           editingPrescriptionId = null;
           selectedMedications = [];
           document.getElementById("modalTitle").textContent =
@@ -397,6 +675,7 @@
           document.getElementById("prescriptionForm").reset();
           document.getElementById("selectedMedications").innerHTML = "";
           document.getElementById("prescriptionModal").style.display = "block";
+          hideLoading();
         });
 
       document
@@ -415,12 +694,12 @@
         .getElementById("prescriptionForm")
         .addEventListener("submit", async (e) => {
           e.preventDefault();
-
+          showLoading();
           if (selectedMedications.length === 0) {
-            alert("Please add at least one medication");
+            showError("Please add at least one medication.");
+            hideLoading();
             return;
           }
-
           const prescriptionData = {
             patientId: document.getElementById("patientSelect").value,
             patientName:
@@ -434,151 +713,112 @@
             doctorId: currentDoctorId,
             updatedAt: Timestamp.now(),
           };
-
           try {
             if (editingPrescriptionId) {
               await updateDoc(
                 doc(db, "prescriptions", editingPrescriptionId),
                 prescriptionData
               );
+              showError("Prescription updated successfully.");
             } else {
               prescriptionData.createdAt = Timestamp.now();
               await addDoc(collection(db, "prescriptions"), prescriptionData);
+              showError("Prescription created successfully.");
             }
-
             document.getElementById("prescriptionModal").style.display = "none";
-            alert(
-              editingPrescriptionId
-                ? "Prescription updated successfully"
-                : "Prescription created successfully"
-            );
           } catch (error) {
-            console.error("Error saving prescription:", error);
-            alert("Failed to save prescription");
+            showError("Failed to save prescription.");
+          } finally {
+            hideLoading();
           }
         });
 
-      // Time-based greeting
-      const greetEl = document.getElementById("greeting");
-      const hour = new Date().getHours();
-      const sal =
-        hour < 12
-          ? "Good Morning"
-          : hour < 18
-          ? "Good Afternoon"
-          : "Good Evening";
-      greetEl.textContent = `${sal}!`;
+      document
+        .getElementById("statusFilter")
+        .addEventListener("change", (e) => {
+          const status = e.target.value;
+          const rows = document.querySelectorAll(
+            "#prescriptionsList table tbody tr"
+          );
+          rows.forEach((row) => {
+            const rowStatus = row.querySelector(".status-badge").textContent;
+            row.style.display =
+              status === "all" || rowStatus === status ? "" : "none";
+          });
+        });
 
-      // System status polling
-      const statusDot = document.querySelector(".status-indicator");
-      async function updateStatus() {
-        try {
-          const res = await fetch("/api/system-status");
-          const { status } = await res.json();
-          statusDot.className = `status-indicator ${status}`;
-        } catch {
-          statusDot.className = "status-indicator offline";
+      document
+        .getElementById("patientFilter")
+        .addEventListener("change", (e) => {
+          const patientId = e.target.value;
+          const rows = document.querySelectorAll(
+            "#prescriptionsList table tbody tr"
+          );
+          rows.forEach((row) => {
+            row.style.display =
+              !patientId || row.dataset.patientId === patientId ? "" : "none";
+          });
+        });
+
+      onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+          window.location.href = "/index.html";
+          return;
         }
-      }
-      setInterval(updateStatus, 5000);
+        showLoading();
+        try {
+          const idTokenResult = await user.getIdTokenResult();
+          if (!idTokenResult.claims.doctor) {
+            await signOut(auth);
+            window.location.href = "/unauthorized.html";
+            return;
+          }
+          currentDoctorId = user.uid;
+          const doctorDoc = await getDoc(doc(db, "doctors", user.uid));
+          if (doctorDoc.exists()) {
+            const doctor = doctorDoc.data();
+            const hour = new Date().getHours();
+            const sal =
+              hour < 12
+                ? "Good Morning"
+                : hour < 18
+                ? "Good Afternoon"
+                : "Good Evening";
+            document.getElementById("greeting").textContent = `${sal}, Dr. ${
+              doctor.firstName || "Doctor"
+            }`;
+          }
+          loadPatients();
+          loadPrescriptions(user.uid);
+        } catch (error) {
+          showError("Failed to verify doctor status.");
+          window.location.href = "/index.html";
+        } finally {
+          hideLoading();
+        }
+      });
+
+      document
+        .getElementById("logoutBtn")
+        .addEventListener("click", async () => {
+          showLoading();
+          try {
+            await signOut(auth);
+            window.location.href = "/index.html";
+          } catch (error) {
+            showError("Failed to sign out.");
+          } finally {
+            hideLoading();
+          }
+        });
+
+      window.addEventListener("online", () => updateStatus());
+      window.addEventListener("offline", () => {
+        statusDot.className = "status-indicator offline";
+        statusDot.title = "Offline";
+      });
+      setInterval(updateStatus, 15000);
       updateStatus();
     </script>
-
-    <style>
-      .filters {
-        display: flex;
-        gap: 1rem;
-        margin-bottom: 1rem;
-      }
-
-      .status-badge {
-        padding: 0.25rem 0.5rem;
-        border-radius: 4px;
-        font-size: 0.875rem;
-        font-weight: 500;
-      }
-
-      .status-badge.active {
-        background: #d4edda;
-        color: #155724;
-      }
-
-      .status-badge.completed {
-        background: #cce5ff;
-        color: #004085;
-      }
-
-      .status-badge.cancelled {
-        background: #f8d7da;
-        color: #721c24;
-      }
-
-      .search-results {
-        position: absolute;
-        background: white;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        max-height: 200px;
-        overflow-y: auto;
-        width: 100%;
-        z-index: 1000;
-      }
-
-      .medication-item {
-        padding: 0.5rem;
-        cursor: pointer;
-        border-bottom: 1px solid #eee;
-      }
-
-      .medication-item:hover {
-        background: #f8f9fa;
-      }
-
-      .selected-medication {
-        background: #f8f9fa;
-        padding: 1rem;
-        border-radius: 4px;
-        margin-bottom: 1rem;
-      }
-
-      .modal {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        overflow-y: auto;
-      }
-
-      .modal-content {
-        background: white;
-        margin: 5% auto;
-        padding: 2rem;
-        width: 90%;
-        max-width: 800px;
-        border-radius: 8px;
-      }
-
-      .form-group {
-        margin-bottom: 1rem;
-      }
-
-      .form-actions {
-        display: flex;
-        gap: 1rem;
-        margin-top: 1.5rem;
-      }
-
-      .btn-danger {
-        background: #dc3545;
-        color: white;
-      }
-
-      .btn-danger:hover {
-        background: #c82333;
-      }
-    </style>
   </body>
 </html>
