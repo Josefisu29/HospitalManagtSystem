@@ -477,10 +477,11 @@
 //   toggleOfflineMode,
 //   toggleOnlineMode
 // };
+"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 
-// script.js
-
-// --- Imports & Firebase Init ---
+"https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+"https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
 import {
   getAuth,
