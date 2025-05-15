@@ -3,19 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>HMS – Emergency Help</title>
-    <link rel="stylesheet" href="css/all.css" />
-    <link rel="stylesheet" href="css/common.css" />
+    <title>HMS Emergency Help</title>
+    <link rel="stylesheet" href="styles.css" />
     <style>
       :root {
         --primary: #0052cc;
         --danger: #d32f2f;
-        --success: #28a745;
         --bg: #f9fbfd;
-        --text: #333;
-        --card-bg: #fff;
-        --transition: 0.3s ease;
+        --text: #212121;
+        --card: #ffffff;
         --radius: 8px;
+        --transition: 0.3s;
       }
       * {
         box-sizing: border-box;
@@ -28,43 +26,28 @@
         color: var(--text);
       }
       header {
+        background: var(--card);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         position: sticky;
         top: 0;
-        background: var(--card-bg);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         z-index: 100;
-        padding: 1rem 2rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .greeting {
-        margin-right: 1rem;
-      }
-      .status-indicator {
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        background: #dc3545;
-        display: inline-block;
-        margin-left: 0.5rem;
-      }
-      .status-indicator.online {
-        background: #28a745;
-      }
-      nav {
-        background: var(--primary);
-        padding: 0.5rem 2rem;
       }
       .nav-inner {
-        max-width: 1200px;
+        max-width: 800px;
         margin: auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem;
+      }
+      .brand {
+        font-size: 1.25rem;
+        color: var(--primary);
       }
       .nav-toggle {
         display: none;
         font-size: 1.5rem;
         cursor: pointer;
-        color: white;
       }
       .nav-menu {
         list-style: none;
@@ -72,30 +55,47 @@
         gap: 1rem;
       }
       .nav-menu li a {
-        color: white;
+        color: var(--text);
         text-decoration: none;
-        padding: 0.5rem 1rem;
+        padding: 0.5rem;
         border-radius: 4px;
         transition: background var(--transition);
       }
       .nav-menu li a:hover,
       .nav-menu li a.active {
-        background: rgba(255, 255, 255, 0.2);
+        background: var(--primary);
+        color: #fff;
+      }
+      @media (max-width: 600px) {
+        .nav-toggle {
+          display: block;
+        }
+        .nav-menu {
+          display: none;
+          position: absolute;
+          top: 100%;
+          left: 0;
+          right: 0;
+          background: var(--card);
+          flex-direction: column;
+        }
+        .nav-menu.open {
+          display: flex;
+        }
       }
       .help-container {
-        min-height: calc(100vh - 120px);
+        height: calc(100vh - 72px);
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 2rem;
       }
       .card {
-        background: var(--card-bg);
+        background: var(--card);
         padding: 2rem;
         border-radius: var(--radius);
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
         text-align: center;
-        max-width: 400px;
+        max-width: 320px;
         width: 100%;
       }
       .card h1 {
@@ -104,7 +104,6 @@
       }
       .card p {
         margin-bottom: 1.5rem;
-        color: #666;
       }
       .btn {
         display: flex;
@@ -112,185 +111,56 @@
         justify-content: center;
         gap: 0.5rem;
         width: 100%;
-        padding: 1rem;
-        font-size: 1.25rem;
+        padding: 0.75rem;
+        font-size: 1rem;
         border: none;
         border-radius: var(--radius);
         cursor: pointer;
         transition: background var(--transition);
-        margin-bottom: 1rem;
-        font-weight: 600;
       }
       .btn-primary {
         background: var(--primary);
         color: #fff;
       }
       .btn-primary:hover {
-        background: #0047b3;
-      }
-      .btn-primary.pulsate {
-        animation: pulsate 1s infinite;
+        background: #003a9b;
       }
       .btn-secondary {
         background: var(--danger);
         color: #fff;
       }
       .btn-secondary:hover {
-        background: #b71c1c;
-      }
-      .btn-voice {
-        background: var(--success);
-        color: #fff;
-      }
-      .btn-voice:hover {
-        background: #218838;
-      }
-      .form-group {
-        margin-bottom: 1rem;
-        text-align: left;
-      }
-      .form-group label {
-        display: block;
-        margin-bottom: 0.5rem;
-        font-weight: 600;
-      }
-      .form-group select,
-      .form-group textarea {
-        width: 100%;
-        padding: 0.5rem;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        font-size: 1rem;
-      }
-      .status-section {
-        margin-top: 2rem;
-        text-align: left;
-      }
-      .status-section h3 {
-        margin-bottom: 1rem;
-        color: var(--primary);
-      }
-      .status-item {
-        padding: 0.5rem;
-        border-bottom: 1px solid #eee;
-      }
-      @keyframes pulsate {
-        0% {
-          transform: scale(1);
-        }
-        50% {
-          transform: scale(1.1);
-        }
-        100% {
-          transform: scale(1);
-        }
-      }
-      @media (max-width: 768px) {
-        .nav-toggle {
-          display: block;
-        }
-        .nav-menu {
-          display: none;
-          flex-direction: column;
-          background: var(--primary);
-          position: absolute;
-          top: 100%;
-          left: 0;
-          right: 0;
-          padding: 1rem;
-        }
-        .nav-menu.active {
-          display: flex;
-        }
-        .btn {
-          font-size: 1.5rem;
-          padding: 1.25rem;
-        }
-      }
-      .tooltip {
-        position: relative;
-        display: inline-block;
-      }
-      .tooltip .tooltiptext {
-        visibility: hidden;
-        width: 120px;
-        background-color: #555;
-        color: #fff;
-        text-align: center;
-        border-radius: 6px;
-        padding: 5px;
-        position: absolute;
-        z-index: 1;
-        bottom: 125%;
-        left: 50%;
-        margin-left: -60px;
-        opacity: 0;
-        transition: opacity 0.3s;
-      }
-      .tooltip:hover .tooltiptext {
-        visibility: visible;
-        opacity: 1;
+        background: #9a1c1c;
       }
     </style>
   </head>
   <body>
     <header>
-      <div style="display: flex; align-items: center">
-        <span id="greeting" class="greeting"></span>
-        <span id="statusIndicator" class="status-indicator offline tooltip">
-          <span class="tooltiptext" id="statusTooltip">Offline</span>
-        </span>
-        <button
-          id="logoutBtn"
-          class="btn btn-primary"
-          style="margin-left: 1rem"
-        >
-          Logout
-        </button>
-      </div>
+      <nav>
+        <div class="nav-inner">
+          <div id="navToggle" class="nav-toggle">☰</div>
+          <ul id="navMenu" class="nav-menu">
+            <li><a href="patient.html" class="active">Profile</a></li>
+            <li><a href="patient-appointments.html">Appointments</a></li>
+            <li><a href="patient-records.html">Records</a></li>
+            <li><a href="Help.html">Get-Help</a></li>
+          </ul>
+        </div>
+      </nav>
     </header>
-    <nav>
-      <div class="nav-inner">
-        <div id="navToggle" class="nav-toggle">☰</div>
-        <ul id="navMenu" class="nav-menu">
-          <li><a href="patient.html">Profile</a></li>
-          <li><a href="patient-appointments.html">Appointments</a></li>
-          <li><a href="patient-records.html">Medical Records</a></li>
-          <li><a href="patient-results.html">Lab Results</a></li>
-          <li><a href="patient-billing.html">Billing & Payments</a></li>
-          <li><a href="Help.html" class="active">Get-Help</a></li>
-        </ul>
-      </div>
-    </nav>
+
     <main class="help-container">
       <div class="card">
         <h1>Emergency Assistance</h1>
-        <p>Request help instantly or call our emergency line.</p>
+        <p>Tap below to request immediate help.</p>
         <button id="btn-gps-help" class="btn btn-primary">
-          <i class="fas fa-map-marker-alt"></i> Send Emergency Help
-        </button>
-        <button id="btn-voice-help" class="btn btn-voice">
-          <i class="fas fa-microphone"></i> Voice Emergency Request
+          <i class="fas fa-map-marker-alt"></i> Share Location
         </button>
         <button id="btn-call-help" class="btn btn-secondary">
-          <i class="fas fa-phone"></i> Call Emergency Line
+          <i class="fas fa-phone"></i> Call for Help
         </button>
-        <div class="form-group">
-          <label for="emergencyDetails">Additional Details (Optional)</label>
-          <textarea
-            id="emergencyDetails"
-            rows="3"
-            placeholder="E.g., chest pain, car accident"
-          ></textarea>
-        </div>
-        <div class="status-section">
-          <h3>Request Status</h3>
-          <div id="statusList"></div>
-        </div>
       </div>
     </main>
-
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging.js"></script>
     <script
       src="https://kit.fontawesome.com/yourkit.js"
       crossorigin="anonymous"
@@ -300,7 +170,6 @@
       import {
         getAuth,
         onAuthStateChanged,
-        signOut,
       } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
       import {
         getFirestore,
@@ -308,23 +177,12 @@
         getDoc,
         collection,
         addDoc,
-        query,
-        where,
-        onSnapshot,
         serverTimestamp,
         enableIndexedDbPersistence,
       } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
-      import {
-        getMessaging,
-        getToken,
-      } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging.js";
-      import {
-        showLoading,
-        hideLoading,
-        showError,
-        showSuccess,
-      } from "./js/common.js";
+      import { showSuccess, showError } from "./js/common.js";
 
+      // Firebase configuration
       const firebaseConfig = {
         apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
         authDomain: "hospitalmanagtsystem.firebaseapp.com",
@@ -334,17 +192,18 @@
         appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
       };
 
+      // Initialize Firebase
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app);
       const db = getFirestore(app);
-      const messaging = getMessaging(app);
 
       enableIndexedDbPersistence(db).catch((err) =>
         console.warn("Offline persistence failed:", err)
       );
 
-      let currentUser = null;
-      let emergencyPhone = "555-123-4567"; // Default, overridden by Firestore
+      let uid = null;
+      let emergencyPhone =
+        localStorage.getItem("emergencyPhone") || "555-123-4567";
       let lastKnownLocation =
         JSON.parse(localStorage.getItem("lastKnownLocation")) || null;
 
@@ -361,100 +220,27 @@
         }
       }
 
-      // Register FCM token
-      async function registerFCM() {
-        try {
-          const permission = await Notification.requestPermission();
-          if (permission === "granted") {
-            const token = await getToken(messaging, {
-              vapidKey: "YOUR_VAPID_KEY",
-            });
-            if (token) {
-              await setDoc(
-                doc(db, "users", auth.currentUser.uid),
-                { fcmToken: token },
-                { merge: true }
-              );
-            }
-          }
-        } catch (error) {
-          console.warn("FCM registration failed:", error);
-        }
-      }
-
+      // Authenticate user on load
       onAuthStateChanged(auth, async (user) => {
         if (user) {
-          try {
-            showLoading();
-            const userDoc = await getDoc(doc(db, "users", user.uid));
-            if (userDoc.exists()) {
-              currentUser = userDoc.data();
-              const greetEl = document.getElementById("greeting");
-              const hour = new Date().getHours();
-              const sal =
-                hour < 12
-                  ? "Good Morning"
-                  : hour < 18
-                  ? "Good Afternoon"
-                  : "Good Evening";
-              greetEl.textContent = `${sal}, ${currentUser.firstName}`;
-              await loadEmergencyPhone();
-              await registerFCM();
-              loadRequestStatus(user.uid);
-            } else {
-              showError("User profile not found.");
-              window.location.href = "/index.html";
-            }
-          } catch (error) {
-            console.error("Error loading user data:", error);
-            showError("Failed to load user data. Please try again.");
-          } finally {
-            hideLoading();
-          }
+          uid = user.uid;
+          await loadEmergencyPhone();
         } else {
-          window.location.href = "/index.html";
+          window.location = "/index.html";
         }
       });
 
-      const gpsHelpBtn = document.getElementById("btn-gps-help");
-      const voiceHelpBtn = document.getElementById("btn-voice-help");
-      const callHelpBtn = document.getElementById("btn-call-help");
-
-      gpsHelpBtn.addEventListener("click", () => sendHelpRequest("medical"));
-      callHelpBtn.addEventListener("click", () => {
-        window.location.href = `tel:${emergencyPhone}`;
-      });
-
-      // Voice input
-      voiceHelpBtn.addEventListener("click", () => {
-        const recognition = new (window.SpeechRecognition ||
-          window.webkitSpeechRecognition)();
-        recognition.lang = navigator.language || "en-US";
-        recognition.start();
-        voiceHelpBtn.classList.add("pulsate");
-        recognition.onresult = (event) => {
-          const transcript = event.results[0][0].transcript.toLowerCase();
-          document.getElementById("emergencyDetails").value = transcript;
-          sendHelpRequest("other");
-          voiceHelpBtn.classList.remove("pulsate");
-        };
-        recognition.onerror = () => {
-          showError("Voice input failed. Please try again.");
-          voiceHelpBtn.classList.remove("pulsate");
-        };
-      });
-
-      async function sendHelpRequest(emergencyType) {
+      // Share Location button
+      document.getElementById("btn-gps-help").onclick = async () => {
         if (!navigator.geolocation && !lastKnownLocation) {
           showError(
             "Geolocation not supported and no last known location available."
           );
           return;
         }
-        showLoading();
-        gpsHelpBtn.classList.add("pulsate");
+
+        let latitude, longitude;
         try {
-          let latitude, longitude;
           if (navigator.geolocation) {
             const pos = await new Promise((resolve, reject) => {
               navigator.geolocation.getCurrentPosition(resolve, reject, {
@@ -473,122 +259,41 @@
             ({ latitude, longitude } = lastKnownLocation);
           }
 
-          const details = document.getElementById("emergencyDetails").value;
-          const requestData = {
-            patientId: auth.currentUser.uid,
-            patientName: `${currentUser.firstName} ${currentUser.lastName}`,
-            patientPhone: currentUser.phone || "N/A",
-            latitude,
-            longitude,
-            emergencyType,
-            details: details || "N/A",
-            status: "pending",
-            assignedResponderId: null,
-            timestamp: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-          };
-
-          // Retry logic
+          // Write to Firestore with retry logic
           let attempts = 0;
           while (attempts < 3) {
             try {
-              await addDoc(collection(db, "helpRequests"), requestData);
-              break;
+              await addDoc(collection(db, "helpRequests"), {
+                patientId: uid,
+                latitude,
+                longitude,
+                timestamp: serverTimestamp(),
+              });
+              showSuccess("Location sent – help is on the way!");
+              return;
             } catch (error) {
               if (++attempts === 3) throw error;
               await new Promise((resolve) =>
-                setTimeout(resolve, 1000 * attempts)
+                setTimeout(resolve, 500 * attempts)
               );
             }
           }
-
-          showSuccess("Emergency request sent – help is on the way!");
-          new Audio("https://example.com/confirmation.mp3")
-            .play()
-            .catch(() => {});
-          document.getElementById("emergencyDetails").value = "";
         } catch (error) {
           console.error("Error sending help request:", error);
-          showError("Unable to send request. Please call the emergency line.");
-        } finally {
-          hideLoading();
-          gpsHelpBtn.classList.remove("pulsate");
-        }
-      }
-
-      function loadRequestStatus(userId) {
-        const q = query(
-          collection(db, "helpRequests"),
-          where("patientId", "==", userId)
-        );
-        onSnapshot(q, (snapshot) => {
-          const statusList = document.getElementById("statusList");
-          statusList.innerHTML = "";
-          if (snapshot.empty) {
-            statusList.innerHTML = "<p>No recent requests.</p>";
-            return;
-          }
-          snapshot.forEach((doc) => {
-            const request = doc.data();
-            const statusItem = document.createElement("div");
-            statusItem.className = "status-item";
-            statusItem.innerHTML = `
-              <strong>${request.emergencyType.toUpperCase()}</strong> - ${
-              request.status
-            } 
-              (${request.timestamp?.toDate().toLocaleString()})
-            `;
-            statusList.appendChild(statusItem);
-          });
-        });
-      }
-
-      document
-        .getElementById("logoutBtn")
-        .addEventListener("click", async () => {
-          try {
-            showLoading();
-            await signOut(auth);
-            window.location.href = "/index.html";
-          } catch (error) {
-            console.error("Error signing out:", error);
-            showError("Failed to sign out. Please try again.");
-          } finally {
-            hideLoading();
-          }
-        });
-
-      const statusDot = document.getElementById("statusIndicator");
-      const statusTooltip = document.getElementById("statusTooltip");
-      async function updateStatus() {
-        try {
-          const res = await fetch(
-            "https://us-central1-hospitalmanagtsystem.cloudfunctions.net/systemStatus"
+          showError(
+            "Unable to retrieve location or send request. Please try again."
           );
-          if (res.ok) {
-            const { status } = await res.json();
-            statusDot.className = `status-indicator ${status || "offline"}`;
-            statusTooltip.textContent =
-              status.charAt(0).toUpperCase() + status.slice(1);
-          } else {
-            statusDot.className = "status-indicator offline";
-            statusTooltip.textContent = "Offline";
-          }
-        } catch {
-          statusDot.className = "status-indicator offline";
-          statusTooltip.textContent = "Offline";
         }
-      }
-      window.addEventListener("online", () => updateStatus());
-      window.addEventListener("offline", () => {
-        statusDot.className = "status-indicator offline";
-        statusTooltip.textContent = "Offline";
-      });
-      setInterval(updateStatus, 15000);
-      updateStatus();
+      };
 
+      // Call for Help button
+      document.getElementById("btn-call-help").onclick = () => {
+        window.location.href = `tel:${emergencyPhone}`;
+      };
+
+      // Mobile nav toggle
       document.getElementById("navToggle").addEventListener("click", () => {
-        document.getElementById("navMenu").classList.toggle("active");
+        document.getElementById("navMenu").classList.toggle("open");
       });
     </script>
   </body>
