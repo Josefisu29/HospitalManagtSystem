@@ -173,7 +173,9 @@
         <span id="statusIndicator" class="status-indicator offline tooltip">
           <span class="tooltiptext" id="statusTooltip">Offline</span>
         </span>
-        <button id="logoutBtn" class="btn" style="margin-left: 1rem">Logout</button>
+        <button id="logoutBtn" class="btn" style="margin-left: 1rem">
+          Logout
+        </button>
       </div>
     </header>
     <nav>
@@ -184,7 +186,9 @@
           <li><a href="patient-appointments.html">Appointments</a></li>
           <li><a href="patient-records.html">Medical Records</a></li>
           <li><a href="patient-results.html">Lab Results</a></li>
-          <li><a href="patient-billing.html" class="active">Billing & Payments</a></li>
+          <li>
+            <a href="patient-billing.html" class="active">Billing & Payments</a>
+          </li>
           <li><a href="Help.html">Get-Help</a></li>
         </ul>
       </div>
@@ -196,7 +200,7 @@
           <table>
             <thead>
               <tr>
-                <th>Invoice #</th>
+                <th>Invoice N</th>
                 <th>Date</th>
                 <th>Description</th>
                 <th>Provider</th>
@@ -213,7 +217,11 @@
 
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-      import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+      import {
+        getAuth,
+        onAuthStateChanged,
+        signOut,
+      } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
       import {
         getFirestore,
         doc,
@@ -226,7 +234,14 @@
         Timestamp,
         enableIndexedDbPersistence,
       } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
-      import { showLoading, hideLoading, showError, showSuccess, setupTableSorting, setupTableFiltering } from "./js/common.js";
+      import {
+        showLoading,
+        hideLoading,
+        showError,
+        showSuccess,
+        setupTableSorting,
+        setupTableFiltering,
+      } from "./js/common.js";
 
       const firebaseConfig = {
         apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
@@ -241,7 +256,9 @@
       const auth = getAuth(app);
       const db = getFirestore(app);
 
-      enableIndexedDbPersistence(db).catch((err) => console.warn("Offline persistence failed:", err));
+      enableIndexedDbPersistence(db).catch((err) =>
+        console.warn("Offline persistence failed:", err)
+      );
 
       onAuthStateChanged(auth, async (user) => {
         if (user) {
@@ -252,7 +269,12 @@
               const userData = userDoc.data();
               const greetEl = document.getElementById("greeting");
               const hour = new Date().getHours();
-              const sal = hour < 12 ? "Good Morning" : hour < 18 ? "Good Afternoon" : "Good Evening";
+              const sal =
+                hour < 12
+                  ? "Good Morning"
+                  : hour < 18
+                  ? "Good Afternoon"
+                  : "Good Evening";
               greetEl.textContent = `${sal}, ${userData.firstName}`;
               await loadInvoices(user.uid);
             } else {
@@ -307,13 +329,17 @@
               const invoice = doc.data();
               let providerName = "N/A";
               if (invoice.doctorId) {
-                const doctorDoc = await getDoc(doc(db, "doctors", invoice.doctorId));
+                const doctorDoc = await getDoc(
+                  doc(db, "doctors", invoice.doctorId)
+                );
                 if (doctorDoc.exists()) {
                   const doctorData = doctorDoc.data();
                   providerName = `Dr. ${doctorData.firstName} ${doctorData.lastName}`;
                 }
               } else if (invoice.pharmacistId) {
-                const pharmacistDoc = await getDoc(doc(db, "users", invoice.pharmacistId));
+                const pharmacistDoc = await getDoc(
+                  doc(db, "users", invoice.pharmacistId)
+                );
                 if (pharmacistDoc.exists()) {
                   const pharmacistData = pharmacistDoc.data();
                   providerName = `${pharmacistData.firstName} ${pharmacistData.lastName} (Pharmacist)`;
@@ -326,9 +352,13 @@
                 <td>${invoice.description}</td>
                 <td>${providerName}</td>
                 <td class="amount">$${invoice.amount.toFixed(2)}</td>
-                <td class="status-${invoice.status.toLowerCase()}">${invoice.status}</td>
+                <td class="status-${invoice.status.toLowerCase()}">${
+                invoice.status
+              }</td>
                 <td>
-                  <button class="btn" ${invoice.status === "paid" ? "disabled" : ""} onclick="handlePayment('${doc.id}', ${invoice.amount})">
+                  <button class="btn" ${
+                    invoice.status === "paid" ? "disabled" : ""
+                  } onclick="handlePayment('${doc.id}', ${invoice.amount})">
                     ${invoice.status === "paid" ? "Paid" : "Pay Now"}
                   </button>
                 </td>
@@ -354,7 +384,9 @@
             status: "paid",
             updatedAt: Timestamp.now(),
           });
-          showSuccess(`Payment of $${amount.toFixed(2)} processed successfully.`);
+          showSuccess(
+            `Payment of $${amount.toFixed(2)} processed successfully.`
+          );
         } catch (error) {
           console.error("Error processing payment:", error);
           showError("Failed to process payment. Please try again.");
@@ -363,28 +395,33 @@
         }
       };
 
-      document.getElementById("logoutBtn").addEventListener("click", async () => {
-        try {
-          showLoading();
-          await signOut(auth);
-          window.location.href = "/index.html";
-        } catch (error) {
-          console.error("Error signing out:", error);
-          showError("Failed to sign out. Please try again.");
-        } finally {
-          hideLoading();
-        }
-      });
+      document
+        .getElementById("logoutBtn")
+        .addEventListener("click", async () => {
+          try {
+            showLoading();
+            await signOut(auth);
+            window.location.href = "/index.html";
+          } catch (error) {
+            console.error("Error signing out:", error);
+            showError("Failed to sign out. Please try again.");
+          } finally {
+            hideLoading();
+          }
+        });
 
       const statusDot = document.getElementById("statusIndicator");
       const statusTooltip = document.getElementById("statusTooltip");
       async function updateStatus() {
         try {
-          const res = await fetch("https://us-central1-hospitalmanagtsystem.cloudfunctions.net/systemStatus");
+          const res = await fetch(
+            "https://us-central1-hospitalmanagtsystem.cloudfunctions.net/systemStatus"
+          );
           if (res.ok) {
             const { status } = await res.json();
             statusDot.className = `status-indicator ${status || "offline"}`;
-            statusTooltip.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+            statusTooltip.textContent =
+              status.charAt(0).toUpperCase() + status.slice(1);
           } else {
             statusDot.className = "status-indicator offline";
             statusTooltip.textContent = "Offline";
