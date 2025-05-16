@@ -254,6 +254,11 @@
             >Doctor
             <select id="doctorSelect" required>
               <option value="">Loading doctors...</option>
+              <option value="">Doctor 1</option>
+              <option value="">Doctor 3</option>
+              <option value="">Doctor 4</option>
+              <option value="">Doctor 5</option>
+              <option value="">Doctor 6</option>
             </select>
           </label>
           <label
@@ -346,7 +351,7 @@
       // Load doctors with dynamic data
       async function loadDoctors() {
         const select = document.getElementById("doctorSelect");
-        select.innerHTML = '<option value="">Loading doctors...</option>';
+        // select.innerHTML = '<option value="">Loading doctors...</option>';
         try {
           const docsSnap = await getDocs(collection(db, "doctors"));
           select.innerHTML = '<option value="">Select Doctor</option>';
@@ -358,7 +363,7 @@
             select.append(opt);
           });
           if (docsSnap.empty) {
-            select.innerHTML = '<option value="">No doctors available</option>';
+            // select.innerHTML = '<option value="">No doctors available</option>';
           }
         } catch (error) {
           console.error("Error loading doctors:", error);

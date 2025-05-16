@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HMS Admin Panel</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+    />
+    <style>
+      :root {
+        --primary: #0052cc;
+        --accent: #00bfa5;
+        --bg: #f4f6fb;
+        --text: #333;
+        --card-bg: #fff;
+        --transition: 0.3s ease;
+      }
+      body {
+        font-family: "Segoe UI", Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        margin: 0;
+        min-height: 100vh;
+      }
+      .centered {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+      }
+      #login-box {
+        background: var(--card-bg);
+        padding: 2.5rem 2rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+        min-width: 320px;
+        max-width: 90vw;
+        margin: 1rem;
+      }
+      #login-box h2 {
+        margin-bottom: 1.5rem;
+        color: #2d3a4b;
+      }
+      label {
+        display: block;
+        margin-bottom: 0.3rem;
+        color: #4a5568;
+        font-weight: 500;
+      }
+      input[type="email"],
+      input[type="password"],
+      input[type="text"],
+      select {
+        width: 100%;
+        padding: 0.7rem;
+        margin-bottom: 1.2rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        font-size: 1rem;
+        background: #f8fafc;
+        transition: border 0.2s;
+      }
+      input:focus,
+      select:focus {
+        border-color: var(--primary);
+        outline: none;
+      }
+      button {
+        width: 100%;
+        padding: 0.8rem;
+        background: var(--primary);
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      button:hover {
+        background: #0041a8;
+      }
+      .error {
+        color: #e53e3e;
+        margin-bottom: 1rem;
+        min-height: 1.2em;
+        text-align: center;
+      }
+      #admin-dashboard {
+        width: 100%;
+        min-height: 100vh;
+        background: var(--bg);
+        padding: 2rem 1rem;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      .header {
+        background: var(--primary);
+        color: #fff;
+        padding: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+      }
+      .stats {
+        display: flex;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+      }
+      .stat {
+        background: #e0e7ff;
+        color: #3730a3;
+        padding: 1rem;
+        border-radius: 8px;
+        text-align: center;
+        flex: 1;
+        min-width: 120px;
+        font-size: 1.2rem;
+        font-weight: 600;
+      }
+      .card {
+        background: var(--card-bg);
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        margin-bottom: 1.5rem;
+      }
+      .card h2 {
+        margin-top: 0;
+        color: #2563eb;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+      }
+      th,
+      td {
+        padding: 0.7rem;
+        border-bottom: 1px solid #e2e8f0;
+        text-align: left;
+      }
+      th {
+        background: #f1f5f9;
+        color: #2d3a4b;
+      }
+      #searchInput,
+      #doctorSearchInput,
+      #appointmentSearchInput,
+      #logSearchInput {
+        width: 100%;
+        padding: 0.5rem;
+        margin-bottom: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      .form-group {
+        margin-bottom: 1rem;
+      }
+      .form-group label {
+        margin-bottom: 0.5rem;
+      }
+      #system-logs {
+        padding-left: 1.2em;
+      }
+      .spinner {
+        display: none;
+        margin: 1rem auto;
+        border: 4px solid #e2e8f0;
+        border-top: 4px solid var(--primary);
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      @media (max-width: 768px) {
+        .stats {
+          flex-direction: column;
+          gap: 1rem;
+        }
+        .header {
+          flex-direction: column;
+          gap: 1rem;
+        }
+      }
+      .action-btn {
+        padding: 0.5rem 1rem;
+        margin-right: 0.5rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      .edit-btn {
+        background: #28a745;
+        color: #fff;
+      }
+      .edit-btn:hover {
+        background: #218838;
+      }
+      .delete-btn {
+        background: #e53e3e;
+        color: #fff;
+      }
+      .delete-btn:hover {
+        background: #c53030;
+      }
+      .reset-btn {
+        background: #6c757d;
+        color: #fff;
+      }
+      .reset-btn:hover {
+        background: #5a6268;
+      }
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      }
+      .modal-content {
+        background: #fff;
+        padding: 2rem;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 500px;
+        position: relative;
+      }
+      .modal-content h2 {
+        margin-bottom: 1rem;
+      }
+      .modal-content .close {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        font-size: 1.5rem;
+        cursor: pointer;
+      }
+      .modal-content form {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+      #loading {
+        position: fixed;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        transition: opacity 0.3s ease;
+      }
+      #loading.loading--hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #beat-loader {
+        stroke-dasharray: 200;
+        stroke-dashoffset: 200;
+        animation: beat 1s ease-in-out infinite;
+      }
+      @keyframes beat {
+        0%,
+        100% {
+          stroke-dashoffset: 200;
+        }
+        50% {
+          stroke-dashoffset: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loading" class="loading--hidden">
+      <svg width="108" height="128" viewBox="0 0 54 64">
+        <path
+          id="beat-loader"
+          d="M0.5,38.5 L16,38.5 L19,25.5 L24.5,57.5 L31.5,7.5 L37.5,46.5 L43,38.5 L53.5,38.5"
+          stroke="#6c757d"
+          stroke-width="2"
+          fill="none"
+        />
+      </svg>
+    </div>
+
+    <!-- Login Box -->
+    <div class="centered" id="login-box">
+      <h2>Admin Login</h2>
+      <div class="error" id="error-msg"></div>
+      <form id="admin-login-form" autocomplete="off">
+        <label for="admin-email">Email</label>
+        <input type="email" id="admin-email" required autocomplete="off" />
+        <label for="admin-password">Password</label>
+        <input
+          type="password"
+          id="admin-password"
+          required
+          autocomplete="off"
+        />
+        <p><a href="#" id="forgot-password">Forgot Password?</a></p>
+        <button type="submit">Login</button>
+        <div class="spinner" id="login-spinner"></div>
+      </form>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="admin-dashboard" style="display: none">
+      <div class="container">
+        <header class="header">
+          <h1>HMS Admin Panel</h1>
+          <button id="logoutBtn" style="width: auto; max-width: 150px">
+            Logout
+          </button>
+        </header>
+
+        <!-- Real-Time Stats -->
+        <div class="stats">
+          <div class="stat">Users<br /><span id="stat-users">0</span></div>
+          <div class="stat">Doctors<br /><span id="stat-doctors">0</span></div>
+          <div class="stat">
+            Appointments<br /><span id="stat-appointments">0</span>
+          </div>
+        </div>
+
+        <!-- User Management -->
+        <div class="card">
+          <h2>User Management</h2>
+          <input type="text" id="searchInput" placeholder="Search users..." />
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="user-table"></tbody>
+          </table>
+        </div>
+
+        <!-- Register New User -->
+        <div class="card">
+          <h2>Register New User</h2>
+          <form id="registerForm">
+            <div class="form-group">
+              <label for="firstName">First Name</label>
+              <input type="text" id="firstName" name="firstName" required />
+            </div>
+            <div class="form-group">
+              <label for="lastName">Last Name</label>
+              <input type="text" id="lastName" name="lastName" required />
+            </div>
+            <div class="form-group">
+              <label for="email">Email</label>
+              <input type="email" id="email" name="email" required />
+            </div>
+            <div class="form-group">
+              <label for="password">Password</label>
+              <input type="password" id="password" name="password" required />
+            </div>
+            <div class="form-group">
+              <label for="role">Role</label>
+              <select id="role" name="role" required>
+                <option value="">Select Role</option>
+                <option value="admin">Admin</option>
+                <option value="doctor">Doctor</option>
+                <option value="nurse">Nurse</option>
+                <option value="pharmacist">Pharmacist</option>
+                <option value="labAttendant">Lab Attendant</option>
+                <option value="receptionist">Receptionist</option>
+                <option value="firstResponder">First Responder</option>
+                <option value="recordClerk">Record Clerk</option>
+                <option value="hospitalStaff">Hospital Staff</option>
+                <option value="patient">Patient</option>
+              </select>
+            </div>
+            <button type="submit">Register</button>
+          </form>
+        </div>
+
+        <!-- Doctor Management -->
+        <div class="card">
+          <h2>Doctor Management</h2>
+          <input
+            type="text"
+            id="doctorSearchInput"
+            placeholder="Search doctors..."
+          />
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Specialty</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="doctor-table"></tbody>
+          </table>
+        </div>
+
+        <!-- Appointment Management -->
+        <div class="card">
+          <h2>Appointment Management</h2>
+          <input
+            type="text"
+            id="appointmentSearchInput"
+            placeholder="Search appointments..."
+          />
+          <table>
+            <thead>
+              <tr>
+                <th>Patient</th>
+                <th>Doctor</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="appointment-table"></tbody>
+          </table>
+        </div>
+
+        <!-- System Logs -->
+        <div class="card">
+          <h2>System Logs</h2>
+          <input type="text" id="logSearchInput" placeholder="Search logs..." />
+          <ul id="system-logs"></ul>
+          <button id="loadMoreLogs" style="margin-top: 1rem">Load More</button>
+        </div>
+
+        <!-- Edit User Modal -->
+        <div id="editUserModal" class="modal">
+          <div class="modal-content">
+            <span class="close" id="closeEditUserModal">×</span>
+            <h2>Edit User</h2>
+            <form id="editUserForm">
+              <input type="hidden" id="editUserId" />
+              <div class="form-group">
+                <label for="editFirstName">First Name</label>
+                <input type="text" id="editFirstName" required />
+              </div>
+              <div class="form-group">
+                <label for="editLastName">Last Name</label>
+                <input type="text" id="editLastName" required />
+              </div>
+              <div class="form-group">
+                <label for="editEmail">Email</label>
+                <input type="email" id="editEmail" required />
+              </div>
+              <div class="form-group">
+                <label for="editRole">Role</label>
+                <select id="editRole" required>
+                  <option value="">Select Role</option>
+                  <option value="admin">Admin</option>
+                  <option value="doctor">Doctor</option>
+                  <option value="nurse">Nurse</option>
+                  <option value="pharmacist">Pharmacist</option>
+                  <option value="labAttendant">Lab Attendant</option>
+                  <option value="receptionist">Receptionist</option>
+                  <option value="firstResponder">First Responder</option>
+                  <option value="recordClerk">Record Clerk</option>
+                  <option value="hospitalStaff">Hospital Staff</option>
+                  <option value="patient">Patient</option>
+                </select>
+              </div>
+              <button type="submit">Save Changes</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Edit Doctor Modal -->
+        <div id="editDoctorModal" class="modal">
+          <div class="modal-content">
+            <span class="close" id="closeEditDoctorModal">×</span>
+            <h2>Edit Doctor</h2>
+            <form id="editDoctorForm">
+              <input type="hidden" id="editDoctorId" />
+              <div class="form-group">
+                <label for="editDoctorName">Name</label>
+                <input type="text" id="editDoctorName" required />
+              </div>
+              <div class="form-group">
+                <label for="editDoctorEmail">Email</label>
+                <input type="email" id="editDoctorEmail" required />
+              </div>
+              <div class="form-group">
+                <label for="editDoctorSpecialty">Specialty</label>
+                <input type="text" id="editDoctorSpecialty" required />
+              </div>
+              <button type="submit">Save Changes</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Edit Appointment Modal -->
+        <div id="editAppointmentModal" class="modal">
+          <div class="modal-content">
+            <span class="close" id="closeEditAppointmentModal">×</span>
+            <h2>Edit Appointment</h2>
+            <form id="editAppointmentForm">
+              <input type="hidden" id="editAppointmentId" />
+              <div class="form-group">
+                <label for="editAppointmentPatient">Patient</label>
+                <select id="editAppointmentPatient" required></select>
+              </div>
+              <div class="form-group">
+                <label for="editAppointmentDoctor">Doctor</label>
+                <select id="editAppointmentDoctor" required></select>
+              </div>
+              <div class="form-group">
+                <label for="editAppointmentDate">Date</label>
+                <input type="date" id="editAppointmentDate" required />
+              </div>
+              <div class="form-group">
+                <label for="editAppointmentStatus">Status</label>
+                <select id="editAppointmentStatus" required>
+                  <option value="pending">Pending</option>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+              <button type="submit">Save Changes</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="/base.js"></script>
+    <script src="/index.js"></script>
+    <script src="/server.js"></script>
+    <script src="/admin.js"></script>
+    <script src="/gurad.js"></script>
+    <script type="module">
+      import { guardPage, initAdminPage } from "./guards.js";
+
+      guardPage("admin", {
+        loginContainer: "#login-box",
+        appContainer: "#admin-dashboard",
+        onSuccess: initAdminPage,
+      });
+    </script>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+      import {
+        getAuth,
+        onAuthStateChanged,
+        signOut,
+        signInWithEmailAndPassword,
+        createUserWithEmailAndPassword,
+        sendPasswordResetEmail,
+      } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+      import {
+        getFirestore,
+        collection,
+        query,
+        orderBy,
+        limit,
+        onSnapshot,
+        setDoc,
+        doc,
+        updateDoc,
+        deleteDoc,
+        serverTimestamp,
+        getDocs,
+        getDoc,
+      } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+      import {
+        getFunctions,
+        httpsCallable,
+      } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-functions.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
+        authDomain: "hospitalmanagtsystem.firebaseapp.com",
+        projectId: "hospitalmanagtsystem",
+        storageBucket: "hospitalmanagtsystem.firebasestorage.app",
+        messagingSenderId: "771158568788",
+        appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
+        databaseURL: "https://hospitalmanagtsystem-default-rtdb.firebaseio.com",
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+      const functions = getFunctions(app);
+      const assignRoleClaim = httpsCallable(functions, "assignRoleClaim");
+      const sendResetEmail = httpsCallable(functions, "sendResetEmail");
+
+      // Authentication State
+      onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+          document.getElementById("login-box").style.display = "flex";
+          document.getElementById("admin-dashboard").style.display = "none";
+        } else {
+          try {
+            const idRes = await user.getIdTokenResult(true);
+            if (idRes.claims.role !== "admin") {
+              await signOut(auth);
+              alert("Unauthorized: Admin access required.");
+              window.location.href = "/";
+            } else {
+              document.getElementById("login-box").style.display = "none";
+              document.getElementById("admin-dashboard").style.display =
+                "block";
+              loadDashboard();
+            }
+          } catch (error) {
+            console.error("Error verifying admin:", error);
+            await signOut(auth);
+            alert("Failed to verify admin status. Please try again.");
+            window.location.href = "/";
+          }
+        }
+      });
+
+      // Login Handler
+      document
+        .getElementById("admin-login-form")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const email = document.getElementById("admin-email").value;
+          const password = document.getElementById("admin-password").value;
+          const spinner = document.getElementById("login-spinner");
+          const errorMsg = document.getElementById("error-msg");
+
+          spinner.style.display = "block";
+          errorMsg.textContent = "";
+
+          try {
+            const userCredential = await signInWithEmailAndPassword(
+              auth,
+              email,
+              password
+            );
+            const user = userCredential.user;
+            const idTokenResult = await user.getIdTokenResult(true);
+
+            if (idTokenResult.claims.role !== "admin") {
+              await signOut(auth);
+              errorMsg.textContent = "Unauthorized: Admin access required.";
+            }
+          } catch (error) {
+            console.error("Login error:", error);
+            switch (error.code) {
+              case "auth/user-not-found":
+                errorMsg.textContent = "No account found with this email.";
+                break;
+              case "auth/wrong-password":
+                errorMsg.textContent = "Incorrect password.";
+                break;
+              case "auth/invalid-email":
+                errorMsg.textContent = "Invalid email format.";
+                break;
+              case "auth/too-many-requests":
+                errorMsg.textContent =
+                  "Too many failed attempts. Please try again later.";
+                break;
+              default:
+                errorMsg.textContent = "Login failed. Please try again.";
+            }
+          } finally {
+            spinner.style.display = "none";
+          }
+        });
+
+      // Forgot Password
+      document
+        .getElementById("forgot-password")
+        .addEventListener("click", (e) => {
+          e.preventDefault();
+          const email = prompt("Enter your email address:");
+          if (email) {
+            sendPasswordResetEmail(auth, email)
+              .then(() => {
+                alert("Password reset email sent successfully.");
+              })
+              .catch((error) => {
+                console.error("Password reset error:", error);
+                alert("Error: " + error.message);
+              });
+          }
+        });
+
+      // Logout Handler
+      document
+        .getElementById("logoutBtn")
+        .addEventListener("click", async () => {
+          try {
+            await signOut(auth);
+            window.location.href = "/index.html";
+          } catch (error) {
+            console.error("Logout error:", error);
+            alert("Failed to log out. Please try again.");
+          }
+        });
+
+      // Load Dashboard with Real-Time Data
+      function loadDashboard() {
+        // Users
+        onSnapshot(collection(db, "users"), (snapshot) => {
+          document.getElementById("stat-users").textContent = snapshot.size;
+          const userTable = document.getElementById("user-table");
+          userTable.innerHTML = "";
+          snapshot.forEach((docSnap) => {
+            const u = docSnap.data();
+            const row = `<tr>
+                          <td>${u.firstName} ${u.lastName}</td>
+                          <td>${u.email}</td>
+                          <td>${u.role}</td>
+                          <td>
+                            <button class="action-btn edit-btn" data-id="${docSnap.id}">Edit</button>
+                            <button class="action-btn delete-btn" data-id="${docSnap.id}">Delete</button>
+                            <button class="action-btn reset-btn" data-email="${u.email}">Reset Password</button>
+                          </td>
+                        </tr>`;
+            userTable.insertAdjacentHTML("beforeend", row);
+          });
+        });
+
+        // Doctors
+        onSnapshot(collection(db, "doctors"), (snapshot) => {
+          document.getElementById("stat-doctors").textContent = snapshot.size;
+          const doctorTable = document.getElementById("doctor-table");
+          doctorTable.innerHTML = "";
+          snapshot.forEach((docSnap) => {
+            const d = docSnap.data();
+            const row = `<tr>
+                          <td>${d.name}</td>
+                          <td>${d.email}</td>
+                          <td>${d.specialty}</td>
+                          <td>
+                            <button class="action-btn edit-btn" data-id="${docSnap.id}" data-type="doctor">Edit</button>
+                            <button class="action-btn delete-btn" data-id="${docSnap.id}" data-type="doctor">Delete</button>
+                          </td>
+                        </tr>`;
+            doctorTable.insertAdjacentHTML("beforeend", row);
+          });
+        });
+
+        // Appointments
+        onSnapshot(collection(db, "appointments"), async (snapshot) => {
+          document.getElementById("stat-appointments").textContent =
+            snapshot.size;
+          const appointmentTable = document.getElementById("appointment-table");
+          appointmentTable.innerHTML = "";
+          for (const docSnap of snapshot.docs) {
+            const a = docSnap.data();
+            const patientDoc = await getDoc(doc(db, "users", a.patientId));
+            const doctorDoc = await getDoc(doc(db, "doctors", a.doctorId));
+            const patientName = patientDoc.exists()
+              ? `${patientDoc.data().firstName} ${patientDoc.data().lastName}`
+              : "Unknown";
+            const doctorName = doctorDoc.exists()
+              ? doctorDoc.data().name
+              : "Unknown";
+            const dateStr = a.date.toDate().toLocaleString();
+            const row = `<tr>
+                          <td>${patientName}</td>
+                          <td>${doctorName}</td>
+                          <td>${dateStr}</td>
+                          <td>${a.status}</td>
+                          <td>
+                            <button class="action-btn edit-btn" data-id="${docSnap.id}" data-type="appointment">Edit</button>
+                            <button class="action-btn delete-btn" data-id="${docSnap.id}" data-type="appointment">Delete</button>
+                          </td>
+                        </tr>`;
+            appointmentTable.insertAdjacentHTML("beforeend", row);
+          }
+        });
+
+        // System Logs
+        let logQuery = query(
+          collection(db, "logs"),
+          orderBy("timestamp", "desc"),
+          limit(10)
+        );
+        onSnapshot(logQuery, (snapshot) => {
+          const logsList = document.getElementById("system-logs");
+          logsList.innerHTML = "";
+          snapshot.forEach((docSnap) => {
+            const log = docSnap.data();
+            const li = document.createElement("li");
+            li.textContent = `[${
+              log.timestamp?.toDate().toLocaleString() || "N/A"
+            }] ${log.message}`;
+            logsList.appendChild(li);
+          });
+        });
+
+        // Load More Logs
+        document
+          .getElementById("loadMoreLogs")
+          .addEventListener("click", () => {
+            const currentLimit = logQuery._query.constraints.find(
+              (c) => c.type === "limit"
+            ).value;
+            logQuery = query(
+              collection(db, "logs"),
+              orderBy("timestamp", "desc"),
+              limit(currentLimit + 10)
+            );
+            onSnapshot(logQuery, (snapshot) => {
+              const logsList = document.getElementById("system-logs");
+              logsList.innerHTML = "";
+              snapshot.forEach((docSnap) => {
+                const log = docSnap.data();
+                const li = document.createElement("li");
+                li.textContent = `[${
+                  log.timestamp?.toDate().toLocaleString() || "N/A"
+                }] ${log.message}`;
+                logsList.appendChild(li);
+              });
+            });
+          });
+      }
+
+      // Register New User
+      document
+        .getElementById("registerForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const firstName = document.getElementById("firstName").value;
+          const lastName = document.getElementById("lastName").value;
+          const email = document.getElementById("email").value;
+          const password = document.getElementById("password").value;
+          const role = document.getElementById("role").value;
+
+          if (password.length < 6) {
+            alert("Password must be at least 6 characters long.");
+            return;
+          }
+
+          try {
+            const userCredential = await createUserWithEmailAndPassword(
+              auth,
+              email,
+              password
+            );
+            const user = userCredential.user;
+
+            await setDoc(doc(db, "users", user.uid), {
+              firstName,
+              lastName,
+              email,
+              role,
+              createdAt: serverTimestamp(),
+            });
+
+            await assignRoleClaim({ uid: user.uid, role });
+
+            await setDoc(doc(collection(db, "logs")), {
+              message: `New user registered: ${email} with role ${role}`,
+              timestamp: serverTimestamp(),
+            });
+
+            alert("User registered successfully!");
+            document.getElementById("registerForm").reset();
+          } catch (error) {
+            console.error("Registration error:", error);
+            alert(`Error: ${error.message}`);
+          }
+        });
+
+      // Search Functionality
+      function setupSearch(inputId, tableId) {
+        const searchInput = document.getElementById(inputId);
+        searchInput.addEventListener("input", () => {
+          const filter = searchInput.value.toLowerCase();
+          const table = document.getElementById(tableId);
+          const rows = table.getElementsByTagName("tr");
+
+          for (let i = 0; i < rows.length; i++) {
+            const cells = rows[i].getElementsByTagName("td");
+            let match = false;
+            for (let j = 0; j < cells.length; j++) {
+              if (
+                cells[j] &&
+                cells[j].textContent.toLowerCase().includes(filter)
+              ) {
+                match = true;
+                break;
+              }
+            }
+            rows[i].style.display = match ? "" : "none";
+          }
+        });
+      }
+
+      setupSearch("searchInput", "user-table");
+      setupSearch("doctorSearchInput", "doctor-table");
+      setupSearch("appointmentSearchInput", "appointment-table");
+
+      // Log Search
+      document
+        .getElementById("logSearchInput")
+        .addEventListener("input", () => {
+          const filter = document
+            .getElementById("logSearchInput")
+            .value.toLowerCase();
+          const logsList = document.getElementById("system-logs");
+          const logs = logsList.getElementsByTagName("li");
+
+          for (let i = 0; i < logs.length; i++) {
+            logs[i].style.display = logs[i].textContent
+              .toLowerCase()
+              .includes(filter)
+              ? ""
+              : "none";
+          }
+        });
+
+      // Action Button Handlers
+      document.addEventListener("click", async (e) => {
+        if (e.target.classList.contains("edit-btn")) {
+          const id = e.target.dataset.id;
+          const type = e.target.dataset.type;
+
+          if (!type) {
+            const userDoc = await getDoc(doc(db, "users", id));
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              document.getElementById("editUserId").value = id;
+              document.getElementById("editFirstName").value =
+                userData.firstName;
+              document.getElementById("editLastName").value = userData.lastName;
+              document.getElementById("editEmail").value = userData.email;
+              document.getElementById("editRole").value = userData.role;
+              document.getElementById("editUserModal").style.display = "flex";
+            }
+          } else if (type === "doctor") {
+            const doctorDoc = await getDoc(doc(db, "doctors", id));
+            if (doctorDoc.exists()) {
+              const doctorData = doctorDoc.data();
+              document.getElementById("editDoctorId").value = id;
+              document.getElementById("editDoctorName").value = doctorData.name;
+              document.getElementById("editDoctorEmail").value =
+                doctorData.email;
+              document.getElementById("editDoctorSpecialty").value =
+                doctorData.specialty;
+              document.getElementById("editDoctorModal").style.display = "flex";
+            }
+          } else if (type === "appointment") {
+            const appointmentDoc = await getDoc(doc(db, "appointments", id));
+            if (appointmentDoc.exists()) {
+              const appointmentData = appointmentDoc.data();
+
+              const patientSelect = document.getElementById(
+                "editAppointmentPatient"
+              );
+              patientSelect.innerHTML =
+                '<option value="">Select Patient</option>';
+              const userSnapshot = await getDocs(collection(db, "users"));
+              userSnapshot.forEach((doc) => {
+                const user = doc.data();
+                const option = document.createElement("option");
+                option.value = doc.id;
+                option.textContent = `${user.firstName} ${user.lastName}`;
+                if (doc.id === appointmentData.patientId)
+                  option.selected = true;
+                patientSelect.appendChild(option);
+              });
+
+              const doctorSelect = document.getElementById(
+                "editAppointmentDoctor"
+              );
+              doctorSelect.innerHTML =
+                '<option value="">Select Doctor</option>';
+              const doctorSnapshot = await getDocs(collection(db, "doctors"));
+              doctorSnapshot.forEach((doc) => {
+                const doctor = doc.data();
+                const option = document.createElement("option");
+                option.value = doc.id;
+                option.textContent = doctor.name;
+                if (doc.id === appointmentData.doctorId) option.selected = true;
+                doctorSelect.appendChild(option);
+              });
+
+              document.getElementById("editAppointmentId").value = id;
+              document.getElementById("editAppointmentDate").value =
+                appointmentData.date.toDate().toISOString().split("T")[0];
+              document.getElementById("editAppointmentStatus").value =
+                appointmentData.status;
+              document.getElementById("editAppointmentModal").style.display =
+                "flex";
+            }
+          }
+        } else if (e.target.classList.contains("delete-btn")) {
+          const id = e.target.dataset.id;
+          const type = e.target.dataset.type;
+          if (confirm("Are you sure you want to delete this item?")) {
+            try {
+              if (!type) {
+                await deleteDoc(doc(db, "users", id));
+                await setDoc(doc(collection(db, "logs")), {
+                  message: `User deleted: ${id}`,
+                  timestamp: serverTimestamp(),
+                });
+              } else if (type === "doctor") {
+                await deleteDoc(doc(db, "doctors", id));
+                await setDoc(doc(collection(db, "logs")), {
+                  message: `Doctor deleted: ${id}`,
+                  timestamp: serverTimestamp(),
+                });
+              } else if (type === "appointment") {
+                await deleteDoc(doc(db, "appointments", id));
+                await setDoc(doc(collection(db, "logs")), {
+                  message: `Appointment deleted: ${id}`,
+                  timestamp: serverTimestamp(),
+                });
+              }
+              alert("Item deleted successfully!");
+            } catch (error) {
+              console.error("Delete error:", error);
+              alert("Error deleting item.");
+            }
+          }
+        } else if (e.target.classList.contains("reset-btn")) {
+          const email = e.target.dataset.email;
+          if (confirm(`Send password reset email to ${email}?`)) {
+            try {
+              await sendResetEmail({ email });
+              await setDoc(doc(collection(db, "logs")), {
+                message: `Password reset email sent to: ${email}`,
+                timestamp: serverTimestamp(),
+              });
+              alert("Password reset email sent!");
+            } catch (error) {
+              console.error("Reset password error:", error);
+              alert("Error sending reset email.");
+            }
+          }
+        }
+      });
+
+      // Modal Close Handlers
+      const modals = [
+        "editUserModal",
+        "editDoctorModal",
+        "editAppointmentModal",
+      ];
+      modals.forEach((modalId) => {
+        const modal = document.getElementById(modalId);
+        const closeBtn = document.getElementById(
+          `close${modalId.charAt(0).toUpperCase() + modalId.slice(1)}`
+        );
+        closeBtn.addEventListener("click", () => {
+          modal.style.display = "none";
+        });
+        window.addEventListener("click", (e) => {
+          if (e.target === modal) {
+            modal.style.display = "none";
+          }
+        });
+      });
+
+      // Edit User Form Submission
+      document
+        .getElementById("editUserForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const id = document.getElementById("editUserId").value;
+          const firstName = document.getElementById("editFirstName").value;
+          const lastName = document.getElementById("editLastName").value;
+          const email = document.getElementById("editEmail").value;
+          const role = document.getElementById("editRole").value;
+
+          try {
+            await updateDoc(doc(db, "users", id), {
+              firstName,
+              lastName,
+              email,
+              role,
+              updatedAt: serverTimestamp(),
+            });
+
+            await assignRoleClaim({ uid: id, role });
+
+            await setDoc(doc(collection(db, "logs")), {
+              message: `User updated: ${email} with role ${role}`,
+              timestamp: serverTimestamp(),
+            });
+
+            alert("User updated successfully!");
+            document.getElementById("editUserModal").style.display = "none";
+          } catch (error) {
+            console.error("Update user error:", error);
+            alert("Error updating user.");
+          }
+        });
+
+      // Edit Doctor Form Submission
+      document
+        .getElementById("editDoctorForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const id = document.getElementById("editDoctorId").value;
+          const name = document.getElementById("editDoctorName").value;
+          const email = document.getElementById("editDoctorEmail").value;
+          const specialty = document.getElementById(
+            "editDoctorSpecialty"
+          ).value;
+
+          try {
+            await updateDoc(doc(db, "doctors", id), {
+              name,
+              email,
+              specialty,
+              updatedAt: serverTimestamp(),
+            });
+
+            await setDoc(doc(collection(db, "logs")), {
+              message: `Doctor updated: ${name}`,
+              timestamp: serverTimestamp(),
+            });
+
+            alert("Doctor updated successfully!");
+            document.getElementById("editDoctorModal").style.display = "none";
+          } catch (error) {
+            console.error("Update doctor error:", error);
+            alert("Error updating doctor.");
+          }
+        });
+
+      // Edit Appointment Form Submission
+      document
+        .getElementById("editAppointmentForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const id = document.getElementById("editAppointmentId").value;
+          const patientId = document.getElementById(
+            "editAppointmentPatient"
+          ).value;
+          const doctorId = document.getElementById(
+            "editAppointmentDoctor"
+          ).value;
+          const date = new Date(
+            document.getElementById("editAppointmentDate").value
+          );
+          const status = document.getElementById("editAppointmentStatus").value;
+
+          try {
+            await updateDoc(doc(db, "appointments", id), {
+              patientId,
+              doctorId,
+              date,
+              status,
+              updatedAt: serverTimestamp(),
+            });
+
+            await setDoc(doc(collection(db, "logs")), {
+              message: `Appointment updated: ${id}`,
+              timestamp: serverTimestamp(),
+            });
+
+            alert("Appointment updated successfully!");
+            document.getElementById("editAppointmentModal").style.display =
+              "none";
+          } catch (error) {
+            console.error("Update appointment error:", error);
+            alert("Error updating appointment.");
+          }
+        });
+    </script>
+  </body>
+</html>
