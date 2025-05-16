@@ -182,6 +182,7 @@
         <div id="prescriptionsContainer"></div>
       </section>
     </main>
+    <script src="/doctor/doc.js"></script>
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
       import {
@@ -204,12 +205,14 @@
       } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
       const firebaseConfig = {
-        apiKey: "YOUR_API_KEY",
-        authDomain: "YOUR_AUTH_DOMAIN",
-        projectId: "YOUR_PROJECT_ID",
-        storageBucket: "YOUR_STORAGE_BUCKET",
-        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-        appId: "YOUR_APP_ID",
+        apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
+        authDomain: "hospitalmanagtsystem.firebaseapp.com",
+        databaseURL:
+          "https://hospitalmanagtsystem-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "hospitalmanagtsystem",
+        storageBucket: "hospitalmanagtsystem.firsebasestorage.app",
+        messagingSenderId: "771158568788",
+        appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
       };
 
       const app = initializeApp(firebaseConfig);
