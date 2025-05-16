@@ -50,6 +50,9 @@
       .status-indicator.online {
         background: #28a745;
       }
+      .status-indicator.disconnected {
+        background: #6c757d;
+      }
       nav {
         background: var(--primary);
         padding: 0.5rem 2rem;
@@ -423,12 +426,12 @@
             statusTooltip.textContent =
               status.charAt(0).toUpperCase() + status.slice(1);
           } else {
-            statusDot.className = "status-indicator offline";
-            statusTooltip.textContent = "Offline";
+            statusDot.className = "status-indicator disconnected";
+            statusTooltip.textContent = "Disconnected";
           }
         } catch {
-          statusDot.className = "status-indicator offline";
-          statusTooltip.textContent = "Offline";
+          statusDot.className = "status-indicator disconnected";
+          statusTooltip.textContent = "Disconnected";
         }
       }
       window.addEventListener("online", () => updateStatus());

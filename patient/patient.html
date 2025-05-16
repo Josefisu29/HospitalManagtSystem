@@ -163,10 +163,10 @@
         border-radius: 4px;
       }
       .form-group textarea {
-        ㅤresize: vertical;
+        resize: vertical;
       }
       button {
-        padding: 0.75.rem 1.5rem;
+        padding: 0.75rem 1.5rem;
         border: none;
         border-radius: 4px;
         background: var(--primary);
@@ -299,6 +299,30 @@
       .status-indicator.disconnected {
         background: #6c757d;
       }
+      .tooltip {
+        position: relative;
+        display: inline-block;
+      }
+      .tooltip .tooltiptext {
+        visibility: hidden;
+        width: 120px;
+        background-color: #555;
+        color: #fff;
+        text-align: center;
+        border-radius: 6px;
+        padding: 5px;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -60px;
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+      .tooltip:hover .tooltiptext {
+        visibility: visible;
+        opacity: 1;
+      }
     </style>
   </head>
   <body>
@@ -310,11 +334,9 @@
         <div class="brand">Dashboard</div>
         <div style="display: flex; align-items: center">
           <div id="greeting" class="greeting">Good Morning,</div>
-          <div
-            id="statusIndicator"
-            class="status-indicator offline"
-            title="Offline"
-          ></div>
+          <span id="statusIndicator" class="status-indicator offline tooltip">
+            <span class="tooltiptext" id="statusTooltip">Offline</span>
+          </span>
           <button id="logoutBtn" class="btn" style="margin-left: 1rem">
             Logout
           </button>
@@ -398,6 +420,7 @@
       // DOM elements
       const loadingEl = document.getElementById("loading");
       const statusDot = document.getElementById("statusIndicator");
+      const statusTooltip = document.getElementById("statusTooltip");
       const errorMessage = document.getElementById("error-message");
       const profileForm = document.getElementById("profileForm");
 
@@ -465,7 +488,7 @@
       async function updateStatus() {
         if (!navigator.onLine) {
           statusDot.className = "status-indicator offline";
-          statusDot.title = "Offline";
+          statusTooltip.textContent = "Offline";
           return;
         }
         try {
@@ -475,14 +498,15 @@
           if (res.ok) {
             const { status } = await res.json();
             statusDot.className = `status-indicator ${status || "offline"}`;
-            statusDot.title = status.charAt(0).toUpperCase() + status.slice(1);
+            statusTooltip.textContent =
+              status.charAt(0).toUpperCase() + status.slice(1);
           } else {
             statusDot.className = "status-indicator disconnected";
-            statusDot.title = "Disconnected";
+            statusTooltip.textContent = "Disconnected";
           }
         } catch {
           statusDot.className = "status-indicator disconnected";
-          statusDot.title = "Disconnected";
+          statusTooltip.textContent = "Disconnected";
         }
       }
 
@@ -627,7 +651,7 @@
       // Status updates
       window.addEventListener("online", () => {
         statusDot.className = "status-indicator online";
-        statusDot.title = "Online";
+        statusTooltip.textContent = "Online";
         const localData = JSON.parse(localStorage.getItem("profileData"));
         if (localData && auth.currentUser) {
           updateDoc(doc(db, "users", auth.currentUser.uid), localData).then(
@@ -640,7 +664,7 @@
       });
       window.addEventListener("offline", () => {
         statusDot.className = "status-indicator offline";
-        statusDot.title = "Offline";
+        statusTooltip.textContent = "Offline";
       });
       setInterval(updateStatus, 15000);
       updateStatus();
