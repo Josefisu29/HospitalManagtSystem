@@ -183,6 +183,22 @@
       </section>
     </main>
     <script src="/doctor/doc.js"></script>
+
+    <script type="module">
+      import { initGuardedLogin, initDoctorPage } from "./guard.js";
+      initGuardedLogin({
+        loginFormSelector: "#doctor-login-form",
+        emailInput: "#doctor-email",
+        passwordInput: "#doctor-password",
+        errorMsgSelector: "#doctor-error",
+        loginContainer: "#login-box",
+        appContainer: "#doctor-dashboard",
+        role: "doctor",
+        onSuccess: initDoctorPage,
+      });
+    </script>
+    
+    
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
       import {

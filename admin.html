@@ -543,8 +543,8 @@
     <script src="/index.js"></script>
     <script src="/server.js"></script>
     <script src="/admin.js"></script>
-    <!-- <script src="/gurad.js"></script> -->
-    <script type="module">
+    <script src="/gurad.js"></script>
+    <!-- <script type="module">
       import { guardPage, initAdminPage } from "./guards.js";
 
       guardPage("admin", {
@@ -552,7 +552,26 @@
         appContainer: "#admin-dashboard",
         onSuccess: initAdminPage,
       });
+    </script> -->
+    <!-- include this after your login & dashboard HTML -->
+    <script type="module">
+      import { initGuardedLogin, initAdminPage } from "./guard.js";
+
+      // Hook up the login form, UI containers, and the admin stub
+      initGuardedLogin({
+        loginFormSelector: "#admin-login-form",
+        emailInput: "#admin-email",
+        passwordInput: "#admin-password",
+        errorMsgSelector: "#error-msg",
+        loginContainer: "#login-box",
+        appContainer: "#admin-dashboard",
+        role: "admin",
+        onSuccess: initAdminPage,
+        unauthorizedPath: "/unauthorized.html",
+        loginPath: "/index.html",
+      });
     </script>
+
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
       import {
@@ -636,7 +655,15 @@
           spinner.style.display = "block";
           errorMsg.textContent = "";
           try {
-            await signInWithEmailAndPassword(auth, email, password);
+            // await signInWithEmailAndPassword(auth, email, password);
+            const { user } = await signInWithEmailAndPassword(
+              auth,
+              email,
+              password
+            );
+            // give Firebase a moment to pick up claim changes
+            await user.reload();
+            const idTokenResult = await user.getIdTokenResult();
           } catch (error) {
             console.error("Login error:", error);
             errorMsg.textContent = "Invalid credentials.";
