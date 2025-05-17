@@ -614,6 +614,8 @@
           await signOut(auth);
         }
       });
+      const admin = require("firebase-admin");
+      admin.auth().setCustomUserClaims(uid, { role: "admin" });
 
       // Login Handler
       document
