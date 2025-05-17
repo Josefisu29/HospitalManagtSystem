@@ -391,6 +391,10 @@
                 <option value="patient">Patient</option>
               </select>
             </div>
+            <div class="form-group" id="specialty-group" style="display: none">
+              <label for="specialty">Specialty</label>
+              <input type="text" id="specialty" name="specialty" />
+            </div>
             <button type="submit">Register</button>
           </form>
         </div>
@@ -539,38 +543,6 @@
         </div>
       </div>
     </div>
-    <script src="/base.js"></script>
-    <script src="/index.js"></script>
-    <script src="/server.js"></script>
-    <script src="/admin.js"></script>
-    <script src="/gurad.js"></script>
-    <!-- <script type="module">
-      import { guardPage, initAdminPage } from "./guards.js";
-
-      guardPage("admin", {
-        loginContainer: "#login-box",
-        appContainer: "#admin-dashboard",
-        onSuccess: initAdminPage,
-      });
-    </script> -->
-    <!-- include this after your login & dashboard HTML -->
-    <script type="module">
-      import { initGuardedLogin, initAdminPage } from "./guard.js";
-
-      // Hook up the login form, UI containers, and the admin stub
-      initGuardedLogin({
-        loginFormSelector: "#admin-login-form",
-        emailInput: "#admin-email",
-        passwordInput: "#admin-password",
-        errorMsgSelector: "#error-msg",
-        loginContainer: "#login-box",
-        appContainer: "#admin-dashboard",
-        role: "admin",
-        onSuccess: initAdminPage,
-        unauthorizedPath: "/unauthorized.html",
-        loginPath: "/index.html",
-      });
-    </script>
 
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
@@ -617,6 +589,7 @@
       const db = getFirestore(app);
       const functions = getFunctions(app);
       const assignRoleClaim = httpsCallable(functions, "assignRoleClaim");
+      const deleteUser = httpsCallable(functions, "deleteUser");
 
       // Authentication State
       onAuthStateChanged(auth, async (user) => {
@@ -655,13 +628,11 @@
           spinner.style.display = "block";
           errorMsg.textContent = "";
           try {
-            // await signInWithEmailAndPassword(auth, email, password);
             const { user } = await signInWithEmailAndPassword(
               auth,
               email,
               password
             );
-            // give Firebase a moment to pick up claim changes
             await user.reload();
             const idTokenResult = await user.getIdTokenResult();
           } catch (error) {
@@ -704,7 +675,6 @@
 
         showLoading();
 
-        // Users
         onSnapshot(collection(db, "users"), (snap) => {
           document.getElementById("stat-users").textContent = snap.size;
           const userTable = document.getElementById("user-table");
@@ -729,7 +699,6 @@
           });
         });
 
-        // Doctors
         onSnapshot(collection(db, "doctors"), (snap) => {
           document.getElementById("stat-doctors").textContent = snap.size;
           const doctorTable = document.getElementById("doctor-table");
@@ -753,7 +722,6 @@
           });
         });
 
-        // Appointments
         onSnapshot(collection(db, "appointments"), (snap) => {
           document.getElementById("stat-appointments").textContent = snap.size;
           const appointmentTable = document.getElementById("appointment-table");
@@ -782,7 +750,6 @@
           });
         });
 
-        // System Logs
         onSnapshot(
           query(
             collection(db, "systemLogs"),
@@ -807,6 +774,13 @@
         hideLoading();
       }
 
+      // Show/Hide Specialty Field
+      document.getElementById("role").addEventListener("change", (e) => {
+        const specialtyGroup = document.getElementById("specialty-group");
+        specialtyGroup.style.display =
+          e.target.value === "doctor" ? "block" : "none";
+      });
+
       // Register User
       document
         .getElementById("registerForm")
@@ -817,6 +791,16 @@
           const email = document.getElementById("email").value;
           const password = document.getElementById("password").value;
           const role = document.getElementById("role").value;
+          let specialty = "";
+
+          if (role === "doctor") {
+            specialty = document.getElementById("specialty").value;
+            if (!specialty) {
+              document.getElementById("error-msg").textContent =
+                "Specialty is required for doctors.";
+              return;
+            }
+          }
 
           try {
             const userCredential = await createUserWithEmailAndPassword(
@@ -832,12 +816,20 @@
               role,
               createdAt: serverTimestamp(),
             });
+            if (role === "doctor") {
+              await setDoc(doc(db, "doctors", user.uid), {
+                name: `${firstName} ${lastName}`,
+                email,
+                specialty,
+              });
+            }
             await assignRoleClaim({ uid: user.uid, role });
             document.getElementById("registerForm").reset();
+            document.getElementById("specialty-group").style.display = "none";
             alert("User registered successfully!");
           } catch (error) {
             console.error("Registration error:", error);
-            alert("Error: " + error.message);
+            document.getElementById("error-msg").textContent = error.message;
           }
         });
 
@@ -906,11 +898,13 @@
               const users = await getDocs(collection(db, "users"));
               users.forEach((userDoc) => {
                 const user = userDoc.data();
-                const option = document.createElement("option");
-                option.value = userDoc.id;
-                option.text = `${user.firstName} ${user.lastName}`;
-                if (userDoc.id === data.patientId) option.selected = true;
-                patientSelect.appendChild(option);
+                if (user.role === "patient") {
+                  const option = document.createElement("option");
+                  option.value = userDoc.id;
+                  option.text = `${user.firstName} ${user.lastName}`;
+                  if (userDoc.id === data.patientId) option.selected = true;
+                  patientSelect.appendChild(option);
+                }
               });
 
               const doctors = await getDocs(collection(db, "doctors"));
@@ -938,7 +932,26 @@
           const id = e.target.dataset.id;
           const type = e.target.dataset.type;
           if (confirm(`Delete this ${type}?`)) {
-            await deleteDoc(doc(db, type + "s", id));
+            if (type === "user") {
+              const userDoc = await getDoc(doc(db, "users", id));
+              if (userDoc.exists()) {
+                const userData = userDoc.data();
+                await deleteDoc(doc(db, "users", id));
+                if (userData.role === "doctor") {
+                  await deleteDoc(doc(db, "doctors", id));
+                }
+                try {
+                  await deleteUser({ uid: id });
+                } catch (error) {
+                  console.error("Error deleting auth user:", error);
+                  alert("Error deleting authentication user: " + error.message);
+                }
+              }
+            } else if (type === "doctor") {
+              await deleteDoc(doc(db, "doctors", id));
+            } else if (type === "appointment") {
+              await deleteDoc(doc(db, "appointments", id));
+            }
             alert("Deleted successfully!");
           }
         } else if (e.target.classList.contains("reset-btn")) {
