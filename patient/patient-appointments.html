@@ -253,12 +253,7 @@
           <label
             >Doctor
             <select id="doctorSelect" required>
-              <option value="">Loading doctors...</option>
-              <option value="">Doctor 1</option>
-              <option value="">Doctor 3</option>
-              <option value="">Doctor 4</option>
-              <option value="">Doctor 5</option>
-              <option value="">Doctor 6</option>
+              <option value="">Select Doctor</option>
             </select>
           </label>
           <label
@@ -323,47 +318,57 @@
 
       let currentUser;
 
-      // Authentication check and greeting
       onAuthStateChanged(auth, (user) => {
         if (!user) return (window.location.href = "/index.html");
         const userRef = doc(db, "users", user.uid);
-        getDoc(userRef).then((snap) => {
-          const data = snap.data();
-          currentUser = data;
-          const hour = new Date().getHours();
-          const greet =
-            hour < 12
-              ? "Good Morning"
-              : hour < 18
-              ? "Good Afternoon"
-              : "Good Evening";
-          document.getElementById(
-            "greeting"
-          ).textContent = `${greet}, ${data.firstName}`;
-          loadDoctors();
-          loadAppointments(user.uid);
-        });
+        getDoc(userRef)
+          .then((snap) => {
+            if (snap.exists()) {
+              const data = snap.data();
+              currentUser = data;
+              const hour = new Date().getHours();
+              const greet =
+                hour < 12
+                  ? "Good Morning"
+                  : hour < 18
+                  ? "Good Afternoon"
+                  : "Good Evening";
+              document.getElementById(
+                "greeting"
+              ).textContent = `${greet}, ${data.firstName}`;
+              loadDoctors();
+              loadAppointments(user.uid);
+            } else {
+              console.error("User document does not exist for UID:", user.uid);
+              document.getElementById("greeting").textContent =
+                "Error: Profile not found";
+            }
+          })
+          .catch((error) => {
+            console.error("Error fetching user document:", error);
+            document.getElementById("greeting").textContent =
+              "Error loading profile";
+          });
       });
 
       document.getElementById("logoutBtn").onclick = () =>
         signOut(auth).then(() => (window.location.href = "/index.html"));
 
-      // Load doctors with dynamic data
       async function loadDoctors() {
         const select = document.getElementById("doctorSelect");
-        // select.innerHTML = '<option value="">Loading doctors...</option>';
         try {
           const docsSnap = await getDocs(collection(db, "doctors"));
-          select.innerHTML = '<option value="">Select Doctor</option>';
-          docsSnap.forEach((docSnap) => {
-            const d = docSnap.data();
-            const opt = document.createElement("option");
-            opt.value = docSnap.id;
-            opt.textContent = `${d.hospital} - Dr. ${d.firstName} ${d.lastName}`;
-            select.append(opt);
-          });
           if (docsSnap.empty) {
-            // select.innerHTML = '<option value="">No doctors available</option>';
+            select.innerHTML = '<option value="">No doctors available</option>';
+          } else {
+            select.innerHTML = '<option value="">Select Doctor</option>';
+            docsSnap.forEach((docSnap) => {
+              const d = docSnap.data();
+              const opt = document.createElement("option");
+              opt.value = docSnap.id;
+              opt.textContent = `${d.hospital} - Dr. ${d.firstName} ${d.lastName}`;
+              select.append(opt);
+            });
           }
         } catch (error) {
           console.error("Error loading doctors:", error);
@@ -371,7 +376,6 @@
         }
       }
 
-      // Load appointments with real-time updates
       function loadAppointments(uid) {
         const tbody = document.getElementById("appointmentsTable");
         const q = query(
@@ -406,7 +410,6 @@
         });
       }
 
-      // Modal controls
       const bookBtn = document.getElementById("bookAppointmentBtn");
       const modal = document.getElementById("appointmentModal");
       const soon = document.getElementById("comingSoonModal");
@@ -416,7 +419,6 @@
       document.getElementById("closeSoon").onclick = () =>
         (soon.style.display = "none");
 
-      // Handle "Virtual" option selection
       document
         .getElementById("appointmentForm")
         .addEventListener("change", (e) => {
@@ -430,22 +432,26 @@
           }
         });
 
-      // Form submission for booking or rescheduling
       document
         .getElementById("appointmentForm")
         .addEventListener("submit", async (e) => {
           e.preventDefault();
+          const docId = document.getElementById("doctorSelect").value;
+          if (!docId) {
+            showToast("Please select a doctor");
+            return;
+          }
           const type = document.getElementById("appointmentType").value;
           if (type === "virtual") {
             showToast("Virtual appointments coming soon!");
             return;
           }
-          const docId = document.getElementById("doctorSelect").value;
-          const doctorName =
-            document.getElementById("doctorSelect").selectedOptions[0]
-              .textContent;
           const dateStr = document.getElementById("appointmentDate").value;
           const timeStr = document.getElementById("appointmentTime").value;
+          if (!dateStr || !timeStr) {
+            showToast("Please select date and time");
+            return;
+          }
           const dt = new Date(dateStr + "T" + timeStr);
           if (dt < new Date()) {
             showToast("Please select a future date and time");
@@ -455,23 +461,25 @@
           const appointmentId = form.dataset.appointmentId;
           try {
             if (appointmentId) {
-              // Reschedule existing appointment
               await updateDoc(doc(db, "appointments", appointmentId), {
                 doctorId: docId,
-                doctorName,
+                doctorName:
+                  document.getElementById("doctorSelect").selectedOptions[0]
+                    .textContent,
                 date: Timestamp.fromDate(dt),
                 type,
-                updatedAt: Timestamp.now(),
+                updated: Timestamp.now(),
               });
               showToast("Appointment rescheduled");
               delete form.dataset.appointmentId;
             } else {
-              // Book new appointment
               const appointmentRef = doc(collection(db, "appointments"));
               await setDoc(appointmentRef, {
                 patientId: auth.currentUser.uid,
                 doctorId: docId,
-                doctorName,
+                doctorName:
+                  document.getElementById("doctorSelect").selectedOptions[0]
+                    .textContent,
                 date: Timestamp.fromDate(dt),
                 type,
                 status: "pending",
@@ -486,7 +494,6 @@
           }
         });
 
-      // Reschedule and cancel handlers
       document.addEventListener("click", async (e) => {
         if (e.target.classList.contains("cancel-btn")) {
           const id = e.target.dataset.id;
@@ -507,7 +514,6 @@
             const appointmentSnap = await getDoc(appointmentRef);
             if (appointmentSnap.exists()) {
               const appointment = appointmentSnap.data();
-              // Populate form for rescheduling
               document.getElementById("doctorSelect").value =
                 appointment.doctorId;
               document.getElementById("appointmentType").value =
@@ -519,7 +525,6 @@
               document.getElementById("appointmentTime").value = date
                 .toTimeString()
                 .slice(0, 5);
-              // Set data attribute for rescheduling
               document.getElementById("appointmentForm").dataset.appointmentId =
                 id;
               modal.style.display = "flex";
@@ -531,7 +536,6 @@
         }
       });
 
-      // Network status indicator
       const statusDot = document.getElementById("statusIndicator");
       window.addEventListener(
         "online",
@@ -544,8 +548,6 @@
       statusDot.className = navigator.onLine
         ? "status-indicator online"
         : "status-indicator offline";
-
-      // Toast notification function
       function showToast(message) {
         const toast = document.getElementById("toast");
         toast.textContent = message;
