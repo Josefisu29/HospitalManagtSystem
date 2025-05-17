@@ -588,6 +588,7 @@
         serverTimestamp,
         getDocs,
         getDoc,
+        addDoc,
       } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
       import {
         getFunctions,
@@ -612,35 +613,35 @@
       const sendResetEmail = httpsCallable(functions, "sendResetEmail");
 
       // Authentication State
-      // onAuthStateChanged(auth, async (user) => {
-      //   if (!user) {
-      //     document.getElementById("login-box").style.display = "flex";
-      //     document.getElementById("admin-dashboard").style.display = "none";
-      //   } else {
-      //     try {
-      //       const idRes = await user.getIdTokenResult(true);
-      //       if (idRes.claims.role !== "admin") {
-      //         await signOut(auth);
-      //         alert("Unauthorized: Admin access required.");
-      //         window.location.href = "/";
-      //       } else {
-      //         document.getElementById("login-box").style.display = "none";
-      //         document.getElementById("admin-dashboard").style.display =
-      //           "block";
-      //         loadDashboard();
-      //       }
-      //     } catch (error) {
-      //       console.error("Error verifying admin:", error);
-      //       await signOut(auth);
-      //       alert("Failed to verify admin status. Please try again.");
-      //       window.location.href = "/";
-      //     }
-      //   }
-      // });
-      // Hide the login box…
-      document.getElementById("login-box").style.display = "none";
-      // …and show the dashboard
-      document.getElementById("admin-dashboard").style.display = "block";
+      onAuthStateChanged(auth, async (user) => {
+        const loginBox = document.getElementById("login-box");
+        const dashboard = document.getElementById("admin-dashboard");
+
+        if (!user) {
+          loginBox.style.display = "flex";
+          dashboard.style.display = "none";
+          return;
+        }
+
+        try {
+          const idRes = await user.getIdTokenResult(true);
+          if (idRes.claims.role !== "admin") {
+            await signOut(auth);
+            alert("Unauthorized: Admin access required.");
+            window.location.href = "/";
+          } else {
+            loginBox.style.display = "none";
+            dashboard.style.display = "block";
+            loadDashboard();
+            populateAppointmentSelectors();
+          }
+        } catch (error) {
+          console.error("Error verifying admin:", error);
+          await signOut(auth);
+          alert("Failed to verify admin status. Please try again.");
+          window.location.href = "/";
+        }
+      });
 
       // Login Handler
       document
@@ -656,18 +657,11 @@
           errorMsg.textContent = "";
 
           try {
-            const userCredential = await signInWithEmailAndPassword(
-              auth,
-              email,
-              password
-            );
-            const user = userCredential.user;
-            const idTokenResult = await user.getIdTokenResult(true);
-
-            if (idTokenResult.claims.role !== "admin") {
-              await signOut(auth);
-              // errorMsg.textContent = "Unauthorized: Admin access required.";
-            }
+            await signInWithEmailAndPassword(auth, email, password);
+            await setDoc(doc(collection(db, "logs")), {
+              message: `Admin login: ${email}`,
+              timestamp: serverTimestamp(),
+            });
           } catch (error) {
             console.error("Login error:", error);
             switch (error.code) {
@@ -700,7 +694,11 @@
           const email = prompt("Enter your email address:");
           if (email) {
             sendPasswordResetEmail(auth, email)
-              .then(() => {
+              .then(async () => {
+                await setDoc(doc(collection(db, "logs")), {
+                  message: `Password reset requested for: ${email}`,
+                  timestamp: serverTimestamp(),
+                });
                 alert("Password reset email sent successfully.");
               })
               .catch((error) => {
@@ -715,54 +713,157 @@
         .getElementById("logoutBtn")
         .addEventListener("click", async () => {
           try {
+            await setDoc(doc(collection(db, "logs")), {
+              message: `Admin logout: ${auth.currentUser.email}`,
+              timestamp: serverTimestamp(),
+            });
             await signOut(auth);
-            window.location.href = "/index.html";
+            window.location.href = "/";
           } catch (error) {
             console.error("Logout error:", error);
             alert("Failed to log out. Please try again.");
           }
         });
 
+      // Populate Appointment Selectors
+      async function populateAppointmentSelectors() {
+        const selectors = [
+          {
+            id: "appointmentPatient",
+            collection: "users",
+            filter: (u) => u.role === "patient",
+            text: (u) => `${u.firstName} ${u.lastName}`,
+          },
+          {
+            id: "appointmentDoctor",
+            collection: "doctors",
+            filter: () => true,
+            text: (d) => d.name,
+          },
+          {
+            id: "editAppointmentPatient",
+            collection: "users",
+            filter: (u) => u.role === "patient",
+            text: (u) => `${u.firstName} ${u.lastName}`,
+          },
+          {
+            id: "editAppointmentDoctor",
+            collection: "doctors",
+            filter: () => true,
+            text: (d) => d.name,
+          },
+        ];
+
+        for (const selector of selectors) {
+          const select = document.getElementById(selector.id);
+          select.innerHTML = `<option value="">Select ${
+            selector.id.includes("Patient") ? "Patient" : "Doctor"
+          }</option>`;
+          const snapshot = await getDocs(collection(db, selector.collection));
+          snapshot.forEach((doc) => {
+            const data = doc.data();
+            if (selector.filter(data)) {
+              const option = document.createElement("option");
+              option.value = doc.id;
+              option.textContent = selector.text(data);
+              select.appendChild(option);
+            }
+          });
+        }
+      }
+
       // Load Dashboard with Real-Time Data
       function loadDashboard() {
-        // Users
-        onSnapshot(collection(db, "users"), (snapshot) => {
-          document.getElementById("stat-users").textContent = snapshot.size;
-          const userTable = document.getElementById("user-table");
-          userTable.innerHTML = "";
-          snapshot.forEach((docSnap) => {
-            const u = docSnap.data();
-            const row = `<tr>
-                          <td>${u.firstName} ${u.lastName}</td>
-                          <td>${u.email}</td>
-                          <td>${u.role}</td>
-                          <td>
-                            <button class="action-btn edit-btn" data-id="${docSnap.id}">Edit</button>
-                            <button class="action-btn delete-btn" data-id="${docSnap.id}">Delete</button>
-                            <button class="action-btn reset-btn" data-email="${u.email}">Reset Password</button>
-                          </td>
-                        </tr>`;
-            userTable.insertAdjacentHTML("beforeend", row);
-          });
-        });
+        const collections = [
+          {
+            name: "users",
+            tableId: "user-table",
+            statId: "stat-users",
+            fields: ["firstName", "lastName", "email", "role"],
+            format: (data) => `${data.firstName} ${data.lastName}`,
+          },
+          {
+            name: "doctors",
+            tableId: "doctor-table",
+            statId: "stat-doctors",
+            fields: ["name", "email", "specialty"],
+            format: (data) => data.name,
+          },
+          {
+            name: "nurses",
+            tableId: "nurse-table",
+            statId: "stat-nurses",
+            fields: ["name", "email", "department"],
+            format: (data) => data.name,
+          },
+          {
+            name: "labAttendants",
+            tableId: "labAttendant-table",
+            statId: "stat-labAttendants",
+            fields: ["name", "email", "lab"],
+            format: (data) => data.name,
+          },
+          {
+            name: "recordClerks",
+            tableId: "recordClerk-table",
+            statId: "stat-recordClerks",
+            fields: ["name", "email", "department"],
+            format: (data) => data.name,
+          },
+          {
+            name: "firstResponders",
+            tableId: "firstResponder-table",
+            statId: "stat-firstResponders",
+            fields: ["name", "email", "station"],
+            format: (data) => data.name,
+          },
+          {
+            name: "pharmacists",
+            tableId: "pharmacist-table",
+            statId: "stat-pharmacists",
+            fields: ["name", "email", "pharmacy"],
+            format: (data) => data.name,
+          },
+          {
+            name: "hospitalStaff",
+            tableId: "hospitalStaff-table",
+            statId: "stat-hospitalStaff",
+            fields: ["name", "email", "role"],
+            format: (data) => data.name,
+          },
+        ];
 
-        // Doctors
-        onSnapshot(collection(db, "doctors"), (snapshot) => {
-          document.getElementById("stat-doctors").textContent = snapshot.size;
-          const doctorTable = document.getElementById("doctor-table");
-          doctorTable.innerHTML = "";
-          snapshot.forEach((docSnap) => {
-            const d = docSnap.data();
-            const row = `<tr>
-                          <td>${d.name}</td>
-                          <td>${d.email}</td>
-                          <td>${d.specialty}</td>
-                          <td>
-                            <button class="action-btn edit-btn" data-id="${docSnap.id}" data-type="doctor">Edit</button>
-                            <button class="action-btn delete-btn" data-id="${docSnap.id}" data-type="doctor">Delete</button>
-                          </td>
-                        </tr>`;
-            doctorTable.insertAdjacentHTML("beforeend", row);
+        // General collections
+        collections.forEach(({ name, tableId, statId, fields, format }) => {
+          onSnapshot(collection(db, name), (snapshot) => {
+            document.getElementById(statId).textContent = snapshot.size;
+            const table = document.getElementById(tableId);
+            table.innerHTML = "";
+            snapshot.forEach((docSnap) => {
+              const data = docSnap.data();
+              const createdAt =
+                data.createdAt?.toDate().toLocaleString() || "N/A";
+              const row = `<tr>
+          <td>${format(data)}</td>
+          <td>${data.email}</td>
+          <td>${data[fields[2]]}</td>
+          <td>${createdAt}</td>
+          <td>
+            <button class="action-btn edit-btn" data-id="${
+              docSnap.id
+            }" data-type="${name}">Edit</button>
+            <button class="action-btn delete-btn" data-id="${
+              docSnap.id
+            }" data-type="${name}">Delete</button>
+            ${
+              name === "users"
+                ? `<button class="action-btn reset-btn" data-email="${data.email}">Reset Password</button>`
+                : ""
+            }
+          </td>
+        </tr>`;
+              table.insertAdjacentHTML("beforeend", row);
+            });
           });
         });
 
@@ -784,15 +885,15 @@
               : "Unknown";
             const dateStr = a.date.toDate().toLocaleString();
             const row = `<tr>
-                          <td>${patientName}</td>
-                          <td>${doctorName}</td>
-                          <td>${dateStr}</td>
-                          <td>${a.status}</td>
-                          <td>
-                            <button class="action-btn edit-btn" data-id="${docSnap.id}" data-type="appointment">Edit</button>
-                            <button class="action-btn delete-btn" data-id="${docSnap.id}" data-type="appointment">Delete</button>
-                          </td>
-                        </tr>`;
+        <td>${patientName}</td>
+        <td>${doctorName}</td>
+        <td>${dateStr}</td>
+        <td>${a.status}</td>
+        <td>
+          <button class="action-btn edit-btn" data-id="${docSnap.id}" data-type="appointments">Edit</button>
+          <button class="action-btn delete-btn" data-id="${docSnap.id}" data-type="appointments">Delete</button>
+        </td>
+      </tr>`;
             appointmentTable.insertAdjacentHTML("beforeend", row);
           }
         });
@@ -802,7 +903,7 @@
           query(
             collection(db, "logs"),
             orderBy("timestamp", "desc"),
-            limit(10)
+            limit(100)
           ),
           (snapshot) => {
             const logsList = document.getElementById("system-logs");
@@ -838,21 +939,19 @@
             );
             const user = userCredential.user;
 
-            // Save user data to Firestore
             await setDoc(doc(db, "users", user.uid), {
               firstName,
               lastName,
               email,
               role,
               createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
             });
 
-            // Assign role claim
             await assignRoleClaim({ uid: user.uid, role });
 
-            // Log action
             await setDoc(doc(collection(db, "logs")), {
-              message: `New user registered: ${email} with role ${role}`,
+              message: `New user registered: ${email} with role ${role} by ${auth.currentUser.email}`,
               timestamp: serverTimestamp(),
             });
 
@@ -860,6 +959,172 @@
             document.getElementById("registerForm").reset();
           } catch (error) {
             console.error("Registration error:", error);
+            alert(`Error: ${error.message}`);
+          }
+        });
+
+      // Add Handlers for New Roles
+      const addForms = [
+        {
+          formId: "addDoctorForm",
+          collection: "doctors",
+          fields: ["doctorName", "doctorEmail", "doctorSpecialty"],
+          logMessage: (data) =>
+            `New doctor added: ${data.doctorName} (${data.doctorEmail})`,
+          mapFields: { doctorName: "name", doctorSpecialty: "specialty" },
+        },
+        {
+          formId: "addNurseForm",
+          collection: "nurses",
+          fields: ["nurseName", "nurseEmail", "nurseDepartment"],
+          logMessage: (data) =>
+            `New nurse added: ${data.nurseName} (${data.nurseEmail})`,
+          mapFields: { nurseName: "name", nurseDepartment: "department" },
+        },
+        {
+          formId: "addLabAttendantForm",
+          collection: "labAttendants",
+          fields: ["labAttendantName", "labAttendantEmail", "labAttendantLab"],
+          logMessage: (data) =>
+            `New lab attendant added: ${data.labAttendantName} (${data.labAttendantEmail})`,
+          mapFields: { labAttendantName: "name", labAttendantLab: "lab" },
+        },
+        {
+          formId: "addRecordClerkForm",
+          collection: "recordClerks",
+          fields: [
+            "recordClerkName",
+            "recordClerkEmail",
+            "recordClerkDepartment",
+          ],
+          logMessage: (data) =>
+            `New record clerk added: ${data.recordClerkName} (${data.recordClerkEmail})`,
+          mapFields: {
+            recordClerkName: "name",
+            recordClerkDepartment: "department",
+          },
+        },
+        {
+          formId: "addFirstResponderForm",
+          collection: "firstResponders",
+          fields: [
+            "firstResponderName",
+            "firstResponderEmail",
+            "firstResponderStation",
+          ],
+          logMessage: (data) =>
+            `New first responder added: ${data.firstResponderName} (${data.firstResponderEmail})`,
+          mapFields: {
+            firstResponderName: "name",
+            firstResponderStation: "station",
+          },
+        },
+        {
+          formId: "addPharmacistForm",
+          collection: "pharmacists",
+          fields: ["pharmacistName", "pharmacistEmail", "pharmacistPharmacy"],
+          logMessage: (data) =>
+            `New pharmacist added: ${data.pharmacistName} (${data.pharmacistEmail})`,
+          mapFields: { pharmacistName: "name", pharmacistPharmacy: "pharmacy" },
+        },
+        {
+          formId: "addHospitalStaffForm",
+          collection: "hospitalStaff",
+          fields: [
+            "hospitalStaffName",
+            "hospitalStaffEmail",
+            "hospitalStaffRole",
+          ],
+          logMessage: (data) =>
+            `New hospital staff added: ${data.hospitalStaffName} (${data.hospitalStaffEmail})`,
+          mapFields: { hospitalStaffName: "name", hospitalStaffRole: "role" },
+        },
+      ];
+
+      addForms.forEach(
+        ({ formId, collection, fields, logMessage, mapFields }) => {
+          document
+            .getElementById(formId)
+            .addEventListener("submit", async (e) => {
+              e.preventDefault();
+              const data = {};
+              fields.forEach((field) => {
+                data[field] = document.getElementById(field).value;
+              });
+
+              try {
+                const docData = {};
+                fields.forEach((field) => {
+                  const key =
+                    mapFields && mapFields[field]
+                      ? mapFields[field]
+                      : field.replace(/^[a-z]+/, "");
+                  docData[key] = data[field];
+                });
+                docData.createdAt = serverTimestamp();
+                docData.updatedAt = serverTimestamp();
+
+                await addDoc(collection(db, collection), docData);
+
+                await setDoc(doc(collection(db, "logs")), {
+                  message: logMessage(data) + ` by ${auth.currentUser.email}`,
+                  timestamp: serverTimestamp(),
+                });
+
+                alert(
+                  `${
+                    collection.charAt(0).toUpperCase() + collection.slice(1, -1)
+                  } added successfully!`
+                );
+                document.getElementById(formId).reset();
+              } catch (error) {
+                console.error(`Add ${collection} error:`, error);
+                alert(`Error: ${error.message}`);
+              }
+            });
+        }
+      );
+
+      // Add New Appointment
+      document
+        .getElementById("addAppointmentForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const patientId = document.getElementById("appointmentPatient").value;
+          const doctorId = document.getElementById("appointmentDoctor").value;
+          const date = new Date(
+            document.getElementById("appointmentDate").value
+          );
+          const status = document.getElementById("appointmentStatus").value;
+
+          try {
+            await addDoc(collection(db, "appointments"), {
+              patientId,
+              doctorId,
+              date,
+              status,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            });
+
+            const patientDoc = await getDoc(doc(db, "users", patientId));
+            const doctorDoc = await getDoc(doc(db, "doctors", doctorId));
+            const patientName = patientDoc.exists()
+              ? `${patientDoc.data().firstName} ${patientDoc.data().lastName}`
+              : "Unknown";
+            const doctorName = doctorDoc.exists()
+              ? doctorDoc.data().name
+              : "Unknown";
+
+            await setDoc(doc(collection(db, "logs")), {
+              message: `New appointment created for ${patientName} with ${doctorName} by ${auth.currentUser.email}`,
+              timestamp: serverTimestamp(),
+            });
+
+            alert("Appointment created successfully!");
+            document.getElementById("addAppointmentForm").reset();
+          } catch (error) {
+            console.error("Add appointment error:", error);
             alert(`Error: ${error.message}`);
           }
         });
@@ -889,9 +1154,36 @@
         });
       }
 
-      setupSearch("searchInput", "user-table");
-      setupSearch("doctorSearchInput", "doctor-table");
-      setupSearch("appointmentSearchInput", "appointment-table");
+      // Log Search
+      function setupLogSearch() {
+        const searchInput = document.getElementById("logSearchInput");
+        searchInput.addEventListener("input", () => {
+          const filter = searchInput.value.toLowerCase();
+          const logsList = document.getElementById("system-logs");
+          const logs = logsList.getElementsByTagName("li");
+
+          for (let i = 0; i < logs.length; i++) {
+            const text = logs[i].textContent.toLowerCase();
+            logs[i].style.display = text.includes(filter) ? "" : "none";
+          }
+        });
+      }
+
+      const searchInputs = [
+        "searchInput",
+        "doctorSearchInput",
+        "nurseSearchInput",
+        "labAttendantSearchInput",
+        "recordClerkSearchInput",
+        "firstResponderSearchInput",
+        "pharmacistSearchInput",
+        "hospitalStaffSearchInput",
+        "appointmentSearchInput",
+      ];
+      searchInputs.forEach((inputId) => {
+        setupSearch(inputId, inputId.replace("SearchInput", "-table"));
+      });
+      setupLogSearch();
 
       // Action Button Handlers
       document.addEventListener("click", async (e) => {
@@ -899,8 +1191,7 @@
           const id = e.target.dataset.id;
           const type = e.target.dataset.type;
 
-          if (!type) {
-            // Edit User
+          if (type === "users") {
             const userDoc = await getDoc(doc(db, "users", id));
             if (userDoc.exists()) {
               const userData = userDoc.data();
@@ -912,26 +1203,11 @@
               document.getElementById("editRole").value = userData.role;
               document.getElementById("editUserModal").style.display = "flex";
             }
-          } else if (type === "doctor") {
-            // Edit Doctor
-            const doctorDoc = await getDoc(doc(db, "doctors", id));
-            if (doctorDoc.exists()) {
-              const doctorData = doctorDoc.data();
-              document.getElementById("editDoctorId").value = id;
-              document.getElementById("editDoctorName").value = doctorData.name;
-              document.getElementById("editDoctorEmail").value =
-                doctorData.email;
-              document.getElementById("editDoctorSpecialty").value =
-                doctorData.specialty;
-              document.getElementById("editDoctorModal").style.display = "flex";
-            }
-          } else if (type === "appointment") {
-            // Edit Appointment
+          } else if (type === "appointments") {
             const appointmentDoc = await getDoc(doc(db, "appointments", id));
             if (appointmentDoc.exists()) {
               const appointmentData = appointmentDoc.data();
 
-              // Populate patient dropdown
               const patientSelect = document.getElementById(
                 "editAppointmentPatient"
               );
@@ -940,15 +1216,16 @@
               const userSnapshot = await getDocs(collection(db, "users"));
               userSnapshot.forEach((doc) => {
                 const user = doc.data();
-                const option = document.createElement("option");
-                option.value = doc.id;
-                option.textContent = `${user.firstName} ${user.lastName}`;
-                if (doc.id === appointmentData.patientId)
-                  option.selected = true;
-                patientSelect.appendChild(option);
+                if (user.role === "patient") {
+                  const option = document.createElement("option");
+                  option.value = doc.id;
+                  option.textContent = `${user.firstName} ${user.lastName}`;
+                  if (doc.id === appointmentData.patientId)
+                    option.selected = true;
+                  patientSelect.appendChild(option);
+                }
               });
 
-              // Populate doctor dropdown
               const doctorSelect = document.getElementById(
                 "editAppointmentDoctor"
               );
@@ -972,31 +1249,49 @@
               document.getElementById("editAppointmentModal").style.display =
                 "flex";
             }
+          } else {
+            const docRef = await getDoc(doc(db, type, id));
+            if (docRef.exists()) {
+              const data = docRef.data();
+              const modalId = `edit${
+                type.charAt(0).toUpperCase() + type.slice(1, -1)
+              }Modal`;
+              const prefix = type.charAt(0).toUpperCase() + type.slice(1, -1);
+              document.getElementById(`edit${prefix}Id`).value = id;
+              document.getElementById(`edit${prefix}Name`).value = data.name;
+              document.getElementById(`edit${prefix}Email`).value = data.email;
+              const thirdField =
+                type === "doctors"
+                  ? "specialty"
+                  : type === "nurses" || type === "recordClerks"
+                  ? "department"
+                  : type === "labAttendants"
+                  ? "lab"
+                  : type === "firstResponders"
+                  ? "station"
+                  : type === "pharmacists"
+                  ? "pharmacy"
+                  : "role";
+              document.getElementById(
+                `edit${prefix}${
+                  thirdField.charAt(0).toUpperCase() + thirdField.slice(1)
+                }`
+              ).value = data[thirdField];
+              document.getElementById(modalId).style.display = "flex";
+            }
           }
         } else if (e.target.classList.contains("delete-btn")) {
           const id = e.target.dataset.id;
           const type = e.target.dataset.type;
           if (confirm("Are you sure you want to delete this item?")) {
             try {
-              if (!type) {
-                await deleteDoc(doc(db, "users", id));
-                await setDoc(doc(collection(db, "logs")), {
-                  message: `User deleted: ${id}`,
-                  timestamp: serverTimestamp(),
-                });
-              } else if (type === "doctor") {
-                await deleteDoc(doc(db, "doctors", id));
-                await setDoc(doc(collection(db, "logs")), {
-                  message: `Doctor deleted: ${id}`,
-                  timestamp: serverTimestamp(),
-                });
-              } else if (type === "appointment") {
-                await deleteDoc(doc(db, "appointments", id));
-                await setDoc(doc(collection(db, "logs")), {
-                  message: `Appointment deleted: ${id}`,
-                  timestamp: serverTimestamp(),
-                });
-              }
+              await deleteDoc(doc(db, type, id));
+              await setDoc(doc(collection(db, "logs")), {
+                message: `${
+                  type.charAt(0).toUpperCase() + type.slice(1, -1)
+                } deleted: ${id} by ${auth.currentUser.email}`,
+                timestamp: serverTimestamp(),
+              });
               alert("Item deleted successfully!");
             } catch (error) {
               console.error("Delete error:", error);
@@ -1009,7 +1304,7 @@
             try {
               await sendResetEmail({ email });
               await setDoc(doc(collection(db, "logs")), {
-                message: `Password reset email sent to: ${email}`,
+                message: `Password reset email sent to: ${email} by ${auth.currentUser.email}`,
                 timestamp: serverTimestamp(),
               });
               alert("Password reset email sent!");
@@ -1025,6 +1320,12 @@
       const modals = [
         "editUserModal",
         "editDoctorModal",
+        "editNurseModal",
+        "editLabAttendantModal",
+        "editRecordClerkModal",
+        "editFirstResponderModal",
+        "editPharmacistModal",
+        "editHospitalStaffModal",
         "editAppointmentModal",
       ];
       modals.forEach((modalId) => {
@@ -1042,114 +1343,229 @@
         });
       });
 
-      // Edit User Form Submission
-      document
-        .getElementById("editUserForm")
-        .addEventListener("submit", async (e) => {
-          e.preventDefault();
-          const id = document.getElementById("editUserId").value;
-          const firstName = document.getElementById("editFirstName").value;
-          const lastName = document.getElementById("editLastName").value;
-          const email = document.getElementById("editEmail").value;
-          const role = document.getElementById("editRole").value;
-
-          try {
-            await updateDoc(doc(db, "users", id), {
-              firstName,
-              lastName,
-              email,
-              role,
-              updatedAt: serverTimestamp(),
+      // Edit Form Submissions
+      const editForms = [
+        {
+          formId: "editUserForm",
+          collection: "users",
+          fields: ["editFirstName", "editLastName", "editEmail", "editRole"],
+          logMessage: (data) =>
+            `User updated: ${data.editEmail} with role ${data.editRole}`,
+          extra: async (data) => {
+            await assignRoleClaim({
+              uid: data.editUserId,
+              role: data.editRole,
             });
+          },
+          mapFields: {
+            editFirstName: "firstName",
+            editLastName: "lastName",
+            editEmail: "email",
+            editRole: "role",
+          },
+        },
+        {
+          formId: "editDoctorForm",
+          collection: "doctors",
+          fields: ["editDoctorName", "editDoctorEmail", "editDoctorSpecialty"],
+          logMessage: (data) => `Doctor updated: ${data.editDoctorName}`,
+          mapFields: {
+            editDoctorName: "name",
+            editDoctorEmail: "email",
+            editDoctorSpecialty: "specialty",
+          },
+        },
+        {
+          formId: "editNurseForm",
+          collection: "nurses",
+          fields: ["editNurseName", "editNurseEmail", "editNurseDepartment"],
+          logMessage: (data) => `Nurse updated: ${data.editNurseName}`,
+          mapFields: {
+            editNurseName: "name",
+            editNurseEmail: "email",
+            editNurseDepartment: "department",
+          },
+        },
+        {
+          formId: "editLabAttendantForm",
+          collection: "labAttendants",
+          fields: [
+            "editLabAttendantName",
+            "editLabAttendantEmail",
+            "editLabAttendantLab",
+          ],
+          logMessage: (data) =>
+            `Lab Attendant updated: ${data.editLabAttendantName}`,
+          mapFields: {
+            editLabAttendantName: "name",
+            editLabAttendantEmail: "email",
+            editLabAttendantLab: "lab",
+          },
+        },
+        {
+          formId: "editRecordClerkForm",
+          collection: "recordClerks",
+          fields: [
+            "editRecordClerkName",
+            "editRecordClerkEmail",
+            "editRecordClerkDepartment",
+          ],
+          logMessage: (data) =>
+            `Record Clerk updated: ${data.editRecordClerkName}`,
+          mapFields: {
+            editRecordClerkName: "name",
+            editRecordClerkEmail: "email",
+            editRecordClerkDepartment: "department",
+          },
+        },
+        {
+          formId: "editFirstResponderForm",
+          collection: "firstResponders",
+          fields: [
+            "editFirstResponderName",
+            "editFirstResponderEmail",
+            "editFirstResponderStation",
+          ],
+          logMessage: (data) =>
+            `First Responder updated: ${data.editFirstResponderName}`,
+          mapFields: {
+            editFirstResponderName: "name",
+            editFirstResponderEmail: "email",
+            editFirstResponderStation: "station",
+          },
+        },
+        {
+          formId: "editPharmacistForm",
+          collection: "pharmacists",
+          fields: [
+            "editPharmacistName",
+            "editPharmacistEmail",
+            "editPharmacistPharmacy",
+          ],
+          logMessage: (data) =>
+            `Pharmacist updated: ${data.editPharmacistName}`,
+          mapFields: {
+            editPharmacistName: "name",
+            editPharmacistEmail: "email",
+            editPharmacistPharmacy: "pharmacy",
+          },
+        },
+        {
+          formId: "editHospitalStaffForm",
+          collection: "hospitalStaff",
+          fields: [
+            "editHospitalStaffName",
+            "editHospitalStaffEmail",
+            "editHospitalStaffRole",
+          ],
+          logMessage: (data) =>
+            `Hospital Staff updated: ${data.editHospitalStaffName}`,
+          mapFields: {
+            editHospitalStaffName: "name",
+            editHospitalStaffEmail: "email",
+            editHospitalStaffRole: "role",
+          },
+        },
+        {
+          formId: "editAppointmentForm",
+          collection: "appointments",
+          fields: [
+            "editAppointmentPatient",
+            "editAppointmentDoctor",
+            "editAppointmentDate",
+            "editAppointmentStatus",
+          ],
+          logMessage: async (data) => {
+            const patientDoc = await getDoc(
+              doc(db, "users", data.editAppointmentPatient)
+            );
+            const doctorDoc = await getDoc(
+              doc(db, "doctors", data.editAppointmentDoctor)
+            );
+            const patientName = patientDoc.exists()
+              ? `${patientDoc.data().firstName} ${patientDoc.data().lastName}`
+              : "Unknown";
+            const doctorName = doctorDoc.exists()
+              ? doctorDoc.data().name
+              : "Unknown";
+            return `Appointment updated for ${patientName} with ${doctorName}`;
+          },
+          mapFields: {
+            editAppointmentPatient: "patientId",
+            editAppointmentDoctor: "doctorId",
+            editAppointmentDate: "date",
+            editAppointmentStatus: "status",
+          },
+          transform: (data) => ({
+            ...data,
+            editAppointmentDate: new Date(data.editAppointmentDate),
+          }),
+        },
+      ];
 
-            // Update role claim
-            await assignRoleClaim({ uid: id, role });
+      editForms.forEach(
+        ({
+          formId,
+          collection,
+          fields,
+          logMessage,
+          extra,
+          mapFields,
+          transform,
+        }) => {
+          document
+            .getElementById(formId)
+            .addEventListener("submit", async (e) => {
+              e.preventDefault();
+              const id = document.getElementById(
+                formId.replace("Form", "Id")
+              ).value;
+              let data = {};
+              fields.forEach((field) => {
+                data[field] = document.getElementById(field).value;
+              });
+              if (transform) data = transform(data);
 
-            await setDoc(doc(collection(db, "logs")), {
-              message: `User updated: ${email} with role ${role}`,
-              timestamp: serverTimestamp(),
+              try {
+                const updateData = {};
+                fields.forEach((field) => {
+                  const key =
+                    mapFields[field] ||
+                    field.replace(/^edit[A-Z][a-z]+/, "").toLowerCase();
+                  updateData[key] = data[field];
+                });
+                updateData.updatedAt = serverTimestamp();
+
+                await updateDoc(doc(db, collection, id), updateData);
+
+                if (extra) await extra(data);
+
+                const message =
+                  typeof logMessage === "function"
+                    ? await logMessage(data)
+                    : logMessage;
+                await setDoc(doc(collection(db, "logs")), {
+                  message: `${message} by ${auth.currentUser.email}`,
+                  timestamp: serverTimestamp(),
+                });
+
+                alert(
+                  `${
+                    collection.charAt(0).toUpperCase() + collection.slice(1, -1)
+                  } updated successfully!`
+                );
+                document.getElementById(
+                  formId.replace("Form", "Modal")
+                ).style.display = "none";
+              } catch (error) {
+                console.error(`Update ${collection} error:`, error);
+                alert(
+                  `Error updating ${collection.slice(0, -1)}: ${error.message}`
+                );
+              }
             });
-
-            alert("User updated successfully!");
-            document.getElementById("editUserModal").style.display = "none";
-          } catch (error) {
-            console.error("Update user error:", error);
-            alert("Error updating user.");
-          }
-        });
-
-      // Edit Doctor Form Submission
-      document
-        .getElementById("editDoctorForm")
-        .addEventListener("submit", async (e) => {
-          e.preventDefault();
-          const id = document.getElementById("editDoctorId").value;
-          const name = document.getElementById("editDoctorName").value;
-          const email = document.getElementById("editDoctorEmail").value;
-          const specialty = document.getElementById(
-            "editDoctorSpecialty"
-          ).value;
-
-          try {
-            await updateDoc(doc(db, "doctors", id), {
-              name,
-              email,
-              specialty,
-              updatedAt: serverTimestamp(),
-            });
-
-            await setDoc(doc(collection(db, "logs")), {
-              message: `Doctor updated: ${name}`,
-              timestamp: serverTimestamp(),
-            });
-
-            alert("Doctor updated successfully!");
-            document.getElementById("editDoctorModal").style.display = "none";
-          } catch (error) {
-            console.error("Update doctor error:", error);
-            alert("Error updating doctor.");
-          }
-        });
-
-      // Edit Appointment Form Submission
-      document
-        .getElementById("editAppointmentForm")
-        .addEventListener("submit", async (e) => {
-          e.preventDefault();
-          const id = document.getElementById("editAppointmentId").value;
-          const patientId = document.getElementById(
-            "editAppointmentPatient"
-          ).value;
-          const doctorId = document.getElementById(
-            "editAppointmentDoctor"
-          ).value;
-          const date = new Date(
-            document.getElementById("editAppointmentDate").value
-          );
-          const status = document.getElementById("editAppointmentStatus").value;
-
-          try {
-            await updateDoc(doc(db, "appointments", id), {
-              patientId,
-              doctorId,
-              date,
-              status,
-              updatedAt: serverTimestamp(),
-            });
-
-            await setDoc(doc(collection(db, "logs")), {
-              message: `Appointment updated: ${id}`,
-              timestamp: serverTimestamp(),
-            });
-
-            alert("Appointment updated successfully!");
-            document.getElementById("editAppointmentModal").style.display =
-              "none";
-          } catch (error) {
-            console.error("Update appointment error:", error);
-            alert("Error updating appointment.");
-          }
-        });
+        }
+      );
     </script>
   </body>
 </html>
