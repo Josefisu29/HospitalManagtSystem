@@ -53,8 +53,7 @@
       input[type="email"],
       input[type="password"],
       input[type="text"],
-      select,
-      input[type="datetime-local"] {
+      select {
         width: 100%;
         padding: 0.7rem;
         margin-bottom: 1.2rem;
@@ -388,13 +387,17 @@
                 <option value="">Select Role</option>
                 <option value="admin">Admin</option>
                 <option value="doctor">Doctor</option>
+                <option value="nurse">Nurse</option>
+                <option value="pharmacist">Pharmacist</option>
+                <option value="labAttendant">Lab Attendant</option>
+                <option value="receptionist">Receptionist</option>
+                <option value="firstResponder">First Responder</option>
+                <option value="recordClerk">Record Clerk</option>
+                <option value="hospitalStaff">Hospital Staff</option>
                 <option value="patient">Patient</option>
               </select>
             </div>
-            <div class="form-group" id="specialty-group" style="display: none">
-              <label for="specialty">Specialty</label>
-              <input type="text" id="specialty" name="specialty" />
-            </div>
+
             <button type="submit">Register</button>
           </form>
         </div>
@@ -465,7 +468,7 @@
               </div>
               <div class="form-group">
                 <label for="editEmail">Email</label>
-                <input type="email" id="editEmail" required readonly />
+                <input type="email" id="editEmail" required />
               </div>
               <div class="form-group">
                 <label for="editRole">Role</label>
@@ -473,6 +476,13 @@
                   <option value="">Select Role</option>
                   <option value="admin">Admin</option>
                   <option value="doctor">Doctor</option>
+                  <option value="nurse">Nurse</option>
+                  <option value="pharmacist">Pharmacist</option>
+                  <option value="labAttendant">Lab Attendant</option>
+                  <option value="receptionist">Receptionist</option>
+                  <option value="firstResponder">First Responder</option>
+                  <option value="recordClerk">Record Clerk</option>
+                  <option value="hospitalStaff">Hospital Staff</option>
                   <option value="patient">Patient</option>
                 </select>
               </div>
@@ -521,12 +531,8 @@
                 <select id="editAppointmentDoctor" required></select>
               </div>
               <div class="form-group">
-                <label for="editAppointmentDate">Date and Time</label>
-                <input
-                  type="datetime-local"
-                  id="editAppointmentDate"
-                  required
-                />
+                <label for="editAppointmentDate">Date</label>
+                <input type="date" id="editAppointmentDate" required />
               </div>
               <div class="form-group">
                 <label for="editAppointmentStatus">Status</label>
@@ -543,6 +549,20 @@
         </div>
       </div>
     </div>
+    <script src="/base.js"></script>
+    <script src="/index.js"></script>
+    <script src="/server.js"></script>
+    <script src="/admin.js"></script>
+    <script src="/gurad.js"></script>
+    <script type="module">
+      import { guardPage, initAdminPage } from "./guards.js";
+
+      guardPage("admin", {
+        loginContainer: "#login-box",
+        appContainer: "#admin-dashboard",
+        onSuccess: initAdminPage,
+      });
+    </script>
 
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
@@ -557,17 +577,17 @@
       import {
         getFirestore,
         collection,
+        query,
+        orderBy,
+        limit,
         onSnapshot,
         setDoc,
         doc,
         updateDoc,
         deleteDoc,
-        query,
-        orderBy,
-        limit,
+        serverTimestamp,
         getDocs,
         getDoc,
-        serverTimestamp,
       } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
       import {
         getFunctions,
@@ -589,33 +609,38 @@
       const db = getFirestore(app);
       const functions = getFunctions(app);
       const assignRoleClaim = httpsCallable(functions, "assignRoleClaim");
-      const deleteUser = httpsCallable(functions, "deleteUser");
+      const sendResetEmail = httpsCallable(functions, "sendResetEmail");
 
       // Authentication State
-      onAuthStateChanged(auth, async (user) => {
-        if (!user) {
-          document.getElementById("login-box").style.display = "flex";
-          document.getElementById("admin-dashboard").style.display = "none";
-          return;
-        }
-        try {
-          const idTokenResult = await user.getIdTokenResult(true);
-          if (idTokenResult.claims.role !== "admin") {
-            await signOut(auth);
-            document.getElementById("error-msg").textContent =
-              "Access denied: Admins only.";
-            return;
-          }
-          document.getElementById("login-box").style.display = "none";
-          document.getElementById("admin-dashboard").style.display = "block";
-          loadDashboard();
-        } catch (error) {
-          console.error("Auth error:", error);
-          await signOut(auth);
-        }
-      });
-      const admin = require("firebase-admin");
-      admin.auth().setCustomUserClaims(uid, { role: "admin" });
+      // onAuthStateChanged(auth, async (user) => {
+      //   if (!user) {
+      //     document.getElementById("login-box").style.display = "flex";
+      //     document.getElementById("admin-dashboard").style.display = "none";
+      //   } else {
+      //     try {
+      //       const idRes = await user.getIdTokenResult(true);
+      //       if (idRes.claims.role !== "admin") {
+      //         await signOut(auth);
+      //         alert("Unauthorized: Admin access required.");
+      //         window.location.href = "/";
+      //       } else {
+      //         document.getElementById("login-box").style.display = "none";
+      //         document.getElementById("admin-dashboard").style.display =
+      //           "block";
+      //         loadDashboard();
+      //       }
+      //     } catch (error) {
+      //       console.error("Error verifying admin:", error);
+      //       await signOut(auth);
+      //       alert("Failed to verify admin status. Please try again.");
+      //       window.location.href = "/";
+      //     }
+      //   }
+      // });
+      // Hide the login box…
+      document.getElementById("login-box").style.display = "none";
+      // …and show the dashboard
+      document.getElementById("admin-dashboard").style.display = "block";
 
       // Login Handler
       document
@@ -629,17 +654,39 @@
 
           spinner.style.display = "block";
           errorMsg.textContent = "";
+
           try {
-            const { user } = await signInWithEmailAndPassword(
+            const userCredential = await signInWithEmailAndPassword(
               auth,
               email,
               password
             );
-            await user.reload();
-            const idTokenResult = await user.getIdTokenResult();
+            const user = userCredential.user;
+            const idTokenResult = await user.getIdTokenResult(true);
+
+            if (idTokenResult.claims.role !== "admin") {
+              await signOut(auth);
+              // errorMsg.textContent = "Unauthorized: Admin access required.";
+            }
           } catch (error) {
             console.error("Login error:", error);
-            errorMsg.textContent = "Invalid credentials.";
+            switch (error.code) {
+              case "auth/user-not-found":
+                errorMsg.textContent = "No account found with this email.";
+                break;
+              case "auth/wrong-password":
+                errorMsg.textContent = "Incorrect password.";
+                break;
+              case "auth/invalid-email":
+                errorMsg.textContent = "Invalid email format.";
+                break;
+              case "auth/too-many-requests":
+                errorMsg.textContent =
+                  "Too many failed attempts. Please try again later.";
+                break;
+              default:
+                errorMsg.textContent = "Login failed. Please try again.";
+            }
           } finally {
             spinner.style.display = "none";
           }
@@ -653,8 +700,13 @@
           const email = prompt("Enter your email address:");
           if (email) {
             sendPasswordResetEmail(auth, email)
-              .then(() => alert("Password reset email sent."))
-              .catch((error) => alert("Error: " + error.message));
+              .then(() => {
+                alert("Password reset email sent successfully.");
+              })
+              .catch((error) => {
+                console.error("Password reset error:", error);
+                alert("Error: " + error.message);
+              });
           }
         });
 
@@ -662,128 +714,112 @@
       document
         .getElementById("logoutBtn")
         .addEventListener("click", async () => {
-          await signOut(auth);
-          window.location.href = "/index.html";
+          try {
+            await signOut(auth);
+            window.location.href = "/index.html";
+          } catch (error) {
+            console.error("Logout error:", error);
+            alert("Failed to log out. Please try again.");
+          }
         });
 
-      // Load Dashboard
+      // Load Dashboard with Real-Time Data
       function loadDashboard() {
-        const showLoading = () =>
-          document
-            .getElementById("loading")
-            .classList.remove("loading--hidden");
-        const hideLoading = () =>
-          document.getElementById("loading").classList.add("loading--hidden");
-
-        showLoading();
-
-        onSnapshot(collection(db, "users"), (snap) => {
-          document.getElementById("stat-users").textContent = snap.size;
+        // Users
+        onSnapshot(collection(db, "users"), (snapshot) => {
+          document.getElementById("stat-users").textContent = snapshot.size;
           const userTable = document.getElementById("user-table");
           userTable.innerHTML = "";
-          snap.forEach((docSnap) => {
+          snapshot.forEach((docSnap) => {
             const u = docSnap.data();
-            userTable.insertAdjacentHTML(
-              "beforeend",
-              `
-              <tr>
-                <td>${u.firstName} ${u.lastName}</td>
-                <td>${u.email}</td>
-                <td>${u.role}</td>
-                <td>
-                  <button class="action-btn edit-btn" data-id="${docSnap.id}" data-type="user">Edit</button>
-                  <button class="action-btn delete-btn" data-id="${docSnap.id}" data-type="user">Delete</button>
-                  <button class="action-btn reset-btn" data-email="${u.email}">Reset PW</button>
-                </td>
-              </tr>
-            `
-            );
+            const row = `<tr>
+                          <td>${u.firstName} ${u.lastName}</td>
+                          <td>${u.email}</td>
+                          <td>${u.role}</td>
+                          <td>
+                            <button class="action-btn edit-btn" data-id="${docSnap.id}">Edit</button>
+                            <button class="action-btn delete-btn" data-id="${docSnap.id}">Delete</button>
+                            <button class="action-btn reset-btn" data-email="${u.email}">Reset Password</button>
+                          </td>
+                        </tr>`;
+            userTable.insertAdjacentHTML("beforeend", row);
           });
         });
 
-        onSnapshot(collection(db, "doctors"), (snap) => {
-          document.getElementById("stat-doctors").textContent = snap.size;
+        // Doctors
+        onSnapshot(collection(db, "doctors"), (snapshot) => {
+          document.getElementById("stat-doctors").textContent = snapshot.size;
           const doctorTable = document.getElementById("doctor-table");
           doctorTable.innerHTML = "";
-          snap.forEach((docSnap) => {
+          snapshot.forEach((docSnap) => {
             const d = docSnap.data();
-            doctorTable.insertAdjacentHTML(
-              "beforeend",
-              `
-              <tr>
-                <td>${d.name}</td>
-                <td>${d.email}</td>
-                <td>${d.specialty}</td>
-                <td>
-                  <button class="action-btn edit-btn" data-id="${docSnap.id}" data-type="doctor">Edit</button>
-                  <button class="action-btn delete-btn" data-id="${docSnap.id}" data-type="doctor">Delete</button>
-                </td>
-              </tr>
-            `
-            );
+            const row = `<tr>
+                          <td>${d.name}</td>
+                          <td>${d.email}</td>
+                          <td>${d.specialty}</td>
+                          <td>
+                            <button class="action-btn edit-btn" data-id="${docSnap.id}" data-type="doctor">Edit</button>
+                            <button class="action-btn delete-btn" data-id="${docSnap.id}" data-type="doctor">Delete</button>
+                          </td>
+                        </tr>`;
+            doctorTable.insertAdjacentHTML("beforeend", row);
           });
         });
 
-        onSnapshot(collection(db, "appointments"), (snap) => {
-          document.getElementById("stat-appointments").textContent = snap.size;
+        // Appointments
+        onSnapshot(collection(db, "appointments"), async (snapshot) => {
+          document.getElementById("stat-appointments").textContent =
+            snapshot.size;
           const appointmentTable = document.getElementById("appointment-table");
           appointmentTable.innerHTML = "";
-          snap.forEach((docSnap) => {
+          for (const docSnap of snapshot.docs) {
             const a = docSnap.data();
-            appointmentTable.insertAdjacentHTML(
-              "beforeend",
-              `
-              <tr>
-                <td>${a.patientName}</td>
-                <td>${a.doctorName}</td>
-                <td>${a.date.toDate().toLocaleString()}</td>
-                <td>${a.status}</td>
-                <td>
-                  <button class="action-btn edit-btn" data-id="${
-                    docSnap.id
-                  }" data-type="appointment">Edit</button>
-                  <button class="action-btn delete-btn" data-id="${
-                    docSnap.id
-                  }" data-type="appointment">Delete</button>
-                </td>
-              </tr>
-            `
-            );
-          });
+            const patientDoc = await getDoc(doc(db, "users", a.patientId));
+            const doctorDoc = await getDoc(doc(db, "doctors", a.doctorId));
+            const patientName = patientDoc.exists()
+              ? `${patientDoc.data().firstName} ${patientDoc.data().lastName}`
+              : "Unknown";
+            const doctorName = doctorDoc.exists()
+              ? doctorDoc.data().name
+              : "Unknown";
+            const dateStr = a.date.toDate().toLocaleString();
+            const row = `<tr>
+                          <td>${patientName}</td>
+                          <td>${doctorName}</td>
+                          <td>${dateStr}</td>
+                          <td>${a.status}</td>
+                          <td>
+                            <button class="action-btn edit-btn" data-id="${docSnap.id}" data-type="appointment">Edit</button>
+                            <button class="action-btn delete-btn" data-id="${docSnap.id}" data-type="appointment">Delete</button>
+                          </td>
+                        </tr>`;
+            appointmentTable.insertAdjacentHTML("beforeend", row);
+          }
         });
 
+        // System Logs
         onSnapshot(
           query(
-            collection(db, "systemLogs"),
+            collection(db, "logs"),
             orderBy("timestamp", "desc"),
-            limit(50)
+            limit(10)
           ),
-          (snap) => {
+          (snapshot) => {
             const logsList = document.getElementById("system-logs");
             logsList.innerHTML = "";
-            snap.forEach((docSnap) => {
+            snapshot.forEach((docSnap) => {
               const log = docSnap.data();
-              logsList.insertAdjacentHTML(
-                "beforeend",
-                `<li>[${log.timestamp.toDate().toLocaleString()}] ${
-                  log.message
-                }</li>`
-              );
+              const li = document.createElement("li");
+              li.textContent = `[${
+                log.timestamp?.toDate().toLocaleString() || "N/A"
+              }] ${log.message}`;
+              logsList.appendChild(li);
             });
           }
         );
-
-        hideLoading();
       }
 
-      // Show/Hide Specialty Field
-      document.getElementById("role").addEventListener("change", (e) => {
-        const specialtyGroup = document.getElementById("specialty-group");
-        specialtyGroup.style.display =
-          e.target.value === "doctor" ? "block" : "none";
-      });
-
-      // Register User
+      // Register New User
       document
         .getElementById("registerForm")
         .addEventListener("submit", async (e) => {
@@ -793,16 +829,6 @@
           const email = document.getElementById("email").value;
           const password = document.getElementById("password").value;
           const role = document.getElementById("role").value;
-          let specialty = "";
-
-          if (role === "doctor") {
-            specialty = document.getElementById("specialty").value;
-            if (!specialty) {
-              document.getElementById("error-msg").textContent =
-                "Specialty is required for doctors.";
-              return;
-            }
-          }
 
           try {
             const userCredential = await createUserWithEmailAndPassword(
@@ -811,6 +837,8 @@
               password
             );
             const user = userCredential.user;
+
+            // Save user data to Firestore
             await setDoc(doc(db, "users", user.uid), {
               firstName,
               lastName,
@@ -818,114 +846,129 @@
               role,
               createdAt: serverTimestamp(),
             });
-            if (role === "doctor") {
-              await setDoc(doc(db, "doctors", user.uid), {
-                name: `${firstName} ${lastName}`,
-                email,
-                specialty,
-              });
-            }
+
+            // Assign role claim
             await assignRoleClaim({ uid: user.uid, role });
-            document.getElementById("registerForm").reset();
-            document.getElementById("specialty-group").style.display = "none";
+
+            // Log action
+            await setDoc(doc(collection(db, "logs")), {
+              message: `New user registered: ${email} with role ${role}`,
+              timestamp: serverTimestamp(),
+            });
+
             alert("User registered successfully!");
+            document.getElementById("registerForm").reset();
           } catch (error) {
             console.error("Registration error:", error);
-            document.getElementById("error-msg").textContent = error.message;
+            alert(`Error: ${error.message}`);
           }
         });
 
       // Search Functionality
-      ["searchInput", "doctorSearchInput", "appointmentSearchInput"].forEach(
-        (inputId) => {
-          document.getElementById(inputId).addEventListener("input", (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const tableId =
-              inputId === "searchInput"
-                ? "user-table"
-                : inputId === "doctorSearchInput"
-                ? "doctor-table"
-                : "appointment-table";
-            const rows = document
-              .getElementById(tableId)
-              .querySelectorAll("tr");
-            rows.forEach((row) => {
-              const text = row.textContent.toLowerCase();
-              row.style.display = text.includes(searchTerm) ? "" : "none";
-            });
-          });
-        }
-      );
+      function setupSearch(inputId, tableId) {
+        const searchInput = document.getElementById(inputId);
+        searchInput.addEventListener("input", () => {
+          const filter = searchInput.value.toLowerCase();
+          const table = document.getElementById(tableId);
+          const rows = table.getElementsByTagName("tr");
 
-      // Action Buttons
+          for (let i = 0; i < rows.length; i++) {
+            const cells = rows[i].getElementsByTagName("td");
+            let match = false;
+            for (let j = 0; j < cells.length; j++) {
+              if (
+                cells[j] &&
+                cells[j].textContent.toLowerCase().includes(filter)
+              ) {
+                match = true;
+                break;
+              }
+            }
+            rows[i].style.display = match ? "" : "none";
+          }
+        });
+      }
+
+      setupSearch("searchInput", "user-table");
+      setupSearch("doctorSearchInput", "doctor-table");
+      setupSearch("appointmentSearchInput", "appointment-table");
+
+      // Action Button Handlers
       document.addEventListener("click", async (e) => {
         if (e.target.classList.contains("edit-btn")) {
           const id = e.target.dataset.id;
           const type = e.target.dataset.type;
-          if (type === "user") {
+
+          if (!type) {
+            // Edit User
             const userDoc = await getDoc(doc(db, "users", id));
             if (userDoc.exists()) {
-              const data = userDoc.data();
+              const userData = userDoc.data();
               document.getElementById("editUserId").value = id;
-              document.getElementById("editFirstName").value = data.firstName;
-              document.getElementById("editLastName").value = data.lastName;
-              document.getElementById("editEmail").value = data.email;
-              document.getElementById("editRole").value = data.role;
+              document.getElementById("editFirstName").value =
+                userData.firstName;
+              document.getElementById("editLastName").value = userData.lastName;
+              document.getElementById("editEmail").value = userData.email;
+              document.getElementById("editRole").value = userData.role;
               document.getElementById("editUserModal").style.display = "flex";
             }
           } else if (type === "doctor") {
+            // Edit Doctor
             const doctorDoc = await getDoc(doc(db, "doctors", id));
             if (doctorDoc.exists()) {
-              const data = doctorDoc.data();
+              const doctorData = doctorDoc.data();
               document.getElementById("editDoctorId").value = id;
-              document.getElementById("editDoctorName").value = data.name;
-              document.getElementById("editDoctorEmail").value = data.email;
+              document.getElementById("editDoctorName").value = doctorData.name;
+              document.getElementById("editDoctorEmail").value =
+                doctorData.email;
               document.getElementById("editDoctorSpecialty").value =
-                data.specialty;
+                doctorData.specialty;
               document.getElementById("editDoctorModal").style.display = "flex";
             }
           } else if (type === "appointment") {
-            const apptDoc = await getDoc(doc(db, "appointments", id));
-            if (apptDoc.exists()) {
-              const data = apptDoc.data();
+            // Edit Appointment
+            const appointmentDoc = await getDoc(doc(db, "appointments", id));
+            if (appointmentDoc.exists()) {
+              const appointmentData = appointmentDoc.data();
+
+              // Populate patient dropdown
               const patientSelect = document.getElementById(
                 "editAppointmentPatient"
               );
+              patientSelect.innerHTML =
+                '<option value="">Select Patient</option>';
+              const userSnapshot = await getDocs(collection(db, "users"));
+              userSnapshot.forEach((doc) => {
+                const user = doc.data();
+                const option = document.createElement("option");
+                option.value = doc.id;
+                option.textContent = `${user.firstName} ${user.lastName}`;
+                if (doc.id === appointmentData.patientId)
+                  option.selected = true;
+                patientSelect.appendChild(option);
+              });
+
+              // Populate doctor dropdown
               const doctorSelect = document.getElementById(
                 "editAppointmentDoctor"
               );
-              patientSelect.innerHTML = "";
-              doctorSelect.innerHTML = "";
-
-              const users = await getDocs(collection(db, "users"));
-              users.forEach((userDoc) => {
-                const user = userDoc.data();
-                if (user.role === "patient") {
-                  const option = document.createElement("option");
-                  option.value = userDoc.id;
-                  option.text = `${user.firstName} ${user.lastName}`;
-                  if (userDoc.id === data.patientId) option.selected = true;
-                  patientSelect.appendChild(option);
-                }
-              });
-
-              const doctors = await getDocs(collection(db, "doctors"));
-              doctors.forEach((doctorDoc) => {
-                const doctor = doctorDoc.data();
+              doctorSelect.innerHTML =
+                '<option value="">Select Doctor</option>';
+              const doctorSnapshot = await getDocs(collection(db, "doctors"));
+              doctorSnapshot.forEach((doc) => {
+                const doctor = doc.data();
                 const option = document.createElement("option");
-                option.value = doctorDoc.id;
-                option.text = doctor.name;
-                if (doctorDoc.id === data.doctorId) option.selected = true;
+                option.value = doc.id;
+                option.textContent = doctor.name;
+                if (doc.id === appointmentData.doctorId) option.selected = true;
                 doctorSelect.appendChild(option);
               });
 
               document.getElementById("editAppointmentId").value = id;
-              document.getElementById("editAppointmentDate").value = data.date
-                .toDate()
-                .toISOString()
-                .slice(0, 16);
+              document.getElementById("editAppointmentDate").value =
+                appointmentData.date.toDate().toISOString().split("T")[0];
               document.getElementById("editAppointmentStatus").value =
-                data.status;
+                appointmentData.status;
               document.getElementById("editAppointmentModal").style.display =
                 "flex";
             }
@@ -933,54 +976,73 @@
         } else if (e.target.classList.contains("delete-btn")) {
           const id = e.target.dataset.id;
           const type = e.target.dataset.type;
-          if (confirm(`Delete this ${type}?`)) {
-            if (type === "user") {
-              const userDoc = await getDoc(doc(db, "users", id));
-              if (userDoc.exists()) {
-                const userData = userDoc.data();
+          if (confirm("Are you sure you want to delete this item?")) {
+            try {
+              if (!type) {
                 await deleteDoc(doc(db, "users", id));
-                if (userData.role === "doctor") {
-                  await deleteDoc(doc(db, "doctors", id));
-                }
-                try {
-                  await deleteUser({ uid: id });
-                } catch (error) {
-                  console.error("Error deleting auth user:", error);
-                  alert("Error deleting authentication user: " + error.message);
-                }
+                await setDoc(doc(collection(db, "logs")), {
+                  message: `User deleted: ${id}`,
+                  timestamp: serverTimestamp(),
+                });
+              } else if (type === "doctor") {
+                await deleteDoc(doc(db, "doctors", id));
+                await setDoc(doc(collection(db, "logs")), {
+                  message: `Doctor deleted: ${id}`,
+                  timestamp: serverTimestamp(),
+                });
+              } else if (type === "appointment") {
+                await deleteDoc(doc(db, "appointments", id));
+                await setDoc(doc(collection(db, "logs")), {
+                  message: `Appointment deleted: ${id}`,
+                  timestamp: serverTimestamp(),
+                });
               }
-            } else if (type === "doctor") {
-              await deleteDoc(doc(db, "doctors", id));
-            } else if (type === "appointment") {
-              await deleteDoc(doc(db, "appointments", id));
+              alert("Item deleted successfully!");
+            } catch (error) {
+              console.error("Delete error:", error);
+              alert("Error deleting item.");
             }
-            alert("Deleted successfully!");
           }
         } else if (e.target.classList.contains("reset-btn")) {
           const email = e.target.dataset.email;
-          if (confirm(`Send reset email to ${email}?`)) {
-            await sendPasswordResetEmail(auth, email);
-            alert("Password reset email sent!");
+          if (confirm(`Send password reset email to ${email}?`)) {
+            try {
+              await sendResetEmail({ email });
+              await setDoc(doc(collection(db, "logs")), {
+                message: `Password reset email sent to: ${email}`,
+                timestamp: serverTimestamp(),
+              });
+              alert("Password reset email sent!");
+            } catch (error) {
+              console.error("Reset password error:", error);
+              alert("Error sending reset email.");
+            }
           }
         }
       });
 
-      // Modal Handlers
-      ["editUserModal", "editDoctorModal", "editAppointmentModal"].forEach(
-        (modalId) => {
-          const modal = document.getElementById(modalId);
-          const closeBtn = modal.querySelector(".close");
-          closeBtn.addEventListener(
-            "click",
-            () => (modal.style.display = "none")
-          );
-          window.addEventListener("click", (e) => {
-            if (e.target === modal) modal.style.display = "none";
-          });
-        }
-      );
+      // Modal Close Handlers
+      const modals = [
+        "editUserModal",
+        "editDoctorModal",
+        "editAppointmentModal",
+      ];
+      modals.forEach((modalId) => {
+        const modal = document.getElementById(modalId);
+        const closeBtn = document.getElementById(
+          `close${modalId.charAt(0).toUpperCase() + modalId.slice(1)}`
+        );
+        closeBtn.addEventListener("click", () => {
+          modal.style.display = "none";
+        });
+        window.addEventListener("click", (e) => {
+          if (e.target === modal) {
+            modal.style.display = "none";
+          }
+        });
+      });
 
-      // Edit Form Submissions
+      // Edit User Form Submission
       document
         .getElementById("editUserForm")
         .addEventListener("submit", async (e) => {
@@ -991,17 +1053,32 @@
           const email = document.getElementById("editEmail").value;
           const role = document.getElementById("editRole").value;
 
-          await updateDoc(doc(db, "users", id), {
-            firstName,
-            lastName,
-            email,
-            role,
-          });
-          await assignRoleClaim({ uid: id, role });
-          document.getElementById("editUserModal").style.display = "none";
-          alert("User updated successfully!");
+          try {
+            await updateDoc(doc(db, "users", id), {
+              firstName,
+              lastName,
+              email,
+              role,
+              updatedAt: serverTimestamp(),
+            });
+
+            // Update role claim
+            await assignRoleClaim({ uid: id, role });
+
+            await setDoc(doc(collection(db, "logs")), {
+              message: `User updated: ${email} with role ${role}`,
+              timestamp: serverTimestamp(),
+            });
+
+            alert("User updated successfully!");
+            document.getElementById("editUserModal").style.display = "none";
+          } catch (error) {
+            console.error("Update user error:", error);
+            alert("Error updating user.");
+          }
         });
 
+      // Edit Doctor Form Submission
       document
         .getElementById("editDoctorForm")
         .addEventListener("submit", async (e) => {
@@ -1013,11 +1090,28 @@
             "editDoctorSpecialty"
           ).value;
 
-          await updateDoc(doc(db, "doctors", id), { name, email, specialty });
-          document.getElementById("editDoctorModal").style.display = "none";
-          alert("Doctor updated successfully!");
+          try {
+            await updateDoc(doc(db, "doctors", id), {
+              name,
+              email,
+              specialty,
+              updatedAt: serverTimestamp(),
+            });
+
+            await setDoc(doc(collection(db, "logs")), {
+              message: `Doctor updated: ${name}`,
+              timestamp: serverTimestamp(),
+            });
+
+            alert("Doctor updated successfully!");
+            document.getElementById("editDoctorModal").style.display = "none";
+          } catch (error) {
+            console.error("Update doctor error:", error);
+            alert("Error updating doctor.");
+          }
         });
 
+      // Edit Appointment Form Submission
       document
         .getElementById("editAppointmentForm")
         .addEventListener("submit", async (e) => {
@@ -1033,26 +1127,28 @@
             document.getElementById("editAppointmentDate").value
           );
           const status = document.getElementById("editAppointmentStatus").value;
-          const patientName = document.getElementById("editAppointmentPatient")
-            .options[
-            document.getElementById("editAppointmentPatient").selectedIndex
-          ].text;
-          const doctorName = document.getElementById("editAppointmentDoctor")
-            .options[
-            document.getElementById("editAppointmentDoctor").selectedIndex
-          ].text;
 
-          await updateDoc(doc(db, "appointments", id), {
-            patientId,
-            patientName,
-            doctorId,
-            doctorName,
-            date,
-            status,
-          });
-          document.getElementById("editAppointmentModal").style.display =
-            "none";
-          alert("Appointment updated successfully!");
+          try {
+            await updateDoc(doc(db, "appointments", id), {
+              patientId,
+              doctorId,
+              date,
+              status,
+              updatedAt: serverTimestamp(),
+            });
+
+            await setDoc(doc(collection(db, "logs")), {
+              message: `Appointment updated: ${id}`,
+              timestamp: serverTimestamp(),
+            });
+
+            alert("Appointment updated successfully!");
+            document.getElementById("editAppointmentModal").style.display =
+              "none";
+          } catch (error) {
+            console.error("Update appointment error:", error);
+            alert("Error updating appointment.");
+          }
         });
     </script>
   </body>
