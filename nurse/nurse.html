@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nurse - Patient Vitals & Profile</title>
+  <link rel="stylesheet" href="../css/all.css" />
+  <link rel="stylesheet" href="../css/common.css" />
+  <link rel="stylesheet" href="../css/security.css" />
+  <style>
+    :root {
+      --primary: #0052cc;
+      --bg: #f9fbfd;
+      --card-bg: #fff;
+      --transition: 0.3s ease;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      margin: 0;
+    }
+    header {
+      background: var(--card-bg);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header-inner {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      align-items: center;
+    }
+    .brand {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+    nav {
+      background: var(--primary);
+      padding: 0.5rem;
+    }
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 1rem;
+      margin: 0;
+      padding: 0;
+    }
+    nav ul li a {
+      color: white;
+      text-decoration: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+    }
+    nav ul li a.active,
+    nav ul li a:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    main {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    .card {
+      background: var(--card-bg);
+      border-radius: 8px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      margin-bottom: 2rem;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .form-group input[type="file"] {
+      padding: 3px;
+    }
+    .form-group textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+    button {
+      padding: 10px 20px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0047b3;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    #error-message,
+    #success-message {
+      text-align: center;
+      margin-bottom: 1rem;
+      display: none;
+    }
+    #error-message {
+      color: #e53e3e;
+    }
+    #success-message {
+      color: #28a745;
+    }
+    .status-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #dc3545;
+      display: inline-block;
+      margin-left: 0.5rem;
+    }
+    .status-indicator.online {
+      background: #28a745;
+    }
+    .status-indicator.disconnected {
+      background: #6c757d;
+    }
+    .loading-spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: auto;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      padding: 0.7rem;
+      border-bottom: 1px solid #e2e8f0;
+      text-align: left;
+    }
+    th {
+      background: #f1f5f9;
+      color: #2d3a4b;
+      cursor: pointer;
+    }
+    th:hover {
+      background: #e2e8f0;
+    }
+    .sort-icon::after {
+      content: "↕";
+      margin-left: 5px;
+    }
+    .sort-asc::after {
+      content: "↑";
+    }
+    .sort-desc::after {
+      content: "↓";
+    }
+    .filter-input {
+      margin-bottom: 1rem;
+      padding: 8px;
+      width: 100%;
+      max-width: 300px;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/list.js@2.3.1/dist/list.min.js"></script>
+</head>
+<body>
+  <div id="loading" class="loading-spinner" style="display: none"></div>
+  <div id="error-message"></div>
+  <div id="success-message"></div>
+  <header>
+    <div class="header-inner">
+      <div class="brand">Nurse Dashboard</div>
+      <div style="display: flex; align-items: center">
+        <div id="greeting" class="greeting">Good Morning,</div>
+        <div id="statusIndicator" class="status-indicator disconnected"></div>
+        <button id="logoutBtn" class="btn" style="margin-left: 1rem">Logout</button>
+      </div>
+    </div>
+  </header>
+  <nav>
+    <ul>
+      <li><a href="#vitals" class="active">Vitals Dashboard</a></li>
+      <li><a href="#tasks">Tasks</a></li>
+      <li><a href="#profile">Profile</a></li>
+    </ul>
+  </nav>
+  <main>
+    <section id="vitals" class="card">
+      <h2>Patient Vitals Dashboard</h2>
+      <form id="vitalsForm">
+        <div class="form-group">
+          <label for="patientId">Patient</label>
+          <select id="patientId" required>
+            <option value="">Select Patient</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="heartRate">Heart Rate (bpm)</label>
+          <input type="number" id="heartRate" required />
+        </div>
+        <div class="form-group">
+          <label for="bloodPressure">Blood Pressure (mmHg)</label>
+          <input type="text" id="bloodPressure" placeholder="e.g., 120/80" required />
+        </div>
+        <div class="form-group">
+          <label for="temperature">Temperature (°C)</label>
+          <input type="number" id="temperature" step="0.1" required />
+        </div>
+        <div class="form-group">
+          <label for="vitalFile">Vital Report (PDF)</label>
+          <input type="file" id="vitalFile" accept=".pdf" />
+        </div>
+        <button type="submit">Record Vitals</button>
+      </form>
+      <h3>Vitals History</h3>
+      <input type="text" id="vitalsFilter" class="filter-input" placeholder="Filter by Patient ID or Date" />
+      <div id="vitals-list">
+        <table id="vitals-table">
+          <thead>
+            <tr>
+              <th data-sort="patientId">Patient ID</th>
+              <th data-sort="heartRate">Heart Rate</th>
+              <th data-sort="bloodPressure">Blood Pressure</th>
+              <th data-sort="temperature">Temperature</th>
+              <th data-sort="date">Date</th>
+              <th data-sort="recordedBy">Recorded By</th>
+              <th>File</th>
+            </tr>
+          </thead>
+          <tbody class="list"></tbody>
+        </table>
+      </div>
+    </section>
+    <section id="tasks" class="card" style="display: none">
+      <h2>Assigned Tasks</h2>
+      <input type="text" id="tasksFilter" class="filter-input" placeholder="Filter by Patient ID or Description" />
+      <div id="tasks-list">
+        <table id="tasks-table">
+          <thead>
+            <tr>
+              <th data-sort="description">Description</th>
+              <th data-sort="patientId">Patient ID</th>
+              <th data-sort="status">Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody class="list"></tbody>
+        </table>
+      </div>
+    </section>
+    <section id="profile" class="card" style="display: none">
+      <h2>Nurse Profile</h2>
+      <form id="profileForm">
+        <div class="form-group">
+          <label for="nurseId">Nurse ID</label>
+          <input type="text" id="nurseId" readonly />
+        </div>
+        <div class="form-group">
+          <label for="firstName">First Name</label>
+          <input type="text" id="firstName" required />
+        </div>
+        <div class="form-group">
+          <label for="lastName">Last Name</label>
+          <input type="text" id="lastName" required />
+        </div>
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" readonly />
+        </div>
+        <div class="form-group">
+          <label for="licenseNumber">License Number</label>
+          <input type="text" id="licenseNumber" required />
+        </div>
+        <div class="form-group">
+          <label for="hospital">Hospital</label>
+          <input type="text" id="hospital" />
+        </div>
+        <div class="form-group">
+          <label for="phone">Phone</label>
+          <input type="tel" id="phone" />
+        </div>
+        <div class="form-group">
+          <label for="bio">Bio</label>
+          <textarea id="bio"></textarea>
+        </div>
+        <button type="submit">Save Profile</button>
+      </form>
+    </section>
+  </main>
+  <script type="module" src="vitals.js"></script>
+</body>
+</html>

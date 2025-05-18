@@ -113,6 +113,10 @@
       .btn:hover {
         background: #0047b3;
       }
+      .btn.disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
       .empty-state {
         text-align: center;
         padding: 2rem;
@@ -155,9 +159,52 @@
         visibility: visible;
         opacity: 1;
       }
+      .loading-spinner {
+        width: 24px;
+        height: 24px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: auto;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      .error-message,
+      .success-message {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 10px 20px;
+        border-radius: 4px;
+        z-index: 1001;
+        display: none;
+      }
+      .error-message {
+        background: #e53e3e;
+        color: #fff;
+      }
+      .success-message {
+        background: #28a745;
+        color: #fff;
+      }
     </style>
   </head>
   <body>
+    <div id="loading" class="loading-spinner" style="display: none"></div>
+    <div id="error-message" class="error-message"></div>
+    <div id="success-message" class="success-message"></div>
     <header>
       <div style="display: flex; align-items: center">
         <span id="greeting" class="greeting"></span>
@@ -226,14 +273,6 @@
         ref,
         getDownloadURL,
       } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-storage.js";
-      import {
-        showLoading,
-        hideLoading,
-        showError,
-        showSuccess,
-        setupTableSorting,
-        setupTableFiltering,
-      } from "./js/common.js";
 
       const firebaseConfig = {
         apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
@@ -252,6 +291,41 @@
       enableIndexedDbPersistence(db).catch((err) =>
         console.warn("Offline persistence failed:", err)
       );
+
+      const loadingEl = document.getElementById("loading");
+      const errorEl = document.getElementById("error-message");
+      const successEl = document.getElementById("success-message");
+
+      function showLoading() {
+        loadingEl.style.display = "block";
+      }
+      function hideLoading() {
+        loadingEl.style.display = "none";
+      }
+      function showError(message) {
+        errorEl.textContent = message;
+        errorEl.style.display = "block";
+        setTimeout(() => {
+          errorEl.textContent = "";
+          errorEl.style.display = "none";
+        }, 5000);
+      }
+      function showSuccess(message) {
+        successEl.textContent = message;
+        successEl.style.display = "block";
+        setTimeout(() => {
+          successEl.textContent = "";
+          successEl.style.display = "none";
+        }, 5000);
+      }
+      function setupTableSorting(tableId, columns) {
+        // Mock: Basic sorting not implemented
+        console.log(`Sorting table ${tableId} on columns:`, columns);
+      }
+      function setupTableFiltering(tableId, columns) {
+        // Mock: Basic filtering not implemented
+        console.log(`Filtering table ${tableId} on columns:`, columns);
+      }
 
       onAuthStateChanged(auth, async (user) => {
         if (user) {
@@ -290,19 +364,23 @@
           showLoading();
           const recordsRef = collection(db, "medicalRecords");
           const q = query(recordsRef, where("patientId", "==", userId));
-          onSnapshot(q, async (querySnapshot) => {
-            const tbody = document.querySelector("#recordsTable tbody");
-            const container = document.getElementById("recordsTableContainer");
-            tbody.innerHTML = "";
-            if (querySnapshot.empty) {
-              container.innerHTML = `
+          onSnapshot(
+            q,
+            async (querySnapshot) => {
+              const tbody = document.querySelector("#recordsTable tbody");
+              const container = document.getElementById(
+                "recordsTableContainer"
+              );
+              tbody.innerHTML = "";
+              if (querySnapshot.empty) {
+                container.innerHTML = `
                 <div class="empty-state">
                   <i class="fas fa-file-medical"></i>
                   <p>No medical records found.</p>
                 </div>`;
-              return;
-            }
-            container.innerHTML = `
+                return;
+              }
+              container.innerHTML = `
               <table id="recordsTable">
                 <thead>
                   <tr>
@@ -315,41 +393,58 @@
                 </thead>
                 <tbody></tbody>
               </table>`;
-            const newTbody = document.querySelector("#recordsTable tbody");
-            for (const doc of querySnapshot.docs) {
-              const record = doc.data();
-              let creatorName = "Unknown";
-              if (record.createdBy) {
-                const creatorDoc = await getDoc(
-                  doc(
-                    db,
-                    record.createdBy.includes("doctor") ? "doctors" : "users",
-                    record.createdBy
-                  )
-                );
-                if (creatorDoc.exists()) {
-                  const creatorData = creatorDoc.data();
-                  creatorName = record.createdBy.includes("doctor")
-                    ? `Dr. ${creatorData.firstName} ${creatorData.lastName}`
-                    : `${creatorData.firstName} ${creatorData.lastName} (Clerk)`;
+              const newTbody = document.querySelector("#recordsTable tbody");
+              for (const doc of querySnapshot.docs) {
+                const record = doc.data();
+                let creatorName = "Unknown";
+                if (record.createdBy) {
+                  const creatorDoc = await getDoc(
+                    doc(
+                      db,
+                      record.createdBy.includes("doctor") ? "doctors" : "users",
+                      record.createdBy
+                    )
+                  );
+                  if (creatorDoc.exists()) {
+                    const creatorData = creatorDoc.data();
+                    creatorName = record.createdBy.includes("doctor")
+                      ? `Dr. ${creatorData.firstName} ${creatorData.lastName}`
+                      : `${creatorData.firstName} ${creatorData.lastName} (Clerk)`;
+                  }
                 }
-              }
-              const downloadUrl = await getDownloadURL(
-                ref(storage, record.filePath)
-              );
-              const row = document.createElement("tr");
-              row.innerHTML = `
+                let downloadUrl = "";
+                if (record.filePath) {
+                  try {
+                    downloadUrl = await getDownloadURL(
+                      ref(storage, record.filePath)
+                    );
+                  } catch (error) {
+                    console.error("Error fetching download URL:", error);
+                    downloadUrl = "";
+                  }
+                }
+                const row = document.createElement("tr");
+                row.innerHTML = `
                 <td>${record.recordId}</td>
                 <td>${record.date.toDate().toLocaleDateString()}</td>
                 <td>${record.description}</td>
                 <td>${creatorName}</td>
-                <td><a href="${downloadUrl}" class="btn" target="_blank">Download</a></td>
+                <td>${
+                  downloadUrl
+                    ? `<a href="${downloadUrl}" class="btn" target="_blank">Download</a>`
+                    : `<span class="btn disabled">No File</span>`
+                }</td>
               `;
-              newTbody.appendChild(row);
+                newTbody.appendChild(row);
+              }
+              setupTableSorting("recordsTable", [0, 1, 2, 3]);
+              setupTableFiltering("recordsTable", [1, 2, 3]);
+            },
+            (error) => {
+              console.error("Error loading medical records:", error);
+              showError("Failed to load medical records.");
             }
-            setupTableSorting("recordsTable", [0, 1, 2, 3]);
-            setupTableFiltering("recordsTable", [1, 2, 3]);
-          });
+          );
         } catch (error) {
           console.error("Error loading medical records:", error);
           showError("Failed to load medical records. Please try again.");
