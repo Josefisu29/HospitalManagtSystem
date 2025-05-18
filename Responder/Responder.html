@@ -13,18 +13,6 @@
       src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY"
       defer
     ></script>
-    <script
-      type="module"
-      src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"
-    ></script>
-    <script
-      type="module"
-      src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js"
-    ></script>
-    <script
-      type="module"
-      src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js"
-    ></script>
     <style>
       :root {
         --primary: #0052cc;
@@ -137,11 +125,9 @@
         background: rgba(0, 0, 0, 0.5);
         justify-content: center;
         align-items: center;
-        transition: opacity var(--transition);
       }
       .modal.show {
         display: flex;
-        opacity: 1;
       }
       .modal-content {
         background: #fff;
@@ -183,8 +169,8 @@
         border: none;
         border-radius: 4px;
         cursor: pointer;
-        transition: background var(--transition);
         font-size: 1rem;
+        transition: background var(--transition);
       }
       .btn-primary {
         background: var(--primary);
@@ -192,18 +178,6 @@
       }
       .btn-primary:hover {
         background: #0041a8;
-      }
-      .btn-accent {
-        background: var(--accent);
-        color: #fff;
-      }
-      .btn-accent:hover {
-        background: #006666;
-      }
-      footer {
-        text-align: center;
-        padding: 1rem;
-        color: #666;
       }
       @media (max-width: 768px) {
         .nav-menu {
@@ -220,7 +194,6 @@
         }
         .nav-toggle {
           display: block;
-          padding: 0.5rem 1rem;
         }
         #map {
           height: 300px;
@@ -246,10 +219,14 @@
       <div class="nav-inner">
         <div class="nav-toggle" id="navToggle">☰</div>
         <ul class="nav-menu" id="navMenu">
-          <li><a href="Responder/Responder.html" class="active" aria-current="page">Dashboard</a></li>
-          <li><a href="Responder/assign.html">Assignment</a></li>
-          <li><a href="Responder/reports.html">Report</a></li>
-          <li><a href="Responder/map.html">Map</a></li>
+          <li>
+            <a href="Responder.html" class="active" aria-current="page"
+              >Dashboard</a
+            >
+          </li>
+          <li><a href="assign.html">Assignment</a></li>
+          <li><a href="reports.html">Report</a></li>
+          <li><a href="map.html">Map</a></li>
         </ul>
       </div>
     </nav>
@@ -257,11 +234,11 @@
       <div id="map"></div>
       <section id="emergencyList" class="card">
         <h2>Current Emergencies</h2>
-        <!-- Emergency items will be added here dynamically -->
+        <div id="emergencyItems"></div>
       </section>
       <div id="emergencyModal" class="modal">
         <div class="modal-content">
-          <span class="close" aria-label="Close modal">&times;</span>
+          <span class="close" aria-label="Close modal">×</span>
           <h2 id="modalTitle"></h2>
           <p>Address: <span id="modalAddress"></span></p>
           <p>Requested at: <span id="modalRequestedAt"></span></p>
@@ -285,9 +262,6 @@
       </div>
       <div id="notifications"></div>
     </main>
-    <footer>
-      <!-- <p>&copy; 2025 Hospital Management System. All rights reserved.</p> -->
-    </footer>
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
       import {
@@ -300,6 +274,7 @@
         collection,
         onSnapshot,
         doc,
+        getDoc,
         updateDoc,
       } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
@@ -312,13 +287,16 @@
         appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
       };
 
+      // Initialize Firebase
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app);
       const db = getFirestore(app);
 
       let map;
       let emergencies = [];
+      const geocoder = new google.maps.Geocoder();
 
+      // Initialize Google Map
       function initMap() {
         map = new google.maps.Map(document.getElementById("map"), {
           center: { lat: 0, lng: 0 },
@@ -326,53 +304,117 @@
         });
       }
 
+      // Authenticate user and load data
       onAuthStateChanged(auth, async (user) => {
-        if (user) {
+        if (!user) {
+          window.location.href = "/index.html";
+          return;
+        }
+        try {
           const userDoc = await getDoc(doc(db, "users", user.uid));
           if (userDoc.exists() && userDoc.data().role === "firstResponder") {
-            const greetEl = document.getElementById("userGreeting");
-            const hour = new Date().getHours();
-            const sal =
-              hour < 12
-                ? "Good Morning"
-                : hour < 18
-                ? "Good Afternoon"
-                : "Good Evening";
-            greetEl.textContent = `${sal}, ${
-              userDoc.data().firstName || "Responder"
-            }`;
+            updateGreeting(userDoc.data().firstName);
             loadEmergencies();
           } else {
+            await signOut(auth);
             window.location.href = "/index.html";
           }
-        } else {
-          window.location.href = "/index.html";
+        } catch (error) {
+          console.error("Auth error:", error);
+          showNotification("Failed to authenticate");
         }
       });
 
-      function loadEmergencies() {
-        const q = collection(db, "helpRequests");
-        onSnapshot(q, (snapshot) => {
-          snapshot.docChanges().forEach((change) => {
-            const emergency = { id: change.doc.id, ...change.doc.data() };
-            if (change.type === "added") {
-              emergencies.push(emergency);
-              addEmergencyToMap(emergency);
-              addEmergencyToList(emergency);
-              showNotification(
-                `New ${emergency.type} request from ${emergency.name}`
-              );
-            } else if (change.type === "modified") {
-              const index = emergencies.findIndex((e) => e.id === emergency.id);
-              if (index !== -1) {
-                emergencies[index] = emergency;
-                updateEmergencyInList(emergency);
-              }
-            }
-          });
-        });
+      // Update user greeting based on time
+      function updateGreeting(firstName) {
+        const hour = new Date().getHours();
+        const sal =
+          hour < 12
+            ? "Good Morning"
+            : hour < 18
+            ? "Good Afternoon"
+            : "Good Evening";
+        document.getElementById("userGreeting").textContent = `${sal}, ${
+          firstName || "Responder"
+        }`;
       }
 
+      // Load emergencies from Firestore
+      function loadEmergencies() {
+        const q = collection(db, "helpRequests");
+        onSnapshot(
+          q,
+          async (snapshot) => {
+            for (const change of snapshot.docChanges()) {
+              const emergency = { id: change.doc.id, ...change.doc.data() };
+              if (change.type === "added") {
+                await enrichEmergencyData(emergency);
+                emergencies.push(emergency);
+                addEmergencyToMap(emergency);
+                addEmergencyToList(emergency);
+                showNotification(
+                  `New ${emergency.type} request from ${emergency.name}`
+                );
+              } else if (change.type === "modified") {
+                const index = emergencies.findIndex(
+                  (e) => e.id === emergency.id
+                );
+                if (index !== -1) {
+                  await enrichEmergencyData(emergency);
+                  emergencies[index] = emergency;
+                  updateEmergencyInList(emergency);
+                }
+              }
+            }
+          },
+          (error) => {
+            console.error("Error fetching emergencies:", error);
+            showNotification("Failed to load emergencies");
+          }
+        );
+      }
+
+      // Enrich emergency data with name, address, type, and status
+      async function enrichEmergencyData(emergency) {
+        // Fetch patient name
+        if (!emergency.name) {
+          const userDoc = await getDoc(doc(db, "users", emergency.patientId));
+          emergency.name = userDoc.exists()
+            ? `${userDoc.data().firstName} ${userDoc.data().lastName}`
+            : "Unknown";
+        }
+        // Geocode address
+        if (!emergency.address && emergency.latitude && emergency.longitude) {
+          try {
+            const response = await new Promise((resolve, reject) => {
+              geocoder.geocode(
+                {
+                  location: {
+                    lat: emergency.latitude,
+                    lng: emergency.longitude,
+                  },
+                },
+                (results, status) => {
+                  if (status === "OK" && results[0])
+                    resolve(results[0].formatted_address);
+                  else reject(new Error("Geocoding failed"));
+                }
+              );
+            });
+            emergency.address = response;
+          } catch (error) {
+            console.warn("Geocoding failed:", error);
+            emergency.address = "Unknown location";
+          }
+        }
+        // Set defaults
+        emergency.type = emergency.type || "gps";
+        emergency.status = emergency.status || "Pending";
+        emergency.createdAt =
+          emergency.timestamp || emergency.createdAt || new Date();
+      }
+
+      // Add emergency to map
       function addEmergencyToMap(emergency) {
         const pos = { lat: emergency.latitude, lng: emergency.longitude };
         new google.maps.Marker({
@@ -390,35 +432,33 @@
         map.setZoom(15);
       }
 
+      // Add emergency to list
       function addEmergencyToList(emergency) {
-        const list = document.getElementById("emergencyList");
+        const container = document.getElementById("emergencyItems");
         const item = document.createElement("div");
         item.className = "emergency-item";
         item.dataset.id = emergency.id;
         item.innerHTML = `
         <div class="emergency-details">
-          <h3><i class="fas fa-user-injured" aria-hidden="true"></i> ${
-            emergency.name
-          }</h3>
-          <p><i class="fas fa-map-marker-alt" aria-hidden="true"></i> ${
-            emergency.address
-          }</p>
-          <p><i class="fas fa-clock" aria-hidden="true"></i> Requested at: ${new Date(
-            emergency.createdAt.toDate()
-          ).toLocaleString()}</p>
-          <p class="status"><i class="fas fa-info-circle" aria-hidden="true"></i> Status: ${
+          <h3><i class="fas fa-user-injured"></i> ${emergency.name}</h3>
+          <p><i class="fas fa-map-marker-alt"></i> ${emergency.address}</p>
+          <p><i class="fas fa-clock"></i> Requested at: ${emergency.createdAt
+            .toDate()
+            .toLocaleString()}</p>
+          <p class="status"><i class="fas fa-info-circle"></i> Status: ${
             emergency.status
           }</p>
         </div>
-        <button onclick="viewDetails('${
-          emergency.id
-        }')" class="btn btn-primary" aria-label="View details for ${
+        <button class="btn btn-primary view-details" aria-label="View details for ${
           emergency.name
         }">View Details</button>
       `;
-        list.appendChild(item);
+        container.appendChild(item);
+        item.querySelector(".view-details").onclick = () =>
+          viewDetails(emergency.id);
       }
 
+      // Update emergency in list
       function updateEmergencyInList(emergency) {
         const item = document.querySelector(
           `.emergency-item[data-id="${emergency.id}"]`
@@ -426,71 +466,67 @@
         if (item) {
           item.querySelector(
             ".status"
-          ).innerHTML = `<i class="fas fa-info-circle" aria-hidden="true"></i> Status: ${emergency.status}`;
+          ).innerHTML = `<i class="fas fa-info-circle"></i> Status: ${emergency.status}`;
         }
       }
 
-      let currentEmergency = null;
-
+      // Show modal with emergency details
       function viewDetails(id) {
         const emergency = emergencies.find((e) => e.id === id);
-        if (emergency) {
-          currentEmergency = emergency;
-          document.getElementById("modalTitle").textContent = emergency.name;
-          document.getElementById("modalAddress").textContent =
-            emergency.address;
-          document.getElementById("modalRequestedAt").textContent = new Date(
-            emergency.createdAt.toDate()
-          ).toLocaleString();
-          document.getElementById("modalType").textContent =
-            emergency.type === "gps" ? "GPS Request" : "Voice Call";
-          document.getElementById("statusSelect").value = emergency.status;
-          document.getElementById("emergencyModal").classList.add("show");
-        }
+        if (!emergency) return;
+        document.getElementById("modalTitle").textContent = emergency.name;
+        document.getElementById("modalAddress").textContent = emergency.address;
+        document.getElementById("modalRequestedAt").textContent =
+          emergency.createdAt.toDate().toLocaleString();
+        document.getElementById("modalType").textContent =
+          emergency.type === "gps" ? "GPS Request" : "Voice Call";
+        document.getElementById("statusSelect").value = emergency.status;
+        document.getElementById("emergencyModal").classList.add("show");
+        document.getElementById("saveStatus").onclick = () =>
+          saveStatus(emergency.id);
       }
 
-      function showNotification(message) {
-        const notifications = document.getElementById("notifications");
-        const notification = document.createElement("div");
-        notification.className = "notification";
-        notification.innerHTML = `<i class="fas fa-bell" aria-hidden="true"></i> ${message}`;
-        notifications.appendChild(notification);
-        setTimeout(() => notification.remove(), 5000);
-      }
-
-      document.querySelector(".close").onclick = () => {
-        document.getElementById("emergencyModal").classList.remove("show");
-      };
-
-      document.getElementById("saveStatus").onclick = async () => {
+      // Save status update
+      async function saveStatus(id) {
         const newStatus = document.getElementById("statusSelect").value;
         try {
-          await updateDoc(doc(db, "helpRequests", currentEmergency.id), {
-            status: newStatus,
-          });
+          await updateDoc(doc(db, "helpRequests", id), { status: newStatus });
           showNotification(`Status updated to ${newStatus}`);
           document.getElementById("emergencyModal").classList.remove("show");
         } catch (error) {
           console.error("Error updating status:", error);
           showNotification("Failed to update status");
         }
+      }
+
+      // Show notification
+      function showNotification(message) {
+        const notifications = document.getElementById("notifications");
+        const notification = document.createElement("div");
+        notification.className = "notification";
+        notification.innerHTML = `<i class="fas fa-bell"></i> ${message}`;
+        notifications.appendChild(notification);
+        setTimeout(() => notification.remove(), 5000);
+      }
+
+      // Event listeners
+      document.getElementById("logoutBtn").onclick = async () => {
+        try {
+          await signOut(auth);
+          window.location.href = "/index.html";
+        } catch (error) {
+          console.error("Error signing out:", error);
+          showNotification("Failed to sign out");
+        }
       };
 
-      document
-        .getElementById("logoutBtn")
-        .addEventListener("click", async () => {
-          try {
-            await signOut(auth);
-            window.location.href = "/index.html";
-          } catch (error) {
-            console.error("Error signing out:", error);
-            showNotification("Failed to sign out");
-          }
-        });
-
-      document.getElementById("navToggle").addEventListener("click", () => {
+      document.getElementById("navToggle").onclick = () => {
         document.getElementById("navMenu").classList.toggle("open");
-      });
+      };
+
+      document.querySelector(".close").onclick = () => {
+        document.getElementById("emergencyModal").classList.remove("show");
+      };
     </script>
   </body>
 </html>
