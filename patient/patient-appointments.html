@@ -333,21 +333,23 @@
                   : hour < 18
                   ? "Good Afternoon"
                   : "Good Evening";
-              document.getElementById(
-                "greeting"
-              ).textContent = `${greet}, ${data.firstName}`;
+              document.getElementById("greeting").textContent = `${greet}, ${
+                data.firstName || "Patient"
+              }`;
               loadDoctors();
               loadAppointments(user.uid);
             } else {
               console.error("User document does not exist for UID:", user.uid);
               document.getElementById("greeting").textContent =
                 "Error: Profile not found";
+              showToast("Error: Profile not found");
             }
           })
           .catch((error) => {
             console.error("Error fetching user document:", error);
             document.getElementById("greeting").textContent =
               "Error loading profile";
+            showToast("Error loading profile");
           });
       });
 
@@ -356,24 +358,96 @@
 
       async function loadDoctors() {
         const select = document.getElementById("doctorSelect");
+        select.innerHTML = '<option value="">Loading doctors...</option>';
+        let unsubscribe;
+
         try {
-          const docsSnap = await getDocs(collection(db, "doctors"));
-          if (docsSnap.empty) {
-            select.innerHTML = '<option value="">No doctors available</option>';
-          } else {
-            select.innerHTML = '<option value="">Select Doctor</option>';
-            docsSnap.forEach((docSnap) => {
-              const d = docSnap.data();
-              const opt = document.createElement("option");
-              opt.value = docSnap.id;
-              opt.textContent = `${d.hospital} - Dr. ${d.firstName} ${d.lastName}`;
-              select.append(opt);
-            });
-          }
+          // Primary query: Fetch active doctors from 'doctors' collection
+          const doctorsQuery = query(
+            collection(db, "doctors"),
+            where("isActive", "==", true)
+          );
+          unsubscribe = onSnapshot(
+            doctorsQuery,
+            (snapshot) => {
+              console.log(
+                "Doctors fetched from 'doctors':",
+                snapshot.size,
+                "documents"
+              );
+              snapshot.forEach((docSnap) => {
+                console.log("Doctor ID:", docSnap.id, "Data:", docSnap.data());
+              });
+
+              if (snapshot.empty) {
+                console.warn("No active doctors found in 'doctors' collection");
+                // Fallback: Query 'users' collection for doctors
+                const usersQuery = query(
+                  collection(db, "users"),
+                  where("role", "==", "doctor")
+                );
+                getDocs(usersQuery)
+                  .then((userSnapshot) => {
+                    if (userSnapshot.empty) {
+                      console.warn("No doctors found in 'users' collection");
+                      select.innerHTML =
+                        '<option value="">No doctors available</option>';
+                      showToast("No doctors available");
+                    } else {
+                      select.innerHTML =
+                        '<option value="">Select Doctor</option>';
+                      userSnapshot.forEach((docSnap) => {
+                        const d = docSnap.data();
+                        const hospital = d.hospital || "Unknown Hospital";
+                        const firstName = d.firstName || "Unknown";
+                        const lastName = d.lastName || "Unknown";
+                        const specialty = d.specialty || "General";
+                        const opt = document.createElement("option");
+                        opt.value = docSnap.id;
+                        opt.textContent = `${hospital} - Dr. ${firstName} ${lastName} (${specialty})`;
+                        select.appendChild(opt);
+                      });
+                    }
+                  })
+                  .catch((error) => {
+                    console.error("Error querying 'users' collection:", error);
+                    select.innerHTML =
+                      '<option value="">Error loading doctors</option>';
+                    showToast(
+                      "Failed to load doctors from users: " + error.message
+                    );
+                  });
+                return;
+              }
+
+              select.innerHTML = '<option value="">Select Doctor</option>';
+              snapshot.forEach((docSnap) => {
+                const d = docSnap.data();
+                const hospital = d.hospital || "Unknown Hospital";
+                const firstName = d.firstName || "Unknown";
+                const lastName = d.lastName || "Unknown";
+                const specialty = d.specialty || "General";
+                const opt = document.createElement("option");
+                opt.value = docSnap.id;
+                opt.textContent = `${hospital} - Dr. ${firstName} ${lastName} (${specialty})`;
+                select.appendChild(opt);
+              });
+            },
+            (error) => {
+              console.error("Error loading doctors from 'doctors':", error);
+              select.innerHTML =
+                '<option value="">Error loading doctors</option>';
+              showToast("Failed to load doctors: " + error.message);
+            }
+          );
         } catch (error) {
-          console.error("Error loading doctors:", error);
+          console.error("Error setting up doctors listener:", error);
           select.innerHTML = '<option value="">Error loading doctors</option>';
+          showToast("Failed to load doctors: " + error.message);
         }
+
+        // Return unsubscribe function for cleanup
+        return () => unsubscribe && unsubscribe();
       }
 
       function loadAppointments(uid) {
@@ -382,40 +456,57 @@
           collection(db, "appointments"),
           where("patientId", "==", uid)
         );
-        onSnapshot(q, (snap) => {
-          tbody.innerHTML = "";
-          snap.forEach((docSnap) => {
-            const a = docSnap.data();
-            const date = a.date.toDate();
-            const row = `<tr>
+        onSnapshot(
+          q,
+          (snap) => {
+            tbody.innerHTML = "";
+            if (snap.empty) {
+              tbody.innerHTML =
+                '<tr><td colspan="6">No appointments found</td></tr>';
+              return;
+            }
+            snap.forEach((docSnap) => {
+              const a = docSnap.data();
+              const date = a.date.toDate();
+              const row = `<tr>
               <td>${date.toLocaleDateString()}</td>
               <td>${date.toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
               })}</td>
-              <td>${a.doctorName}</td>
+              <td>${a.doctorName || "Unknown Doctor"}</td>
               <td>${a.type}</td>
               <td><span class="status-badge ${a.status}">${a.status}</span></td>
               <td>
                 <button class="btn reschedule-btn" data-id="${docSnap.id}" ${
-              ["confirmed", "pending"].includes(a.status) ? "" : "disabled"
-            }>Reschedule</button>
+                ["confirmed", "pending"].includes(a.status) ? "" : "disabled"
+              }>Reschedule</button>
                 <button class="btn cancel-btn" data-id="${docSnap.id}" ${
-              ["confirmed", "pending"].includes(a.status) ? "" : "disabled"
-            }>Cancel</button>
+                ["confirmed", "pending"].includes(a.status) ? "" : "disabled"
+              }>Cancel</button>
               </td>
             </tr>`;
-            tbody.insertAdjacentHTML("beforeend", row);
-          });
-        });
+              tbody.insertAdjacentHTML("beforeend", row);
+            });
+          },
+          (error) => {
+            console.error("Error loading appointments:", error);
+            showToast("Failed to load appointments: " + error.message);
+            tbody.innerHTML =
+              '<tr><td colspan="6">Error loading appointments</td></tr>';
+          }
+        );
       }
 
       const bookBtn = document.getElementById("bookAppointmentBtn");
       const modal = document.getElementById("appointmentModal");
       const soon = document.getElementById("comingSoonModal");
       bookBtn.onclick = () => (modal.style.display = "flex");
-      document.getElementById("closeModal").onclick = () =>
-        (modal.style.display = "none");
+      document.getElementById("closeModal").onclick = () => {
+        modal.style.display = "none";
+        document.getElementById("appointmentForm").reset();
+        delete document.getElementById("appointmentForm").dataset.appointmentId;
+      };
       document.getElementById("closeSoon").onclick = () =>
         (soon.style.display = "none");
 
@@ -441,9 +532,31 @@
             showToast("Please select a doctor");
             return;
           }
+
+          // Validate doctor existence
+          try {
+            const docRef = doc(db, "doctors", docId);
+            const docSnap = await getDoc(docRef);
+            if (!docSnap.exists()) {
+              // Fallback: Check 'users' collection
+              const userRef = doc(db, "users", docId);
+              const userSnap = await getDoc(userRef);
+              if (!userSnap.exists() || userSnap.data().role !== "doctor") {
+                showToast("Selected doctor is no longer available");
+                return;
+              }
+            }
+          } catch (error) {
+            console.error("Error validating doctor:", error);
+            showToast("Failed to validate doctor: " + error.message);
+            return;
+          }
+
           const type = document.getElementById("appointmentType").value;
           if (type === "virtual") {
             showToast("Virtual appointments coming soon!");
+            soon.style.display = "flex";
+            modal.style.display = "none";
             return;
           }
           const dateStr = document.getElementById("appointmentDate").value;
@@ -488,9 +601,12 @@
               showToast("Appointment booked");
             }
             modal.style.display = "none";
+            form.reset();
           } catch (error) {
-            console.error("Error:", error);
-            showToast("Failed to book/reschedule appointment");
+            console.error("Error booking appointment:", error);
+            showToast(
+              "Failed to book/reschedule appointment: " + error.message
+            );
           }
         });
 
@@ -505,7 +621,7 @@
             showToast("Appointment cancelled");
           } catch (error) {
             console.error("Error cancelling appointment:", error);
-            showToast("Failed to cancel appointment");
+            showToast("Failed to cancel appointment: " + error.message);
           }
         } else if (e.target.classList.contains("reschedule-btn")) {
           const id = e.target.dataset.id;
@@ -528,10 +644,12 @@
               document.getElementById("appointmentForm").dataset.appointmentId =
                 id;
               modal.style.display = "flex";
+            } else {
+              showToast("Appointment not found");
             }
           } catch (error) {
             console.error("Error fetching appointment:", error);
-            showToast("Failed to load appointment for rescheduling");
+            showToast("Failed to load appointment: " + error.message);
           }
         }
       });
@@ -548,6 +666,7 @@
       statusDot.className = navigator.onLine
         ? "status-indicator online"
         : "status-indicator offline";
+
       function showToast(message) {
         const toast = document.getElementById("toast");
         toast.textContent = message;

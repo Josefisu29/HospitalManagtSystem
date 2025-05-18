@@ -84,7 +84,9 @@
         background: #ccc;
         cursor: not-allowed;
       }
-      input, select, textarea {
+      input,
+      select,
+      textarea {
         padding: 0.5rem;
         margin: 0.5rem 0;
         width: 100%;
@@ -130,7 +132,8 @@
         border-collapse: collapse;
         margin-top: 1rem;
       }
-      th, td {
+      th,
+      td {
         padding: 0.7rem;
         border-bottom: 1px solid #e2e8f0;
         text-align: left;
@@ -149,8 +152,12 @@
         margin: auto;
       }
       @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
       }
       .error-message {
         color: #e53e3e;
@@ -193,6 +200,23 @@
         right: 15px;
         font-size: 1.5rem;
         cursor: pointer;
+      }
+      .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-top: 1rem;
+      }
+      .pagination button {
+        padding: 0.5rem 1rem;
+        border: 1px solid #ddd;
+        background: #fff;
+        cursor: pointer;
+        border-radius: 4px;
+      }
+      .pagination button:disabled {
+        background: #f5f5f5;
+        cursor: not-allowed;
       }
     </style>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
@@ -237,39 +261,66 @@
         </div>
         <h3>Upcoming Appointments</h3>
         <div id="upcoming-appointments"><p>Loading...</p></div>
-        <h3>Recent Patients</h3>
+        <h3>Patients</h3>
+        <div>
+          <button id="showMyPatients" class="btn">My Patients</button>
+          <button id="showAllPatients" class="btn">All Patients</button>
+        </div>
         <div id="recent-patients"><p>Loading...</p></div>
+        <div id="pagination" class="pagination"></div>
       </section>
       <section id="patients" class="card" style="display: none">
         <h2>Patient Management</h2>
         <div>
           <input type="text" id="searchInput" placeholder="Search by name" />
-          <button onclick="searchPatients(document.getElementById('searchInput').value)" class="btn">Search</button>
-          <button onclick="getAllPatients()" class="btn">Get All Patients</button>
+          <button
+            onclick="searchPatients(document.getElementById('searchInput').value)"
+            class="btn"
+          >
+            Search
+          </button>
+          <button onclick="getAllPatients()" class="btn">
+            Get All Patients
+          </button>
         </div>
         <h3>Patients</h3>
         <ul id="patientsList"></ul>
+        <div id="patientsPagination" class="pagination"></div>
         <h3>Patient Details</h3>
         <div id="patientDetails">
           <div id="appointmentsContainer"></div>
-          <div id="notesContainer"></div>
+          <div id="notesContainer">
+            <button id="addNoteBtn" class="btn">Add Clinical Note</button>
+          </div>
           <div id="recordsContainer">
             <button id="addRecordBtn" class="btn">Add Medical Record</button>
           </div>
-          <div id="prescriptionsContainer"></div>
+          <div id="prescriptionsContainer">
+            <button id="addPrescriptionBtn" class="btn">
+              Add Prescription
+            </button>
+          </div>
         </div>
       </section>
       <section id="profile" class="card" style="display: none">
         <h2>Doctor Profile</h2>
         <form id="profileForm">
           <label>Doctor ID: <input type="text" id="doctorId" readonly /></label>
-          <label>First Name: <input type="text" id="firstName" required /></label>
+          <label
+            >First Name: <input type="text" id="firstName" required
+          /></label>
           <label>Last Name: <input type="text" id="lastName" required /></label>
           <label>Email: <input type="email" id="email" readonly /></label>
           <label>Hospital: <input type="text" id="hospital" /></label>
-          <label>Specialty: <input type="text" id="specialty" required /></label>
-          <label>License Number: <input type="text" id="licenseNumber" required /></label>
-          <label>Office Address: <textarea id="officeAddress"></textarea></label>
+          <label
+            >Specialty: <input type="text" id="specialty" required
+          /></label>
+          <label
+            >License Number: <input type="text" id="licenseNumber" required
+          /></label>
+          <label
+            >Office Address: <textarea id="officeAddress"></textarea>
+          </label>
           <label>Phone: <input type="tel" id="phone" /></label>
           <label>Bio: <textarea id="bio"></textarea></label>
           <label>Availability: <textarea id="availability"></textarea></label>
@@ -283,9 +334,46 @@
         <h3>Add Medical Record</h3>
         <form id="recordForm">
           <input type="hidden" id="recordPatientId" />
-          <label>Description: <textarea id="recordDescription" required></textarea></label>
-          <label>File (PDF): <input type="file" id="recordFile" accept=".pdf" /></label>
+          <label
+            >Description: <textarea id="recordDescription" required></textarea>
+          </label>
+          <label
+            >File (PDF, max 5MB):
+            <input type="file" id="recordFile" accept=".pdf"
+          /></label>
           <button type="submit" class="btn">Save Record</button>
+        </form>
+      </div>
+    </div>
+    <div id="prescriptionModal" class="modal">
+      <div class="modal-content">
+        <span class="close" id="closePrescriptionModal">×</span>
+        <h3>Add Prescription</h3>
+        <form id="prescriptionForm">
+          <input type="hidden" id="prescriptionPatientId" />
+          <label
+            >Medication: <input type="text" id="medication" required
+          /></label>
+          <label>Dosage: <textarea id="dosage" required></textarea></label>
+          <button type="submit" class="btn">Save Prescription</button>
+        </form>
+      </div>
+    </div>
+    <div id="noteModal" class="modal">
+      <div class="modal-content">
+        <span class="close" id="closeNoteModal">×</span>
+        <h3>Add Clinical Note</h3>
+        <form id="noteForm">
+          <input type="hidden" id="notePatientId" />
+          <label>Note: <textarea id="noteText" required></textarea></label>
+          <label
+            >Status:
+            <select id="noteStatus" required>
+              <option value="pending">Pending</option>
+              <option value="completed">Completed</option>
+            </select>
+          </label>
+          <button type="submit" class="btn">Save Note</button>
         </form>
       </div>
     </div>
@@ -303,6 +391,7 @@
         where,
         orderBy,
         limit,
+        startAfter,
         onSnapshot,
         getDocs,
         doc,
@@ -323,9 +412,10 @@
       const firebaseConfig = {
         apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
         authDomain: "hospitalmanagtsystem.firebaseapp.com",
-        databaseURL: "https://hospitalmanagtsystem-default-rtdb.europe-west1.firebasedatabase.app",
+        databaseURL:
+          "https://hospitalmanagtsystem-default-rtdb.europe-west1.firebasedatabase.app",
         projectId: "hospitalmanagtsystem",
-        storageBucket: "hospitalmanagtsystem.firsebasestorage.app",
+        storageBucket: "hospitalmanagtsystem.firebasestorage.app",
         messagingSenderId: "771158568788",
         appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
       };
@@ -334,7 +424,9 @@
       const db = getFirestore(app);
       const storage = getStorage(app);
 
-      enableIndexedDbPersistence(db).catch((err) => console.warn("Offline persistence failed:", err));
+      enableIndexedDbPersistence(db).catch((err) =>
+        console.warn("Offline persistence failed:", err)
+      );
 
       const loadingEl = document.getElementById("loading");
       const errorEl = document.getElementById("error-message");
@@ -346,6 +438,19 @@
       const recordModal = document.getElementById("recordModal");
       const closeRecordModal = document.getElementById("closeRecordModal");
       const recordForm = document.getElementById("recordForm");
+      const prescriptionModal = document.getElementById("prescriptionModal");
+      const closePrescriptionModal = document.getElementById(
+        "closePrescriptionModal"
+      );
+      const prescriptionForm = document.getElementById("prescriptionForm");
+      const noteModal = document.getElementById("noteModal");
+      const closeNoteModal = document.getElementById("closeNoteModal");
+      const noteForm = document.getElementById("noteForm");
+      const pageSize = 10;
+      let lastPatientDoc = null;
+      let currentPage = 1;
+      let totalPatients = 0;
+      let isAllPatients = false;
 
       function showLoading() {
         loadingEl.style.display = "block";
@@ -372,7 +477,8 @@
 
       function handleNavigation() {
         const hash = window.location.hash || "#dashboard";
-        dashboardSection.style.display = hash === "#dashboard" ? "block" : "none";
+        dashboardSection.style.display =
+          hash === "#dashboard" ? "block" : "none";
         patientsSection.style.display = hash === "#patients" ? "block" : "none";
         profileSection.style.display = hash === "#profile" ? "block" : "none";
         document.querySelectorAll("nav ul li a").forEach((link) => {
@@ -419,35 +525,46 @@
         document.getElementById("doctorId").value = doctorId;
         document.getElementById("email").value = email;
         const doctorRef = doc(db, "doctors", doctorId);
-        const unsubscribe = onSnapshot(doctorRef, (docSnap) => {
-          if (docSnap.exists()) {
-            const profile = docSnap.data();
-            document.getElementById("firstName").value = profile.firstName || "";
-            document.getElementById("lastName").value = profile.lastName || "";
-            document.getElementById("hospital").value = profile.hospital || "";
-            document.getElementById("specialty").value = profile.specialty || "";
-            document.getElementById("licenseNumber").value = profile.licenseNumber || "";
-            document.getElementById("officeAddress").value = profile.officeAddress || "";
-            document.getElementById("phone").value = profile.phone || "";
-            document.getElementById("bio").value = profile.bio || "";
-            document.getElementById("availability").value = profile.availability || "";
-          } else {
-            document.getElementById("firstName").value = "";
-            document.getElementById("lastName").value = "";
-            document.getElementById("hospital").value = "";
-            document.getElementById("specialty").value = "";
-            document.getElementById("licenseNumber").value = "";
-            document.getElementById("officeAddress").value = "";
-            document.getElementById("phone").value = "";
-            document.getElementById("bio").value = "";
-            document.getElementById("availability").value = "";
+        const unsubscribe = onSnapshot(
+          doctorRef,
+          (docSnap) => {
+            if (docSnap.exists()) {
+              const profile = docSnap.data();
+              document.getElementById("firstName").value =
+                profile.firstName || "";
+              document.getElementById("lastName").value =
+                profile.lastName || "";
+              document.getElementById("hospital").value =
+                profile.hospital || "";
+              document.getElementById("specialty").value =
+                profile.specialty || "";
+              document.getElementById("licenseNumber").value =
+                profile.licenseNumber || "";
+              document.getElementById("officeAddress").value =
+                profile.officeAddress || "";
+              document.getElementById("phone").value = profile.phone || "";
+              document.getElementById("bio").value = profile.bio || "";
+              document.getElementById("availability").value =
+                profile.availability || "";
+            } else {
+              document.getElementById("firstName").value = "";
+              document.getElementById("lastName").value = "";
+              document.getElementById("hospital").value = "";
+              document.getElementById("specialty").value = "";
+              document.getElementById("licenseNumber").value = "";
+              document.getElementById("officeAddress").value = "";
+              document.getElementById("phone").value = "";
+              document.getElementById("bio").value = "";
+              document.getElementById("availability").value = "";
+            }
+            hideLoading();
+          },
+          (error) => {
+            console.error("Error fetching doctor profile:", error);
+            showError("Failed to load profile: " + error.message);
+            hideLoading();
           }
-          hideLoading();
-        }, (error) => {
-          console.error("Error fetching doctor profile:", error);
-          showError("Failed to load profile: " + error.message);
-          hideLoading();
-        });
+        );
         profileForm.dataset.unsubscribe = unsubscribe;
       }
 
@@ -470,7 +587,9 @@
           updatedAt: serverTimestamp(),
         };
         try {
-          await setDoc(doc(db, "doctors", doctorId), profileData, { merge: true });
+          await setDoc(doc(db, "doctors", doctorId), profileData, {
+            merge: true,
+          });
           showSuccess("Profile saved successfully!");
         } catch (error) {
           console.error("Error saving profile:", error);
@@ -480,67 +599,188 @@
         }
       });
 
-      function getAllPatients() {
+      async function getAllPatients(page = 1, isDashboard = false) {
         showLoading();
+        currentPage = page;
         const patientsQuery = query(
           collection(db, "users"),
           where("role", "==", "patient"),
-          orderBy("firstName", "asc")
+          orderBy("firstName", "asc"),
+          limit(pageSize)
         );
-        const unsubscribe = onSnapshot(
-          patientsQuery,
-          (snapshot) => {
-            const patients = [];
-            snapshot.forEach((doc) => {
-              patients.push({ id: doc.id, ...doc.data() });
-            });
-            displayPatients(patients);
-            hideLoading();
-          },
-          (error) => {
-            console.error("Error fetching patients:", error);
-            showError("Failed to load patients: " + error.message);
-            hideLoading();
-          }
-        );
-        patientsSection.dataset.unsubscribe = unsubscribe;
+        let q = patientsQuery;
+        if (page > 1 && lastPatientDoc) {
+          q = query(patientsQuery, startAfter(lastPatientDoc));
+        }
+        try {
+          const snapshot = await getDocs(collection(db, "users"));
+          totalPatients = snapshot.size;
+          const unsubscribe = onSnapshot(
+            q,
+            (snapshot) => {
+              const patients = [];
+              snapshot.forEach((doc) => {
+                const data = doc.data();
+                patients.push({
+                  id: doc.id,
+                  patientId: data.patientId || doc.id,
+                  firstName: data.firstName || "Unknown",
+                  lastName: data.lastName || "Unknown",
+                  updatedAt: data.updatedAt,
+                });
+                if (page === 1 && snapshot.docs.length > 0) {
+                  lastPatientDoc = snapshot.docs[snapshot.docs.length - 1];
+                }
+              });
+              if (isDashboard) {
+                displayDashboardPatients(patients);
+              } else {
+                displayPatients(patients);
+              }
+              updatePagination(isDashboard);
+              hideLoading();
+            },
+            (error) => {
+              console.error("Error fetching patients:", error);
+              showError("Failed to load patients: " + error.message);
+              hideLoading();
+            }
+          );
+          (isDashboard
+            ? dashboardSection
+            : patientsSection
+          ).dataset.unsubscribe = unsubscribe;
+        } catch (error) {
+          console.error("Error counting patients:", error);
+          showError("Failed to load patients: " + error.message);
+          hideLoading();
+        }
       }
 
-      function searchPatients(searchTerm) {
+      async function getMyPatients(doctorId, page = 1) {
+        showLoading();
+        currentPage = page;
+        const patientsQuery = query(
+          collection(db, "users"),
+          where("role", "==", "patient"),
+          where("doctorId", "==", doctorId),
+          orderBy("firstName", "asc"),
+          limit(pageSize)
+        );
+        let q = patientsQuery;
+        if (page > 1 && lastPatientDoc) {
+          q = query(patientsQuery, startAfter(lastPatientDoc));
+        }
+        try {
+          const snapshot = await getDocs(
+            query(collection(db, "users"), where("doctorId", "==", doctorId))
+          );
+          totalPatients = snapshot.size;
+          const unsubscribe = onSnapshot(
+            q,
+            (snapshot) => {
+              const patients = [];
+              snapshot.forEach((doc) => {
+                const data = doc.data();
+                patients.push({
+                  id: doc.id,
+                  patientId: data.patientId || doc.id,
+                  firstName: data.firstName || "Unknown",
+                  lastName: data.lastName || "Unknown",
+                  updatedAt: data.updatedAt,
+                });
+                if (page === 1 && snapshot.docs.length > 0) {
+                  lastPatientDoc = snapshot.docs[snapshot.docs.length - 1];
+                }
+              });
+              displayDashboardPatients(patients);
+              updatePagination(true);
+              hideLoading();
+            },
+            (error) => {
+              console.error("Error fetching my patients:", error);
+              showError("Failed to load patients: " + error.message);
+              hideLoading();
+            }
+          );
+          dashboardSection.dataset.unsubscribe = unsubscribe;
+        } catch (error) {
+          console.error("Error counting patients:", error);
+          showError("Failed to load patients: " + error.message);
+          hideLoading();
+        }
+      }
+
+      async function searchPatients(searchTerm, page = 1) {
         if (!searchTerm.trim()) {
-          getAllPatients();
+          getAllPatients(page);
           return;
         }
         showLoading();
+        currentPage = page;
+        const term = searchTerm.trim();
         const patientsQuery = query(
           collection(db, "users"),
-          where("role", "==", "patient")
+          where("role", "==", "patient"),
+          where("firstName", ">=", term),
+          where("firstName", "<=", term + "\uf8ff"),
+          orderBy("firstName", "asc"),
+          limit(pageSize)
         );
-        const unsubscribe = onSnapshot(
-          patientsQuery,
-          (snapshot) => {
-            const patients = [];
-            const term = searchTerm.toLowerCase().trim();
-            snapshot.forEach((doc) => {
-              const data = doc.data();
-              const fullName = `${data.firstName || ""} ${data.lastName || ""}`.toLowerCase();
-              if (fullName.includes(term)) {
-                patients.push({ id: doc.id, ...data });
-              }
-            });
-            displayPatients(patients);
-            hideLoading();
-          },
-          (error) => {
-            console.error("Error searching patients:", error);
-            showError("Failed to search patients: " + error.message);
-            hideLoading();
-          }
-        );
-        patientsSection.dataset.unsubscribe = unsubscribe;
+        let q = patientsQuery;
+        if (page > 1 && lastPatientDoc) {
+          q = query(patientsQuery, startAfter(lastPatientDoc));
+        }
+        try {
+          const snapshot = await getDocs(
+            query(
+              collection(db, "users"),
+              where("role", "==", "patient"),
+              where("firstName", ">=", term),
+              where("firstName", "<=", term + "\uf8ff")
+            )
+          );
+          totalPatients = snapshot.size;
+          const unsubscribe = onSnapshot(
+            q,
+            (snapshot) => {
+              const patients = [];
+              snapshot.forEach((doc) => {
+                const data = doc.data();
+                patients.push({
+                  id: doc.id,
+                  patientId: data.patientId || doc.id,
+                  firstName: data.firstName || "Unknown",
+                  lastName: data.lastName || "Unknown",
+                  updatedAt: data.updatedAt,
+                });
+                if (page === 1 && snapshot.docs.length > 0) {
+                  lastPatientDoc = snapshot.docs[snapshot.docs.length - 1];
+                }
+              });
+              displayPatients(patients);
+              updatePagination(false);
+              hideLoading();
+            },
+            (error) => {
+              console.error("Error searching patients:", error);
+              showError("Failed to search patients: " + error.message);
+              hideLoading();
+            }
+          );
+          patientsSection.dataset.unsubscribe = unsubscribe;
+        } catch (error) {
+          console.error("Error counting patients:", error);
+          showError("Failed to search patients: " + error.message);
+          hideLoading();
+        }
       }
 
       function getPatientData(patientId, dataType) {
+        if (!patientId) {
+          showError("Invalid patient ID");
+          return;
+        }
         let collectionName;
         switch (dataType) {
           case "appointments":
@@ -580,7 +820,8 @@
             hideLoading();
           }
         );
-        document.getElementById(`${dataType}Container`).dataset.unsubscribe = unsubscribe;
+        document.getElementById(`${dataType}Container`).dataset.unsubscribe =
+          unsubscribe;
       }
 
       function displayPatients(patients) {
@@ -589,11 +830,16 @@
         if (patients.length > 0) {
           patients.forEach((patient) => {
             const listItem = document.createElement("li");
-            listItem.textContent = `${patient.firstName} ${patient.lastName} - ID: ${patient.patientId || patient.id}`;
+            listItem.textContent = `${patient.firstName} ${patient.lastName} - ID: ${patient.patientId}`;
             listItem.addEventListener("click", () => {
-              document.querySelectorAll("#patientsList li").forEach((li) => li.classList.remove("active"));
+              document
+                .querySelectorAll("#patientsList li")
+                .forEach((li) => li.classList.remove("active"));
               listItem.classList.add("active");
               document.getElementById("recordPatientId").value = patient.id;
+              document.getElementById("prescriptionPatientId").value =
+                patient.id;
+              document.getElementById("notePatientId").value = patient.id;
               getPatientData(patient.id, "appointments");
               getPatientData(patient.id, "notes");
               getPatientData(patient.id, "records");
@@ -606,6 +852,70 @@
         }
       }
 
+      function displayDashboardPatients(patients) {
+        const patientsDiv = document.getElementById("recent-patients");
+        if (patients.length === 0) {
+          patientsDiv.innerHTML = "<p>No patients found</p>";
+          return;
+        }
+        let html =
+          "<table><thead><tr><th>Name</th><th>ID</th><th>Last Updated</th></tr></thead><tbody>";
+        patients.forEach((patient) => {
+          html += `
+            <tr>
+              <td>${patient.firstName} ${patient.lastName}</td>
+              <td>${patient.patientId}</td>
+              <td>${patient.updatedAt?.toDate().toLocaleString() || "N/A"}</td>
+            </tr>`;
+        });
+        html += "</tbody></table>";
+        patientsDiv.innerHTML = html;
+      }
+
+      function updatePagination(isDashboard) {
+        const paginationDiv = isDashboard
+          ? document.getElementById("pagination")
+          : document.getElementById("patientsPagination");
+        paginationDiv.innerHTML = "";
+        const totalPages = Math.ceil(totalPatients / pageSize);
+        const prevBtn = document.createElement("button");
+        prevBtn.textContent = "Previous";
+        prevBtn.disabled = currentPage === 1;
+        prevBtn.addEventListener("click", () => {
+          if (currentPage > 1) {
+            if (isDashboard) {
+              isAllPatients
+                ? getAllPatients(currentPage - 1, true)
+                : getMyPatients(auth.currentUser.uid, currentPage - 1);
+            } else {
+              searchPatients(
+                document.getElementById("searchInput").value,
+                currentPage - 1
+              );
+            }
+          }
+        });
+        const nextBtn = document.createElement("button");
+        nextBtn.textContent = "Next";
+        nextBtn.disabled = currentPage >= totalPages;
+        nextBtn.addEventListener("click", () => {
+          if (currentPage < totalPages) {
+            if (isDashboard) {
+              isAllPatients
+                ? getAllPatients(currentPage + 1, true)
+                : getMyPatients(auth.currentUser.uid, currentPage + 1);
+            } else {
+              searchPatients(
+                document.getElementById("searchInput").value,
+                currentPage + 1
+              );
+            }
+          }
+        });
+        paginationDiv.appendChild(prevBtn);
+        paginationDiv.appendChild(nextBtn);
+      }
+
       function displayPatientData(data, dataType, patientId) {
         const container = document.getElementById(`${dataType}Container`);
         container.innerHTML = `<h4>${
@@ -613,9 +923,10 @@
         }</h4>`;
         if (dataType === "records") {
           container.innerHTML += `<button id="addRecordBtn" class="btn">Add Medical Record</button>`;
-          document.getElementById("addRecordBtn").addEventListener("click", () => {
-            recordModal.style.display = "flex";
-          });
+        } else if (dataType === "prescriptions") {
+          container.innerHTML += `<button id="addPrescriptionBtn" class="btn">Add Prescription</button>`;
+        } else if (dataType === "notes") {
+          container.innerHTML += `<button id="addNoteBtn" class="btn">Add Clinical Note</button>`;
         }
         if (data.length === 0) {
           container.innerHTML += `<p>No ${dataType} found.</p>`;
@@ -623,11 +934,13 @@
         }
         let html = "<table><thead><tr>";
         if (dataType === "appointments") {
-          html += "<th>Date</th><th>Patient</th><th>Type</th><th>Status</th><th>Actions</th>";
+          html +=
+            "<th>Date</th><th>Patient</th><th>Type</th><th>Status</th><th>Actions</th>";
         } else if (dataType === "notes") {
           html += "<th>Date</th><th>Note</th><th>Status</th>";
         } else if (dataType === "records") {
-          html += "<th>Record ID</th><th>Date</th><th>Description</th><th>Created By</th>";
+          html +=
+            "<th>Record ID</th><th>Date</th><th>Description</th><th>Created By</th>";
         } else if (dataType === "prescriptions") {
           html += "<th>Date</th><th>Medication</th><th>Dosage</th>";
         }
@@ -635,7 +948,9 @@
         data.forEach((item) => {
           html += "<tr>";
           if (dataType === "appointments") {
-            const date = item.date?.toDate ? item.date.toDate().toLocaleString() : "N/A";
+            const date = item.date?.toDate
+              ? item.date.toDate().toLocaleString()
+              : "N/A";
             html += `
               <td>${date}</td>
               <td>${item.patientName || "N/A"}</td>
@@ -643,24 +958,36 @@
               <td>${item.status || "N/A"}</td>
               <td>
                 <button class="btn confirm-btn" data-id="${item.id}" ${
-                  item.status === "pending" ? "" : "disabled"
-                }>Confirm</button>
+              item.status === "pending" ? "" : "disabled"
+            }>Confirm</button>
                 <button class="btn complete-btn" data-id="${item.id}" ${
-                  item.status === "confirmed" ? "" : "disabled"
-                }>Complete</button>
+              item.status === "confirmed" ? "" : "disabled"
+            }>Complete</button>
                 <button class="btn cancel-btn" data-id="${item.id}" ${
-                  ["pending", "confirmed"].includes(item.status) ? "" : "disabled"
-                }>Cancel</button>
+              ["pending", "confirmed"].includes(item.status) ? "" : "disabled"
+            }>Cancel</button>
               </td>`;
           } else if (dataType === "notes") {
-            const date = item.date?.toDate ? item.date.toDate().toLocaleString() : "N/A";
-            html += `<td>${date}</td><td>${item.note || "N/A"}</td><td>${item.status || "N/A"}</td>`;
+            const date = item.date?.toDate
+              ? item.date.toDate().toLocaleString()
+              : "N/A";
+            html += `<td>${date}</td><td>${item.note || "N/A"}</td><td>${
+              item.status || "N/A"
+            }</td>`;
           } else if (dataType === "records") {
-            const date = item.date?.toDate ? item.date.toDate().toLocaleString() : "N/A";
-            html += `<td>${item.recordId || item.id}</td><td>${date}</td><td>${item.description || "N/A"}</td><td>${item.createdBy || "N/A"}</td>`;
+            const date = item.date?.toDate
+              ? item.date.toDate().toLocaleString()
+              : "N/A";
+            html += `<td>${item.recordId || item.id}</td><td>${date}</td><td>${
+              item.description || "N/A"
+            }</td><td>${item.createdBy || "N/A"}</td>`;
           } else if (dataType === "prescriptions") {
-            const date = item.date?.toDate ? item.date.toDate().toLocaleString() : "N/A";
-            html += `<td>${date}</td><td>${item.medication || "N/A"}</td><td>${item.dosage || "N/A"}</td>`;
+            const date = item.date?.toDate
+              ? item.date.toDate().toLocaleString()
+              : "N/A";
+            html += `<td>${date}</td><td>${item.medication || "N/A"}</td><td>${
+              item.dosage || "N/A"
+            }</td>`;
           }
           html += "</tr>";
         });
@@ -714,6 +1041,27 @@
             });
           });
         }
+        if (dataType === "records") {
+          document
+            .getElementById("addRecordBtn")
+            .addEventListener("click", () => {
+              recordModal.style.display = "flex";
+            });
+        }
+        if (dataType === "prescriptions") {
+          document
+            .getElementById("addPrescriptionBtn")
+            .addEventListener("click", () => {
+              prescriptionModal.style.display = "flex";
+            });
+        }
+        if (dataType === "notes") {
+          document
+            .getElementById("addNoteBtn")
+            .addEventListener("click", () => {
+              noteModal.style.display = "flex";
+            });
+        }
       }
 
       async function loadDoctorDashboard(doctorId) {
@@ -726,8 +1074,15 @@
           if (doctorDoc.exists()) {
             const doctor = doctorDoc.data();
             const hour = new Date().getHours();
-            const sal = hour < 12 ? "Good Morning" : hour < 18 ? "Good Afternoon" : "Good Evening";
-            document.getElementById("greeting").textContent = `${sal}, Dr. ${doctor.firstName || "Doctor"}`;
+            const sal =
+              hour < 12
+                ? "Good Morning"
+                : hour < 18
+                ? "Good Afternoon"
+                : "Good Evening";
+            document.getElementById("greeting").textContent = `${sal}, Dr. ${
+              doctor.firstName || "Doctor"
+            }`;
           } else {
             document.getElementById("greeting").textContent = "Welcome, Doctor";
           }
@@ -747,31 +1102,40 @@
         const appointmentsUnsubscribe = onSnapshot(
           appointmentsQuery,
           (snapshot) => {
-            const appointmentsDiv = document.getElementById("upcoming-appointments");
+            const appointmentsDiv = document.getElementById(
+              "upcoming-appointments"
+            );
             if (snapshot.empty) {
-              appointmentsDiv.innerHTML = "<p>No upcoming appointments today</p>";
+              appointmentsDiv.innerHTML =
+                "<p>No upcoming appointments today</p>";
               return;
             }
-            let html = "<table><thead><tr><th>Time</th><th>Patient</th><th>Type</th><th>Status</th><th>Actions</th></tr></thead><tbody>";
+            let html =
+              "<table><thead><tr><th>Time</th><th>Patient</th><th>Type</th><th>Status</th><th>Actions</th></tr></thead><tbody>";
             snapshot.forEach((doc) => {
               const appointment = doc.data();
               const date = appointment.date.toDate();
               html += `
                 <tr>
-                  <td>${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</td>
+                  <td>${date.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}</td>
                   <td>${appointment.patientName || "N/A"}</td>
                   <td>${appointment.type || "N/A"}</td>
                   <td>${appointment.status || "N/A"}</td>
                   <td>
                     <button class="btn confirm-btn" data-id="${doc.id}" ${
-                      appointment.status === "pending" ? "" : "disabled"
-                    }>Confirm</button>
-                    < button class="btn complete-btn" data-id="${doc.id}" ${
-                      appointment.status === "confirmed" ? "" : "disabled"
-                    }>Complete</button>
+                appointment.status === "pending" ? "" : "disabled"
+              }>Confirm</button>
+                    <button class="btn complete-btn" data-id="${doc.id}" ${
+                appointment.status === "confirmed" ? "" : "disabled"
+              }>Complete</button>
                     <button class="btn cancel-btn" data-id="${doc.id}" ${
-                      ["pending", "confirmed"].includes(appointment.status) ? "" : "disabled"
-                    }>Cancel</button>
+                ["pending", "confirmed"].includes(appointment.status)
+                  ? ""
+                  : "disabled"
+              }>Cancel</button>
                   </td>
                 </tr>`;
             });
@@ -829,42 +1193,8 @@
             showError("Failed to load appointments.");
           }
         );
-        dashboardSection.dataset.appointmentsUnsubscribe = appointmentsUnsubscribe;
-
-        const patientsQuery = query(
-          collection(db, "users"),
-          where("doctorId", "==", doctorId),
-          where("role", "==", "patient"),
-          orderBy("updatedAt", "desc"),
-          limit(5)
-        );
-        const patientsUnsubscribe = onSnapshot(
-          patientsQuery,
-          (snapshot) => {
-            const patientsDiv = document.getElementById("recent-patients");
-            if (snapshot.empty) {
-              patientsDiv.innerHTML = "<p>No recent patients</p>";
-              return;
-            }
-            let html = "<table><thead><tr><th>Name</th><th>ID</th><th>Last Updated</th></tr></thead><tbody>";
-            snapshot.forEach((doc) => {
-              const patient = doc.data();
-              html += `
-                <tr>
-                  <td>${patient.firstName} ${patient.lastName}</td>
-                  <td>${patient.patientId || doc.id}</td>
-                  <td>${patient.updatedAt?.toDate().toLocaleString() || "N/A"}</td>
-                </tr>`;
-            });
-            html += "</tbody></table>";
-            patientsDiv.innerHTML = html;
-          },
-          (error) => {
-            console.error("Error fetching recent patients:", error);
-            showError("Failed to load patients.");
-          }
-        );
-        dashboardSection.dataset.patientsUnsubscribe = patientsUnsubscribe;
+        dashboardSection.dataset.appointmentsUnsubscribe =
+          appointmentsUnsubscribe;
 
         try {
           const appointmentsCountQuery = query(
@@ -874,7 +1204,8 @@
             where("date", "<", new Date(today.getTime() + 24 * 60 * 60 * 1000))
           );
           const appointmentsSnapshot = await getDocs(appointmentsCountQuery);
-          document.getElementById("today-appointments").textContent = appointmentsSnapshot.size;
+          document.getElementById("today-appointments").textContent =
+            appointmentsSnapshot.size;
 
           const notesQuery = query(
             collection(db, "clinicalNotes"),
@@ -882,7 +1213,8 @@
             where("status", "==", "pending")
           );
           const notesSnapshot = await getDocs(notesQuery);
-          document.getElementById("pending-notes").textContent = notesSnapshot.size;
+          document.getElementById("pending-notes").textContent =
+            notesSnapshot.size;
 
           const patientsCountQuery = query(
             collection(db, "users"),
@@ -890,11 +1222,26 @@
             where("role", "==", "patient")
           );
           const patientsSnapshot = await getDocs(patientsCountQuery);
-          document.getElementById("active-patients").textContent = patientsSnapshot.size;
+          document.getElementById("active-patients").textContent =
+            patientsSnapshot.size;
         } catch (error) {
           console.error("Error loading dashboard stats:", error);
           showError("Failed to load dashboard statistics.");
         }
+
+        getMyPatients(doctorId);
+        document
+          .getElementById("showMyPatients")
+          .addEventListener("click", () => {
+            isAllPatients = false;
+            getMyPatients(doctorId);
+          });
+        document
+          .getElementById("showAllPatients")
+          .addEventListener("click", () => {
+            isAllPatients = true;
+            getAllPatients(1, true);
+          });
 
         hideLoading();
       }
@@ -913,7 +1260,14 @@
         const recordId = `REC-${Date.now()}`;
         let filePath = "";
         try {
+          if (!patientId) throw new Error("Invalid patient ID");
+          if (description.length > 1000)
+            throw new Error("Description exceeds 1000 characters");
           if (file) {
+            if (file.size > 5 * 1024 * 1024)
+              throw new Error("File size exceeds 5MB");
+            if (!file.type.includes("pdf"))
+              throw new Error("File must be a PDF");
             const storageRef = ref(storage, `records/${patientId}/${recordId}`);
             await uploadBytes(storageRef, file);
             filePath = await getDownloadURL(storageRef);
@@ -937,45 +1291,116 @@
         }
       });
 
-      function cleanupListeners() {
-        if (profileForm.dataset.unsubscribe) {
-          profileForm.dataset.unsubscribe();
-          delete profileForm.dataset.unsubscribe;
-        }
-        if (patientsSection.dataset.unsubscribe) {
-          patientsSection.dataset.unsubscribe();
-          delete patientsSection.dataset.unsubscribe;
-        }
-        if (dashboardSection.dataset.appointmentsUnsubscribe) {
-          dashboardSection.dataset.appointmentsUnsubscribe();
-          delete dashboardSection.dataset.appointmentsUnsubscribe;
-        }
-        if (dashboardSection.dataset.patientsUnsubscribe) {
-          dashboardSection.dataset.patientsUnsubscribe();
-          delete dashboardSection.dataset.patientsUnsubscribe;
-        }
-        ["appointments", "notes", "records", "prescriptions"].forEach((type) => {
-          const container = document.getElementById(`${type}Container`);
-          if (container && container.dataset.unsubscribe) {
-            container.dataset.unsubscribe();
-            delete container.dataset.unsubscribe;
-          }
-        });
-      }
+      closePrescriptionModal.addEventListener("click", () => {
+        prescriptionModal.style.display = "none";
+        prescriptionForm.reset();
+      });
 
-      document.getElementById("logoutBtn").addEventListener("click", async () => {
+      prescriptionForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
         showLoading();
+        const patientId = document.getElementById(
+          "prescriptionPatientId"
+        ).value;
+        const medication = document.getElementById("medication").value;
+        const dosage = document.getElementById("dosage").value;
         try {
-          cleanupListeners();
-          await signOut(auth);
-          window.location.href = "/login.html";
+          if (!patientId) throw new Error("Invalid patient ID");
+          if (medication.length > 200)
+            throw new Error("Medication name exceeds 200 characters");
+          if (dosage.length > 500)
+            throw new Error("Dosage instructions exceed 500 characters");
+          await addDoc(collection(db, "prescriptions"), {
+            patientId,
+            medication,
+            dosage,
+            date: serverTimestamp(),
+            createdBy: auth.currentUser.uid,
+          });
+          showSuccess("Prescription added successfully!");
+          prescriptionModal.style.display = "none";
+          prescriptionForm.reset();
         } catch (error) {
-          console.error("Logout error:", error);
-          showError("Failed to sign out: " + error.message);
+          console.error("Error adding prescription:", error);
+          showError("Failed to add prescription: " + error.message);
         } finally {
           hideLoading();
         }
       });
+
+      closeNoteModal.addEventListener("click", () => {
+        noteModal.style.display = "none";
+        noteForm.reset();
+      });
+
+      noteForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        showLoading();
+        const patientId = document.getElementById("notePatientId").value;
+        const note = document.getElementById("noteText").value;
+        const status = document.getElementById("noteStatus").value;
+        try {
+          if (!patientId) throw new Error("Invalid patient ID");
+          if (note.length > 1000)
+            throw new Error("Note exceeds 1000 characters");
+          await addDoc(collection(db, "clinicalNotes"), {
+            patientId,
+            note,
+            status,
+            date: serverTimestamp(),
+            doctorId: auth.currentUser.uid,
+            createdBy: auth.currentUser.uid,
+          });
+          showSuccess("Clinical note added successfully!");
+          noteModal.style.display = "none";
+          noteForm.reset();
+        } catch (error) {
+          console.error("Error adding note:", error);
+          showError("Failed to add note: " + error.message);
+        } finally {
+          hideLoading();
+        }
+      });
+
+      function cleanupListeners() {
+        const unsubscribes = [
+          profileForm.dataset.unsubscribe,
+          patientsSection.dataset.unsubscribe,
+          dashboardSection.dataset.unsubscribe,
+          dashboardSection.dataset.appointmentsUnsubscribe,
+          ...["appointments", "notes", "records", "prescriptions"].map(
+            (type) =>
+              document.getElementById(`${type}Container`)?.dataset.unsubscribe
+          ),
+        ];
+        unsubscribes.forEach((unsub) => typeof unsub === "function" && unsub());
+        profileForm.dataset.unsubscribe = null;
+        patientsSection.dataset.unsubscribe = null;
+        dashboardSection.dataset.unsubscribe = null;
+        dashboardSection.dataset.appointmentsUnsubscribe = null;
+        ["appointments", "notes", "records", "prescriptions"].forEach(
+          (type) => {
+            const container = document.getElementById(`${type}Container`);
+            if (container) container.dataset.unsubscribe = null;
+          }
+        );
+      }
+
+      document
+        .getElementById("logoutBtn")
+        .addEventListener("click", async () => {
+          showLoading();
+          try {
+            cleanupListeners();
+            await signOut(auth);
+            window.location.href = "/login.html";
+          } catch (error) {
+            console.error("Logout error:", error);
+            showError("Failed to sign out: " + error.message);
+          } finally {
+            hideLoading();
+          }
+        });
     </script>
   </body>
 </html>
