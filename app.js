@@ -406,3 +406,30 @@ document.getElementById("logoutBtn").addEventListener("click", async () => {
     hideLoading();
   }
 });
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+import {
+  initializeAppCheck,
+  ReCaptchaV3Provider,
+} from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app-check.js";
+
+// const firebaseConfig = {
+//   apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
+//   authDomain: "hospitalmanagtsystem.firebaseapp.com",
+//   projectId: "hospitalmanagtsystem",
+//   storageBucket: "hospitalmanagtsystem.firebasestorage.app",
+//   messagingSenderId: "771158568788",
+//   appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
+// };
+
+// const app = initializeApp(firebaseConfig);
+
+// Initialize App Check
+const appCheck = initializeAppCheck(app, {
+  provider: new ReCaptchaV3Provider("your-recaptcha-site-key"),
+  isTokenAutoRefreshEnabled: true,
+});
+
+// const auth = getAuth(app);
+// const db = getFirestore(app);
