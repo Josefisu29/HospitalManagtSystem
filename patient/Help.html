@@ -3,134 +3,74 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>HMS Emergency Help</title>
-    <link rel="stylesheet" href="styles.css" />
+    <title>Emergency Location Tracker</title>
+    <link rel="manifest" href="/manifest.json" />
     <style>
-      :root {
-        --primary: #0052cc;
-        --danger: #d32f2f;
-        --bg: #f9fbfd;
-        --text: #212121;
-        --card: #ffffff;
-        --radius: 8px;
-        --transition: 0.3s;
-      }
-      * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
       body {
         font-family: Arial, sans-serif;
-        background: var(--bg);
-        color: var(--text);
-      }
-      header {
-        background: var(--card);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        position: sticky;
-        top: 0;
-        z-index: 100;
-      }
-      .nav-inner {
-        max-width: 800px;
-        margin: auto;
+        background: #f9fbfd;
+        color: #212121;
         display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 1rem;
-      }
-      .brand {
-        font-size: 1.25rem;
-        color: var(--primary);
-      }
-      .nav-toggle {
-        display: none;
-        font-size: 1.5rem;
-        cursor: pointer;
-      }
-      .nav-menu {
-        list-style: none;
-        display: flex;
-        gap: 1rem;
-      }
-      .nav-menu li a {
-        color: var(--text);
-        text-decoration: none;
-        padding: 0.5rem;
-        border-radius: 4px;
-        transition: background var(--transition);
-      }
-      .nav-menu li a:hover,
-      .nav-menu li a.active {
-        background: var(--primary);
-        color: #fff;
-      }
-      @media (max-width: 600px) {
-        .nav-toggle {
-          display: block;
-        }
-        .nav-menu {
-          display: none;
-          position: absolute;
-          top: 100%;
-          left: 0;
-          right: 0;
-          background: var(--card);
-          flex-direction: column;
-        }
-        .nav-menu.open {
-          display: flex;
-        }
-      }
-      .help-container {
-        height: calc(100vh - 72px);
-        display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
+        height: 100vh;
+        margin: 0;
       }
       .card {
-        background: var(--card);
+        background: #ffffff;
         padding: 2rem;
-        border-radius: var(--radius);
+        border-radius: 8px;
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
         text-align: center;
         max-width: 320px;
         width: 100%;
       }
-      .card h1 {
+      h1 {
         margin-bottom: 1rem;
-        color: var(--primary);
+        color: #d32f2f;
       }
-      .card p {
+      p {
         margin-bottom: 1.5rem;
       }
       .btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
         width: 100%;
         padding: 0.75rem;
         font-size: 1rem;
         border: none;
-        border-radius: var(--radius);
+        border-radius: 8px;
         cursor: pointer;
-        transition: background var(--transition);
+        transition: background 0.3s;
       }
       .btn-primary {
-        background: var(--primary);
+        background: #d32f2f;
         color: #fff;
       }
-      .btn-primary:hover {
-        background: #003a9b;
+      .btn-primary:hover:not(:disabled) {
+        background: #9a1c1c;
       }
       .btn-secondary {
-        background: var(--danger);
+        background: #0052cc;
         color: #fff;
       }
-      .btn-secondary:hover {
-        background: #9a1c1c;
+      .btn-secondary:hover:not(:disabled) {
+        background: #003a9b;
+      }
+      .btn:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+      .add-to-home-screen {
+        margin-top: 1rem;
+        font-size: 0.9rem;
+        color: #666;
+      }
+      .add-btn {
+        background: #28a745;
+        margin-top: 0.5rem;
+      }
+      .add-btn:hover {
+        background: #218838;
       }
       .modal {
         display: none;
@@ -143,44 +83,18 @@
         background: rgba(0, 0, 0, 0.5);
         justify-content: center;
         align-items: center;
-        transition: opacity var(--transition);
       }
       .modal.show {
         display: flex;
-        opacity: 1;
       }
       .modal-content {
-        background: var(--card);
+        background: #ffffff;
         padding: 2rem;
-        border-radius: var(--radius);
+        border-radius: 8px;
         width: 90%;
         max-width: 400px;
         text-align: center;
         position: relative;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-      }
-      .modal-success {
-        border: 2px solid #28a745;
-      }
-      .modal-error {
-        border: 2px solid var(--danger);
-      }
-      .modal-content i {
-        font-size: 2rem;
-        margin-bottom: 1rem;
-      }
-      .modal-success i {
-        color: #28a745;
-      }
-      .modal-error i {
-        color: var(--danger);
-      }
-      .modal-content h2 {
-        margin-bottom: 1rem;
-        color: var(--text);
-      }
-      .modal-content p {
-        margin-bottom: 1.5rem;
       }
       .close {
         position: absolute;
@@ -191,234 +105,295 @@
         color: #aaa;
       }
       .close:hover {
-        color: var(--text);
+        color: #212121;
+      }
+      .modal-content select {
+        width: 100%;
+        padding: 0.5rem;
+        margin-bottom: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 8px;
       }
       .btn-ok {
-        background: var(--primary);
+        background: #28a745;
         color: #fff;
         padding: 0.75rem 1.5rem;
         border: none;
-        border-radius: var(--radius);
+        border-radius: 8px;
         cursor: pointer;
-        transition: background var(--transition);
+        transition: background 0.3s;
       }
       .btn-ok:hover {
-        background: #003a9b;
+        background: #218838;
       }
     </style>
   </head>
   <body>
-    <header>
-      <nav>
-        <div class="nav-inner">
-          <div id="navToggle" class="nav-toggle">☰</div>
-          <ul id="navMenu" class="nav-menu">
-            <li><a href="patient.html" class="active">Profile</a></li>
-            <li><a href="patient-appointments.html">Appointments</a></li>
-            <li><a href="patient-records.html">Records</a></li>
-            <li><a href="Help.html">Get-Help</a></li>
-          </ul>
-        </div>
-      </nav>
-    </header>
-
-    <main class="help-container">
-      <div class="card">
-        <h1>Emergency Assistance</h1>
-        <p>Tap below to request immediate help.</p>
-        <button id="btn-gps-help" class="btn btn-primary">
-          <i class="fas fa-map-marker-alt"></i> Share Location
+    <div class="card">
+      <h1>Emergency Help</h1>
+      <p>Tap below to share your location instantly or call for help.</p>
+      <button id="shareLocationBtn" class="btn btn-primary">
+        Share Location
+      </button>
+      <button id="callHelpBtn" class="btn btn-secondary">Call for Help</button>
+      <div class="add-to-home-screen">
+        <p>Add to your home screen for quick access:</p>
+        <button id="addToHomeScreenBtn" class="btn add-btn">
+          Add to Home Screen
         </button>
-        <button id="btn-call-help" class="btn btn-secondary">
-          <i class="fas fa-phone"></i> Call for Help
-        </button>
-      </div>
-    </main>
-    <div id="alertModal" class="modal">
-      <div class="modal-content">
-        <span class="close" aria-label="Close modal">×</span>
-        <i id="modalIcon"></i>
-        <h2 id="modalTitle"></h2>
-        <p id="modalMessage"></p>
-        <button class="btn-ok" aria-label="Close alert">OK</button>
       </div>
     </div>
-    <script
-      src="https://kit.fontawesome.com/yourkit.js"
-      crossorigin="anonymous"
-    ></script>
+    <div id="callModal" class="modal">
+      <div class="modal-content">
+        <span class="close" aria-label="Close modal">×</span>
+        <h2>Select Emergency Number</h2>
+        <select
+          id="emergencyNumberSelect"
+          aria-label="Select emergency number"
+        ></select>
+        <button id="confirmCallBtn" class="btn-ok" aria-label="Confirm call">
+          Call
+        </button>
+      </div>
+    </div>
+
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
       import {
-        getAuth,
-        onAuthStateChanged,
-      } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
-      import {
         getFirestore,
-        doc,
-        getDoc,
         collection,
         addDoc,
         serverTimestamp,
-        enableIndexedDbPersistence,
+        doc,
+        getDoc,
       } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
-      // Firebase configuration
+      // Firebase configuration (replace with your own)
       const firebaseConfig = {
-        apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
-        authDomain: "hospitalmanagtsystem.firebaseapp.com",
-        projectId: "hospitalmanagtsystem",
-        storageBucket: "hospitalmanagtsystem.firebasestorage.app",
-        messagingSenderId: "771158568788",
-        appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_AUTH_DOMAIN",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_STORAGE_BUCKET",
+        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+        appId: "YOUR_APP_ID",
       };
 
       // Initialize Firebase
       const app = initializeApp(firebaseConfig);
-      const auth = getAuth(app);
       const db = getFirestore(app);
 
-      enableIndexedDbPersistence(db).catch((err) =>
-        console.warn("Offline persistence failed:", err)
-      );
+      let locationHistory =
+        JSON.parse(localStorage.getItem("locationHistory")) || [];
+      let watchId = null;
+      let lastSuccessfulRequest =
+        JSON.parse(localStorage.getItem("lastSuccessfulRequest")) || null;
+      let emergencyNumbers = [];
 
-      let uid = null;
-      let emergencyPhone =
-        localStorage.getItem("emergencyPhone") || "00000000000";
-      localStorage.getItem("emergencyPhone") || "11111111111";
-      localStorage.getItem("emergencyPhone") || "22222222222";
-      localStorage.getItem("emergencyPhone") || "33333333333";
-      localStorage.getItem("emergencyPhone") || "44444444444";
-      localStorage.getItem("emergencyPhone") || "55555555555";
-      let lastKnownLocation =
-        JSON.parse(localStorage.getItem("lastKnownLocation")) || null;
-
-      // Preload emergency phone number
-      async function loadEmergencyPhone() {
-        try {
-          const configDoc = await getDoc(doc(db, "config", "emergency"));
-          if (configDoc.exists()) {
-            emergencyPhone = configDoc.data().phone;
-            localStorage.setItem("emergencyPhone", emergencyPhone);
-          }
-        } catch (error) {
-          console.warn("Failed to load emergency phone:", error);
-        }
-      }
-
-      // Authenticate user on load
-      onAuthStateChanged(auth, async (user) => {
-        if (user) {
-          uid = user.uid;
-          await loadEmergencyPhone();
-        } else {
-          window.location = "/index.html";
-        }
-      });
-
-      // Modal control functions (replacing showSuccess and showError)
-      function showSuccess(message) {
-        const modal = document.getElementById("alertModal");
-        const modalContent = modal.querySelector(".modal-content");
-        const modalIcon = document.getElementById("modalIcon");
-        const modalTitle = document.getElementById("modalTitle");
-        const modalMessage = document.getElementById("modalMessage");
-
-        modalContent.className = "modal-content modal-success";
-        modalIcon.className = "fas fa-check-circle";
-        modalTitle.textContent = "Success";
-        modalMessage.textContent = message;
-        modal.classList.add("show");
-      }
-
-      function showError(message) {
-        const modal = document.getElementById("alertModal");
-        const modalContent = modal.querySelector(".modal-content");
-        const modalIcon = document.getElementById("modalIcon");
-        const modalTitle = document.getElementById("modalTitle");
-        const modalMessage = document.getElementById("modalMessage");
-
-        modalContent.className = "modal-content modal-error";
-        modalIcon.className = "fas fa-exclamation-circle";
-        modalTitle.textContent = "Error";
-        modalMessage.textContent = message;
-        modal.classList.add("show");
-      }
-
-      // Modal close handlers
-      document.querySelector("#alertModal .close").onclick = () => {
-        document.getElementById("alertModal").classList.remove("show");
-      };
-
-      document.querySelector("#alertModal .btn-ok").onclick = () => {
-        document.getElementById("alertModal").classList.remove("show");
-      };
-
-      // Share Location button
-      document.getElementById("btn-gps-help").onclick = async () => {
-        if (!navigator.geolocation && !lastKnownLocation) {
-          showError(
-            "Geolocation not supported and no last known location available."
-          );
+      // Start tracking location
+      function startLocationTracking() {
+        if (!navigator.geolocation) {
+          alert("Geolocation is not supported by your browser.");
           return;
         }
 
-        let latitude, longitude;
-        try {
-          if (navigator.geolocation) {
-            const pos = await new Promise((resolve, reject) => {
-              navigator.geolocation.getCurrentPosition(resolve, reject, {
-                enableHighAccuracy: true,
-                timeout: 3000,
-                maximumAge: 10000,
-              });
-            });
-            latitude = pos.coords.latitude;
-            longitude = pos.coords.longitude;
+        watchId = navigator.geolocation.watchPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            const timestamp = new Date();
+            locationHistory.push({ latitude, longitude, timestamp });
+            const twoMinutesAgo = new Date(timestamp - 2 * 60 * 1000);
+            locationHistory = locationHistory.filter(
+              (loc) => loc.timestamp >= twoMinutesAgo
+            );
             localStorage.setItem(
-              "lastKnownLocation",
-              JSON.stringify({ latitude, longitude })
+              "locationHistory",
+              JSON.stringify(locationHistory)
+            );
+          },
+          (error) => {
+            console.error("Location tracking error:", error);
+            alert(`Location tracking failed: ${error.message}`);
+          },
+          { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+        );
+      }
+
+      // Load emergency numbers from Firestore
+      async function loadEmergencyNumbers() {
+        try {
+          const configDoc = await getDoc(doc(db, "config", "emergency"));
+          if (configDoc.exists()) {
+            emergencyNumbers = configDoc.data().phoneNumbers || [];
+            localStorage.setItem(
+              "emergencyNumbers",
+              JSON.stringify(emergencyNumbers)
             );
           } else {
-            ({ latitude, longitude } = lastKnownLocation);
+            emergencyNumbers = JSON.parse(
+              localStorage.getItem("emergencyNumbers")
+            ) || [
+              "00000000000",
+              "11111111111",
+              "22222222222",
+              "333333333333",
+              "4444444444444",
+              "555555555555",
+            ];
           }
+        } catch (error) {
+          console.warn("Failed to load emergency numbers:", error);
+          emergencyNumbers = JSON.parse(
+            localStorage.getItem("emergencyNumbers")
+          ) || [
+            "00000000000",
+            "11111111111",
+            "22222222222",
+            "333333333333",
+            "4444444444444",
+            "555555555555",
+          ];
+        }
+      }
 
-          // Write to Firestore with retry logic
+      // Share location with confirmation and retry logic
+      const shareBtn = document.getElementById("shareLocationBtn");
+      shareBtn.onclick = async () => {
+        if (
+          !confirm(
+            "Are you sure you want to share your location for emergency assistance?"
+          )
+        )
+          return;
+
+        shareBtn.disabled = true;
+        shareBtn.textContent = "Sharing...";
+
+        try {
+          if (locationHistory.length === 0) {
+            throw new Error("No location data available yet.");
+          }
+          const latestLocation = locationHistory[locationHistory.length - 1];
+          const { latitude, longitude } = latestLocation;
+
+          // Retry logic with exponential backoff
           let attempts = 0;
-          while (attempts < 3) {
+          const maxAttempts = 3;
+          while (attempts < maxAttempts) {
             try {
-              await addDoc(collection(db, "helpRequests"), {
-                patientId: uid,
+              const docRef = await addDoc(
+                collection(db, "emergencyLocations"),
+                {
+                  latitude,
+                  longitude,
+                  timestamp: serverTimestamp(),
+                }
+              );
+              lastSuccessfulRequest = {
+                id: docRef.id,
                 latitude,
                 longitude,
-                timestamp: serverTimestamp(),
-              });
-              showSuccess("Location sent – help is on the way!");
-              return;
+                timestamp: new Date(),
+              };
+              localStorage.setItem(
+                "lastSuccessfulRequest",
+                JSON.stringify(lastSuccessfulRequest)
+              );
+              alert("Location shared successfully!");
+              break;
             } catch (error) {
-              if (++attempts === 3) throw error;
+              if (++attempts === maxAttempts) {
+                if (lastSuccessfulRequest) {
+                  alert(
+                    "Offline: Using last known request. Help is on the way!"
+                  );
+                } else {
+                  throw new Error(
+                    `Failed after ${maxAttempts} attempts: ${error.message}`
+                  );
+                }
+              }
               await new Promise((resolve) =>
-                setTimeout(resolve, 500 * attempts)
+                setTimeout(resolve, 1000 * attempts)
               );
             }
           }
         } catch (error) {
-          console.error("Error sending help request:", error);
-          showError(
-            "Unable to retrieve location or send request. Please try again."
-          );
+          console.error("Error sharing location:", error);
+          alert(`Error: ${error.message}`);
+        } finally {
+          shareBtn.disabled = false;
+          shareBtn.textContent = "Share Location";
         }
       };
 
       // Call for Help button
-      document.getElementById("btn-call-help").onclick = () => {
-        window.location.href = `tel:${emergencyPhone}`;
+      const callButton = document.getElementById("callHelpBtn");
+      callButton.onclick = () => {
+        const callModal = document.getElementById("callModal");
+        const numberSelect = document.getElementById("emergencyNumberSelect");
+
+        numberSelect.innerHTML = "";
+        if (emergencyNumbers.length > 0) {
+          emergencyNumbers.forEach((number) => {
+            const option = document.createElement("option");
+            option.value = number;
+            option.textContent = number;
+            numberSelect.appendChild(option);
+          });
+        } else {
+          const option = document.createElement("option");
+          option.value = "";
+          option.textContent = "No numbers available";
+          option.disabled = true;
+          numberSelect.appendChild(option);
+        }
+
+        callModal.classList.add("show");
       };
 
-      // Mobile nav toggle
-      document.getElementById("navToggle").addEventListener("click", () => {
-        document.getElementById("navMenu").classList.toggle("open");
+      document.getElementById("confirmCallBtn").onclick = () => {
+        const selectedNumber = document.getElementById(
+          "emergencyNumberSelect"
+        ).value;
+        if (selectedNumber) {
+          window.location.href = `tel:${selectedNumber}`;
+        } else {
+          alert("No emergency number selected.");
+        }
+        document.getElementById("callModal").classList.remove("show");
+      };
+
+      // Close modal handler
+      document.querySelector("#callModal .close").onclick = () => {
+        document.getElementById("callModal").classList.remove("show");
+      };
+
+      // Prompt to add to home screen
+      let deferredPrompt;
+      window.addEventListener("beforeinstallprompt", (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        document.getElementById("addToHomeScreenBtn").style.display = "block";
       });
+
+      document
+        .getElementById("addToHomeScreenBtn")
+        .addEventListener("click", async () => {
+          if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === "accepted") {
+              console.log("User added to home screen");
+            }
+            deferredPrompt = null;
+          } else {
+            alert("Please use your browser's 'Add to Home Screen' option.");
+          }
+        });
+
+      // Start tracking and load numbers on page load
+      startLocationTracking();
+      loadEmergencyNumbers();
     </script>
   </body>
 </html>
