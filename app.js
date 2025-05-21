@@ -227,3 +227,182 @@ document.addEventListener("DOMContentLoaded", () => {
   initStatusIndicator(); // online/offline dot
   // You can also kick off any other on‑load behavior here
 });
+export function showLoading() {
+  document.getElementById("loading").style.display = "block";
+}
+export function hideLoading() {
+  document.getElementById("loading").style.display = "none";
+}
+export function showError(message) {
+  const errorEl = document.getElementById("error-message");
+  errorEl.textContent = message;
+  errorEl.style.display = "block";
+  setTimeout(() => {
+    errorEl.style.display = "none";
+  }, 5000);
+}
+export function showSuccess(message) {
+  const successEl =
+    document.getElementById("success-message") || document.createElement("div");
+  successEl.className = "success-message";
+  successEl.textContent = message;
+  successEl.style.display = "block";
+  document.body.appendChild(successEl);
+  setTimeout(() => {
+    successEl.style.display = "none";
+  }, 5000);
+}
+export function setupTableSorting(tableId, columns) {
+  console.log(`Sorting table ${tableId} on columns:`, columns);
+}
+export function setupTableFiltering(tableId, columns) {
+  console.log(`Filtering table ${tableId} on columns:`, columns);
+}
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+import {
+  getAuth,
+  onAuthStateChanged,
+  signOut,
+} from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+import {
+  getFirestore,
+  collection,
+  onSnapshot,
+  updateDoc,
+  doc,
+  getDoc,
+} from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+// const firebaseConfig = {
+//   apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
+//   authDomain: "hospitalmanagtsystem.firebaseapp.com",
+//   projectId: "hospitalmanagtsystem",
+//   storageBucket: "hospitalmanagtsystem.firebasestorage.app",
+//   messagingSenderId: "771158568788",
+//   appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
+// };
+
+// const app = initializeApp(firebaseConfig);
+// const auth = getAuth(app);
+// const db = getFirestore(app);
+
+const loadingEl = document.getElementById("loading");
+const errorEl = document.getElementById("error-message");
+
+function showLoading() {
+  loadingEl.style.display = "block";
+}
+function hideLoading() {
+  loadingEl.style.display = "none";
+}
+function showError(message) {
+  errorEl.textContent = message;
+  errorEl.style.display = "block";
+  setTimeout(() => {
+    errorEl.style.display = "none";
+  }, 5000);
+}
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    window.location.href = "/index.html";
+    return;
+  }
+  showLoading();
+  try {
+    const userDoc = await getDoc(doc(db, "users", user.uid));
+    if (userDoc.exists() && userDoc.data().role === "pharmacist") {
+      const hour = new Date().getHours();
+      const sal =
+        hour < 12
+          ? "Good Morning"
+          : hour < 18
+          ? "Good Afternoon"
+          : "Good Evening";
+      document.getElementById("greeting").textContent = `${sal}, ${
+        userDoc.data().firstName
+      }`;
+      loadPrescriptions();
+    } else {
+      await signOut(auth);
+      window.location.href = "/unauthorized.html";
+    }
+  } catch (error) {
+    showError("Failed to verify pharmacist status.");
+    window.location.href = "/index.html";
+  } finally {
+    hideLoading();
+  }
+});
+
+function loadPrescriptions() {
+  showLoading();
+  onSnapshot(
+    collection(db, "prescriptions"),
+    (snapshot) => {
+      const list = document.getElementById("prescriptions-list");
+      list.innerHTML = "";
+      if (snapshot.empty) {
+        list.innerHTML = "<li>No prescriptions found.</li>";
+        hideLoading();
+        return;
+      }
+      snapshot.forEach((doc) => {
+        const prescription = doc.data();
+        const li = document.createElement("li");
+        li.innerHTML = `
+             <strong>${prescription.patientName}</strong> - ${
+          prescription.medications.length
+        } medication(s)
+             <br>Status: ${prescription.status}
+             <br>
+             <button class="approve-btn" data-id="${doc.id}" ${
+          prescription.status !== "active" ? "disabled" : ""
+        }>Approve</button>
+             <button class="cancel-btn" data-id="${doc.id}" ${
+          prescription.status !== "active" ? "disabled" : ""
+        }>Cancel</button>
+           `;
+        list.appendChild(li);
+      });
+      document.querySelectorAll(".approve-btn").forEach((btn) => {
+        btn.addEventListener("click", () =>
+          updatePrescriptionStatus(btn.dataset.id, "completed")
+        );
+      });
+      document.querySelectorAll(".cancel-btn").forEach((btn) => {
+        btn.addEventListener("click", () =>
+          updatePrescriptionStatus(btn.dataset.id, "cancelled")
+        );
+      });
+      hideLoading();
+    },
+    (error) => {
+      showError("Failed to load prescriptions.");
+      hideLoading();
+    }
+  );
+}
+
+async function updatePrescriptionStatus(prescriptionId, status) {
+  showLoading();
+  try {
+    await updateDoc(doc(db, "prescriptions", prescriptionId), { status });
+    showError(`Prescription ${status} successfully.`);
+  } catch (error) {
+    showError("Failed to update prescription status.");
+  } finally {
+    hideLoading();
+  }
+}
+
+document.getElementById("logoutBtn").addEventListener("click", async () => {
+  showLoading();
+  try {
+    await signOut(auth);
+    window.location.href = "/index.html";
+  } catch (error) {
+    showError("Failed to sign out.");
+  } finally {
+    hideLoading();
+  }
+});
