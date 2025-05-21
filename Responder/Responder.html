@@ -16,11 +16,13 @@
     <style>
       :root {
         --primary: #0052cc;
-        --accent: #008080;
-        --bg: #f9fbfd;
-        --text: #333;
-        --card-bg: #fff;
+        --accent: #28a745;
+        --bg: #f0f4f8;
+        --text: #1a1a1a;
+        --card-bg: #ffffff;
+        --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         --transition: 0.3s ease;
+        --sidebar-width: 250px;
       }
       * {
         box-sizing: border-box;
@@ -28,91 +30,98 @@
         padding: 0;
       }
       body {
-        font-family: Arial, sans-serif;
+        font-family: "Segoe UI", Arial, sans-serif;
         background: var(--bg);
         color: var(--text);
-        line-height: 1.5;
+        line-height: 1.6;
+        display: flex;
+        height: 100vh;
       }
-      header {
+      .sidebar {
+        width: var(--sidebar-width);
         background: var(--primary);
         color: #fff;
-        padding: 1rem 2rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        position: fixed;
+        height: 100%;
+        padding: 1rem 0;
+        transition: transform var(--transition);
+        transform: translateX(0);
       }
-      .user-info {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
+      .sidebar.hidden {
+        transform: translateX(-100%);
       }
-      nav {
+      .sidebar-toggle {
+        display: none;
+        position: fixed;
+        left: 10px;
+        top: 10px;
         background: var(--primary);
+        border: none;
+        color: #fff;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        z-index: 1200;
       }
-      .nav-inner {
-        max-width: 1200px;
-        margin: auto;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0.5rem 2rem;
-      }
-      .nav-menu {
+      .sidebar-nav {
         list-style: none;
-        display: flex;
-        gap: 1rem;
+        padding: 1rem;
       }
-      .nav-menu li a {
+      .sidebar-nav li {
+        margin: 1rem 0;
+      }
+      .sidebar-nav li a {
         color: #fff;
         text-decoration: none;
-        padding: 0.5rem 1rem;
+        padding: 0.75rem 1rem;
+        display: block;
         border-radius: 4px;
         transition: background var(--transition);
       }
-      .nav-menu li a.active,
-      .nav-menu li a:hover {
+      .sidebar-nav li a.active,
+      .sidebar-nav li a:hover {
         background: rgba(255, 255, 255, 0.2);
       }
-      .nav-toggle {
-        display: none;
-        cursor: pointer;
-        font-size: 1.25rem;
-        color: #fff;
-      }
       main {
-        max-width: 1200px;
-        margin: 2rem auto;
-        padding: 0 1rem;
+        margin-left: var(--sidebar-width);
+        padding: 2rem;
+        width: calc(100% - var(--sidebar-width));
+        overflow-y: auto;
       }
       .card {
         background: var(--card-bg);
         border-radius: 8px;
         padding: 1.5rem;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        margin-bottom: 1rem;
+        box-shadow: var(--shadow);
+        margin-bottom: 1.5rem;
       }
       #map {
         height: 400px;
         width: 100%;
         border-radius: 8px;
-        margin-bottom: 1rem;
+        margin-bottom: 1.5rem;
+      }
+      .emergency-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1rem;
       }
       .emergency-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border: 1px solid #ccc;
+        border: 1px solid #ddd;
         padding: 1rem;
-        margin-bottom: 1rem;
         border-radius: 4px;
-        transition: transform var(--transition);
+        transition: transform var(--transition), box-shadow var(--transition);
       }
       .emergency-item:hover {
-        transform: translateY(-2px);
+        transform: translateY(-5px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
       }
       .emergency-details {
-        flex: 1;
+        margin-bottom: 0.5rem;
+      }
+      .emergency-actions {
+        display: flex;
+        gap: 0.5rem;
       }
       .modal {
         display: none;
@@ -130,12 +139,24 @@
         display: flex;
       }
       .modal-content {
-        background: #fff;
+        background: var(--card-bg);
         padding: 2rem;
         border-radius: 8px;
         width: 90%;
-        max-width: 500px;
+        max-width: 600px;
         position: relative;
+        box-shadow: var(--shadow);
+      }
+      .modal-content select,
+      .modal-content textarea {
+        width: 100%;
+        padding: 0.5rem;
+        margin: 0.5rem 0;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      .modal-content button {
+        margin-top: 1rem;
       }
       .close {
         position: absolute;
@@ -155,14 +176,23 @@
         z-index: 1100;
       }
       .notification {
-        background: #fff;
+        background: var(--card-bg);
         padding: 1rem;
         margin-bottom: 0.5rem;
         border-radius: 4px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        box-shadow: var(--shadow);
         display: flex;
         align-items: center;
         gap: 0.5rem;
+        animation: slideIn 0.3s ease-out;
+      }
+      @keyframes slideIn {
+        from {
+          transform: translateX(100%);
+        }
+        to {
+          transform: translateX(0);
+        }
       }
       .btn {
         padding: 0.75rem 1.5rem;
@@ -177,80 +207,210 @@
         color: #fff;
       }
       .btn-primary:hover {
-        background: #0041a8;
+        background: #003d99;
+      }
+      .btn-call {
+        background: var(--accent);
+        color: #fff;
+      }
+      .btn-call:hover {
+        background: #1f8c3a;
+      }
+      .btn-accept {
+        background: #ffc107;
+        color: #fff;
+      }
+      .btn-accept:hover {
+        background: #e0a800;
+      }
+      .btn-decline {
+        background: #dc3545;
+        color: #fff;
+      }
+      .btn-decline:hover {
+        background: #c82333;
+      }
+      #profileSection {
+        display: none;
+      }
+      #profileSection.show {
+        display: block;
+      }
+      .profile-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+      }
+      .profile-form label {
+        font-weight: bold;
+        margin-bottom: 0.25rem;
+      }
+      .profile-form input,
+      .profile-form select,
+      .profile-form button {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      .profile-pic {
+        grid-column: 1 / -1;
+        text-align: center;
+        margin-bottom: 1rem;
+      }
+      .profile-pic img {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background: #ddd;
+      }
+      .profile-actions {
+        grid-column: 1 / -1;
+        display: flex;
+        gap: 1rem;
       }
       @media (max-width: 768px) {
-        .nav-menu {
-          display: none;
-          flex-direction: column;
-          position: absolute;
-          top: 100%;
-          left: 0;
-          right: 0;
-          background: var(--primary);
-        }
-        .nav-menu.open {
-          display: flex;
-        }
-        .nav-toggle {
+        .sidebar-toggle {
           display: block;
         }
-        #map {
-          height: 300px;
+        .sidebar {
+          transform: translateX(-100%);
         }
-        .emergency-item {
-          flex-direction: column;
-          align-items: flex-start;
+        .sidebar.open {
+          transform: translateX(0);
+        }
+        main {
+          margin-left: 0;
+          width: 100%;
+        }
+        .emergency-list {
+          grid-template-columns: 1fr;
+        }
+        .modal-content {
+          width: 95%;
         }
       }
     </style>
   </head>
   <body onload="initMap()">
-    <header>
-      <h1>Responder Dashboard</h1>
-      <div class="user-info">
-        <span id="userGreeting"></span>
-        <button id="logoutBtn" class="btn btn-primary" aria-label="Logout">
-          Logout
-        </button>
-      </div>
-    </header>
-    <nav>
-      <div class="nav-inner">
-        <div class="nav-toggle" id="navToggle">☰</div>
-        <ul class="nav-menu" id="navMenu">
-          <li>
-            <a href="Responder.html" class="active" aria-current="page"
-              >Dashboard</a
-            >
-          </li>
-          <li><a href="assign.html">Assignment</a></li>
-          <li><a href="reports.html">Report</a></li>
-          <li><a href="map.html">Map</a></li>
-        </ul>
-      </div>
-    </nav>
+    <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+    <div class="sidebar" id="sidebar">
+      <ul class="sidebar-nav" id="navMenu">
+        <li>
+          <a href="Responder.html" class="active" aria-current="page"
+            >Dashboard</a
+          >
+        </li>
+        <li><a href="assign.html">Assignment</a></li>
+        <li><a href="reports.html">Report</a></li>
+        <li><a href="map.html">Map</a></li>
+      </ul>
+    </div>
     <main>
+      <header>
+        <h1>Responder Dashboard</h1>
+        <div class="user-info">
+          <span id="userGreeting"></span>
+          <button
+            id="toggleProfileBtn"
+            class="btn btn-primary"
+            aria-label="Toggle Profile"
+          >
+            Profile
+          </button>
+          <button id="logoutBtn" class="btn btn-primary" aria-label="Logout">
+            Logout
+          </button>
+        </div>
+      </header>
+      <div id="profileSection" class="card">
+        <h2>Responder Profile</h2>
+        <form id="profileForm" class="profile-form">
+          <div>
+            <label for="responderId">Responder ID:</label>
+            <input type="text" id="responderId" readonly />
+          </div>
+          <div>
+            <label for="firstName">First Name:</label>
+            <input type="text" id="firstName" />
+          </div>
+          <div>
+            <label for="lastName">Last Name:</label>
+            <input type="text" id="lastName" />
+          </div>
+          <div>
+            <label for="contact">Contact Number:</label>
+            <input type="text" id="contact" />
+          </div>
+          <div>
+            <label for="status">Status:</label>
+            <select id="status">
+              <option value="Available">Available</option>
+              <option value="Busy">Busy</option>
+              <option value="Offline">Offline</option>
+            </select>
+          </div>
+          <div class="profile-actions">
+            <button
+              type="submit"
+              class="btn btn-primary"
+              aria-label="Save Profile"
+            >
+              Save Changes
+            </button>
+            <!-- <span id="lastUpdated"></span> -->
+          </div>
+        </form>
+      </div>
+      <div class="card">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          "
+        >
+          <h2>Current Help Requests</h2>
+          <button id="refreshBtn" class="btn btn-primary">Refresh</button>
+        </div>
+        <div class="emergency-list" id="emergencyItems"></div>
+      </div>
       <div id="map"></div>
-      <section id="emergencyList" class="card">
-        <h2>Current Emergencies</h2>
-        <div id="emergencyItems"></div>
-      </section>
       <div id="emergencyModal" class="modal">
         <div class="modal-content">
           <span class="close" aria-label="Close modal">×</span>
           <h2 id="modalTitle"></h2>
+          <p>Patient ID: <span id="modalPatientId"></span></p>
           <p>Address: <span id="modalAddress"></span></p>
           <p>Requested at: <span id="modalRequestedAt"></span></p>
           <p>Type: <span id="modalType"></span></p>
+          <p>Priority: <span id="modalPriority"></span></p>
+          <label for="phoneSelect">Contact Number:</label>
+          <select
+            id="phoneSelect"
+            aria-label="Select phone number to call"
+          ></select>
+          <button
+            id="callButton"
+            class="btn btn-call"
+            aria-label="Call patient"
+          >
+            Call
+          </button>
           <label for="statusSelect">Status:</label>
-          <select id="statusSelect" aria-label="Emergency status">
+          <select id="statusSelect" aria-label="Help request status">
             <option value="Pending">Pending</option>
             <option value="Assigned">Assigned</option>
             <option value="En Route">En Route</option>
             <option value="On Scene">On Scene</option>
             <option value="Resolved">Resolved</option>
           </select>
+          <label for="notes">Notes:</label>
+          <textarea
+            id="notes"
+            rows="3"
+            placeholder="Add notes here..."
+          ></textarea>
           <button
             id="saveStatus"
             class="btn btn-primary"
@@ -276,6 +436,9 @@
         doc,
         getDoc,
         updateDoc,
+        setDoc,
+        query,
+        where,
       } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
       const firebaseConfig = {
@@ -287,7 +450,6 @@
         appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
       };
 
-      // Initialize Firebase
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app);
       const db = getFirestore(app);
@@ -296,7 +458,15 @@
       let emergencies = [];
       const geocoder = new google.maps.Geocoder();
 
-      // Initialize Google Map
+      function generateResponderId() {
+        const prefix = "RES-";
+        const randomPart = Math.random()
+          .toString(36)
+          .substr(2, 9)
+          .toUpperCase();
+        return `${prefix}${randomPart}`;
+      }
+
       function initMap() {
         map = new google.maps.Map(document.getElementById("map"), {
           center: { lat: 0, lng: 0 },
@@ -304,7 +474,6 @@
         });
       }
 
-      // Authenticate user and load data
       onAuthStateChanged(auth, async (user) => {
         if (!user) {
           window.location.href = "/index.html";
@@ -314,6 +483,7 @@
           const userDoc = await getDoc(doc(db, "users", user.uid));
           if (userDoc.exists() && userDoc.data().role === "firstResponder") {
             updateGreeting(userDoc.data().firstName);
+            loadResponderProfile(user.uid);
             loadEmergencies();
           } else {
             await signOut(auth);
@@ -321,11 +491,10 @@
           }
         } catch (error) {
           console.error("Auth error:", error);
-          showNotification("Failed to authenticate");
+          showNotification("Invalid user role. Please contact support.");
         }
       });
 
-      // Update user greeting based on time
       function updateGreeting(firstName) {
         const hour = new Date().getHours();
         const sal =
@@ -339,16 +508,97 @@
         }`;
       }
 
-      // Load emergencies from Firestore
+      async function loadResponderProfile(userId) {
+        const userDoc = await getDoc(doc(db, "users", userId));
+        let responderId = "";
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          responderId = data.responderId || generateResponderId();
+          document.getElementById("responderId").value = responderId;
+          document.getElementById("firstName").value = data.firstName || "";
+          document.getElementById("lastName").value = data.lastName || "";
+          document.getElementById("contact").value = data.contact || "";
+          document.getElementById("status").value = data.status || "Available";
+          document.getElementById("lastUpdated").textContent = data.updatedAt
+            ? `Last updated: ${new Date(
+                data.updatedAt.toDate()
+              ).toLocaleString()}`
+            : "";
+        } else {
+          responderId = generateResponderId();
+          document.getElementById("responderId").value = responderId;
+        }
+        if (!userDoc.exists() || !userDoc.data().responderId) {
+          await setDoc(
+            doc(db, "users", userId),
+            {
+              responderId,
+              role: "firstResponder",
+              createdAt: new Date(),
+            },
+            { merge: true }
+          );
+        }
+        document.getElementById("profileSection").classList.add("show");
+      }
+
+      document
+        .getElementById("profileForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const userId = auth.currentUser.uid;
+          const newData = {
+            firstName: document.getElementById("firstName").value,
+            lastName: document.getElementById("lastName").value,
+            contact: document.getElementById("contact").value,
+            status: document.getElementById("status").value,
+            updatedAt: new Date(),
+          };
+          try {
+            await updateDoc(doc(db, "users", userId), newData);
+            showNotification("Profile updated successfully");
+            document.getElementById(
+              "lastUpdated"
+            ).textContent = `Last updated: ${new Date().toLocaleString()}`;
+          } catch (error) {
+            console.error("Error updating profile:", error);
+            showNotification("Failed to update profile");
+          }
+        });
+
+      document.getElementById("toggleProfileBtn").onclick = () => {
+        document.getElementById("profileSection").classList.toggle("show");
+      };
+
       function loadEmergencies() {
-        const q = collection(db, "helpRequests");
+        const userId = auth.currentUser?.uid;
+        if (!userId) {
+          showNotification("User not authenticated");
+          return;
+        }
+        const q = query(
+          collection(db, "helpRequests"),
+          where("status", "in", ["Pending", "Assigned"]),
+          where("assignedTo", "in", ["unassigned", userId])
+        );
         onSnapshot(
           q,
           async (snapshot) => {
+            console.log(
+              "Snapshot received, changes:",
+              snapshot.docChanges().length
+            );
             for (const change of snapshot.docChanges()) {
+              console.log(
+                "Change type:",
+                change.type,
+                "Data:",
+                change.doc.data()
+              );
               const emergency = { id: change.doc.id, ...change.doc.data() };
               if (change.type === "added") {
                 await enrichEmergencyData(emergency);
+                console.log("Enriched emergency:", emergency);
                 emergencies.push(emergency);
                 addEmergencyToMap(emergency);
                 addEmergencyToList(emergency);
@@ -364,26 +614,39 @@
                   emergencies[index] = emergency;
                   updateEmergencyInList(emergency);
                 }
+              } else if (change.type === "removed") {
+                const index = emergencies.findIndex(
+                  (e) => e.id === emergency.id
+                );
+                if (index !== -1) {
+                  emergencies.splice(index, 1);
+                  updateEmergencyListUI();
+                }
               }
             }
           },
           (error) => {
             console.error("Error fetching emergencies:", error);
-            showNotification("Failed to load emergencies");
+            showNotification("Failed to load emergencies: " + error.message);
           }
         );
       }
 
-      // Enrich emergency data with name, address, type, and status
       async function enrichEmergencyData(emergency) {
-        // Fetch patient name
-        if (!emergency.name) {
+        if (!emergency.name || !emergency.phoneNumbers) {
           const userDoc = await getDoc(doc(db, "users", emergency.patientId));
-          emergency.name = userDoc.exists()
-            ? `${userDoc.data().firstName} ${userDoc.data().lastName}`
-            : "Unknown";
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            emergency.name =
+              userData.firstName && userData.lastName
+                ? `${userData.firstName} ${userData.lastName}`
+                : "Unknown";
+            emergency.phoneNumbers = userData.phoneNumbers || [];
+          } else {
+            emergency.name = "Unknown";
+            emergency.phoneNumbers = [];
+          }
         }
-        // Geocode address
         if (!emergency.address && emergency.latitude && emergency.longitude) {
           try {
             const response = await new Promise((resolve, reject) => {
@@ -407,14 +670,13 @@
             emergency.address = "Unknown location";
           }
         }
-        // Set defaults
         emergency.type = emergency.type || "gps";
         emergency.status = emergency.status || "Pending";
+        emergency.priority = emergency.priority || "Low";
         emergency.createdAt =
           emergency.timestamp || emergency.createdAt || new Date();
       }
 
-      // Add emergency to map
       function addEmergencyToMap(emergency) {
         const pos = { lat: emergency.latitude, lng: emergency.longitude };
         new google.maps.Marker({
@@ -428,70 +690,139 @@
                   url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
                 },
         });
-        map.setCenter(pos);
-        map.setZoom(15);
+        if (emergencies.length === 1) {
+          map.setCenter(pos);
+          map.setZoom(15);
+        }
       }
 
-      // Add emergency to list
       function addEmergencyToList(emergency) {
         const container = document.getElementById("emergencyItems");
         const item = document.createElement("div");
         item.className = "emergency-item";
         item.dataset.id = emergency.id;
         item.innerHTML = `
-        <div class="emergency-details">
-          <h3><i class="fas fa-user-injured"></i> ${emergency.name}</h3>
-          <p><i class="fas fa-map-marker-alt"></i> ${emergency.address}</p>
-          <p><i class="fas fa-clock"></i> Requested at: ${emergency.createdAt
-            .toDate()
-            .toLocaleString()}</p>
-          <p class="status"><i class="fas fa-info-circle"></i> Status: ${
-            emergency.status
-          }</p>
-        </div>
-        <button class="btn btn-primary view-details" aria-label="View details for ${
-          emergency.name
-        }">View Details</button>
-      `;
+          <div class="emergency-details">
+            <h3><i class="fas fa-user-injured"></i> ${emergency.name}</h3>
+            <p><i class="fas fa-map-marker-alt"></i> ${emergency.address}</p>
+            <p><i class="fas fa-clock"></i> ${new Date(
+              emergency.createdAt
+            ).toLocaleString()}</p>
+            <p><i class="fas fa-exclamation-triangle"></i> ${
+              emergency.priority
+            }</p>
+            <p><i class="fas fa-info-circle"></i> ${emergency.status}</p>
+          </div>
+          <div class="emergency-actions">
+            <button class="btn btn-accept" aria-label="Accept ${
+              emergency.name
+            }">Accept</button>
+            <button class="btn btn-decline" aria-label="Decline ${
+              emergency.name
+            }">Decline</button>
+            <button class="btn btn-primary view-details" aria-label="View details for ${
+              emergency.name
+            }">View Details</button>
+          </div>
+        `;
         container.appendChild(item);
         item.querySelector(".view-details").onclick = () =>
           viewDetails(emergency.id);
+        item.querySelector(".btn-accept").onclick = () =>
+          updateStatus(emergency.id, "Assigned");
+        item.querySelector(".btn-decline").onclick = () =>
+          updateStatus(emergency.id, "Declined");
       }
 
-      // Update emergency in list
+      function updateEmergencyListUI() {
+        const container = document.getElementById("emergencyItems");
+        container.innerHTML = "";
+        emergencies.forEach(addEmergencyToList);
+      }
+
       function updateEmergencyInList(emergency) {
         const item = document.querySelector(
           `.emergency-item[data-id="${emergency.id}"]`
         );
         if (item) {
-          item.querySelector(
-            ".status"
-          ).innerHTML = `<i class="fas fa-info-circle"></i> Status: ${emergency.status}`;
+          item.querySelector(`.status`).textContent = `${emergency.status}`;
         }
       }
 
-      // Show modal with emergency details
       function viewDetails(id) {
         const emergency = emergencies.find((e) => e.id === id);
         if (!emergency) return;
         document.getElementById("modalTitle").textContent = emergency.name;
+        document.getElementById("modalPatientId").textContent =
+          emergency.patientId || "N/A";
         document.getElementById("modalAddress").textContent = emergency.address;
-        document.getElementById("modalRequestedAt").textContent =
-          emergency.createdAt.toDate().toLocaleString();
+        document.getElementById("modalRequestedAt").textContent = new Date(
+          emergency.createdAt
+        ).toLocaleString();
         document.getElementById("modalType").textContent =
           emergency.type === "gps" ? "GPS Request" : "Voice Call";
+        document.getElementById("modalPriority").textContent =
+          emergency.priority;
+
+        const phoneSelect = document.getElementById("phoneSelect");
+        phoneSelect.innerHTML = "";
+        if (emergency.phoneNumbers && emergency.phoneNumbers.length > 0) {
+          emergency.phoneNumbers.forEach((number) => {
+            const option = document.createElement("option");
+            option.value = number;
+            option.textContent = number;
+            phoneSelect.appendChild(option);
+          });
+        } else {
+          const option = document.createElement("option");
+          option.value = "";
+          option.textContent = "No numbers available";
+          option.disabled = true;
+          phoneSelect.appendChild(option);
+        }
+
         document.getElementById("statusSelect").value = emergency.status;
+        document.getElementById("notes").value = emergency.notes || "";
         document.getElementById("emergencyModal").classList.add("show");
+
+        document.getElementById("callButton").onclick = () => {
+          if (confirm("Are you sure you want to call this number?")) {
+            const selectedNumber = phoneSelect.value;
+            if (selectedNumber) {
+              window.location.href = `tel:${selectedNumber}`;
+            } else {
+              showNotification("No phone number selected");
+            }
+          }
+        };
+
         document.getElementById("saveStatus").onclick = () =>
           saveStatus(emergency.id);
       }
 
-      // Save status update
+      async function updateStatus(id, status) {
+        try {
+          await updateDoc(doc(db, "helpRequests", id), { status });
+          showNotification(`Request ${status.toLowerCase()}`);
+          emergencies.find((e) => e.id === id).status = status;
+          updateEmergencyListUI();
+        } catch (error) {
+          console.error("Error updating status:", error);
+          showNotification("Failed to update status");
+        }
+      }
+
       async function saveStatus(id) {
         const newStatus = document.getElementById("statusSelect").value;
+        const notes = document.getElementById("notes").value;
         try {
-          await updateDoc(doc(db, "helpRequests", id), { status: newStatus });
+          await updateDoc(doc(db, "helpRequests", id), {
+            status: newStatus,
+            notes,
+          });
           showNotification(`Status updated to ${newStatus}`);
+          emergencies.find((e) => e.id === id).status = newStatus;
+          emergencies.find((e) => e.id === id).notes = notes;
           document.getElementById("emergencyModal").classList.remove("show");
         } catch (error) {
           console.error("Error updating status:", error);
@@ -499,7 +830,6 @@
         }
       }
 
-      // Show notification
       function showNotification(message) {
         const notifications = document.getElementById("notifications");
         const notification = document.createElement("div");
@@ -509,7 +839,6 @@
         setTimeout(() => notification.remove(), 5000);
       }
 
-      // Event listeners
       document.getElementById("logoutBtn").onclick = async () => {
         try {
           await signOut(auth);
@@ -520,12 +849,18 @@
         }
       };
 
-      document.getElementById("navToggle").onclick = () => {
-        document.getElementById("navMenu").classList.toggle("open");
+      document.getElementById("sidebarToggle").onclick = () => {
+        document.getElementById("sidebar").classList.toggle("open");
       };
 
       document.querySelector(".close").onclick = () => {
         document.getElementById("emergencyModal").classList.remove("show");
+      };
+
+      document.getElementById("refreshBtn").onclick = () => {
+        emergencies = [];
+        loadEmergencies();
+        showNotification("Emergencies refreshed");
       };
     </script>
   </body>
