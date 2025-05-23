@@ -234,6 +234,13 @@
     <main>
       <section class="card">
         <h2>My Medical Records</h2>
+        <button class="btn mb-4" id="uploadRecordBtn">Upload New Record</button>
+        <input
+          type="file"
+          id="recordFileInput"
+          style="display: none"
+          accept=".pdf,image/*"
+        />
         <div id="recordsTableContainer">
           <table id="recordsTable">
             <thead>
@@ -266,19 +273,21 @@
         query,
         where,
         onSnapshot,
+        setDoc,
         enableIndexedDbPersistence,
       } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
       import {
         getStorage,
         ref,
         getDownloadURL,
+        uploadBytes,
       } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-storage.js";
 
       const firebaseConfig = {
         apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
         authDomain: "hospitalmanagtsystem.firebaseapp.com",
         projectId: "hospitalmanagtsystem",
-        storageBucket: "hospitalmanagtsystem.firsebasestorage.app",
+        storageBucket: "hospitalmanagtsystem.firebasestorage.app",
         messagingSenderId: "771158568788",
         appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
       };
@@ -454,6 +463,45 @@
       }
 
       document
+        .getElementById("uploadRecordBtn")
+        .addEventListener("click", () => {
+          document.getElementById("recordFileInput").click();
+        });
+
+      document
+        .getElementById("recordFileInput")
+        .addEventListener("change", async (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          showLoading();
+          try {
+            const storageRef = ref(
+              storage,
+              `records/${auth.currentUser.uid}/${file.name}`
+            );
+            await uploadBytes(storageRef, file);
+            const filePath = await getDownloadURL(storageRef);
+            const recordRef = doc(collection(db, "medicalRecords"));
+            await setDoc(recordRef, {
+              patientId: auth.currentUser.uid,
+              recordId: recordRef.id,
+              description: file.name,
+              date: Timestamp.now(),
+              filePath,
+              createdBy: auth.currentUser.uid,
+              createdAt: Timestamp.now(),
+            });
+            showSuccess("Record uploaded successfully");
+            loadMedicalRecords(auth.currentUser.uid);
+          } catch (error) {
+            console.error("Error uploading record:", error);
+            showError("Failed to upload record: " + error.message);
+          } finally {
+            hideLoading();
+          }
+        });
+
+      document
         .getElementById("logoutBtn")
         .addEventListener("click", async () => {
           try {
@@ -473,7 +521,7 @@
       async function updateStatus() {
         try {
           const res = await fetch(
-            "https://us-central1-hospitalmanagtsystem.cloudfunctions.net/systemStatus"
+            "https://hospitalmanagtsystem-default-rtdb.firebaseio.com/status.json"
           );
           if (res.ok) {
             const { status } = await res.json();

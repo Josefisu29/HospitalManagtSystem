@@ -1,318 +1,355 @@
+
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Prescription Page</title>
-    <script src="https://cdn.tail yıllık.com"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
-    <style>
-      body {
-        font-family: "Arial", sans-serif;
-        background-color: #f0f4f8;
-      }
-      .modal {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-      }
-      .modal-content {
-        background: white;
-        margin: 10% auto;
-        padding: 20px;
-        width: 80%;
-        max-width: 500px;
-        border-radius: 8px;
-      }
-    </style>
-  </head>
-  <body class="p-6">
-    <!-- Header -->
-    <header class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold">Dr. John Doe</h1>
-      <button id="logoutBtn" class="bg-red-500 text-white px-4 py-2 rounded">
-        Logout
-      </button>
-    </header>
-
-    <!-- Navigation -->
-    <nav class="bg-gray-800 text-white p-4 rounded mb-6">
-      <ul class="flex space-x-6">
-        <li><a href="doctor/doctor.html" class="hover:underline">Dashboard</a></li>
-        <li><a href="doctor/appointments.html" class="hover:underline">Appointments</a></li>
-        <li><a href="doctor/records.html" class="hover:underline">Records</a></li>
-        <li><a href="doctor/note.html" class="hover:underline">Clinical Notes</a></li>
-        <li><a href="doctor/prescriptions.html" class="underline">Prescriptions</a></li>
-      </ul>
-    </nav>
-
-    <!-- Main Content -->
-    <main class="bg-white p-6 rounded shadow">
-      <h2 class="text-xl font-semibold mb-4">
-        Prescriptions for <span id="patientName">Loading...</span>
-      </h2>
-      <button
-        id="newPrescriptionBtn"
-        class="bg-blue-500 text-white px-4 py-2 rounded mb-4"
-      >
-        New Prescription
-      </button>
-
-      <!-- Prescription List -->
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
-          <thead>
-            <tr class="bg-gray-200">
-              <th class="p-2">Medication</th>
-              <th class="p-2">Dosage</th>
-              <th class="p-2">Status</th>
-              <th class="p-2">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="prescriptionList"></tbody>
-        </table>
-      </div>
-    </main>
-
-    <!-- New/Edit Prescription Modal -->
-    <div id="prescriptionModal" class="modal">
-      <div class="modal-content">
-        <h3 class="text-lg font-semibold mb-4">Prescription Details</h3>
-        <input type="hidden" id="prescriptionId" />
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HMS – Records</title>
+  <link href="[invalid url, do not cite] rel="stylesheet" />
+  <script src="[invalid url, do not cite]
+  <script src="[invalid url, do not cite]
+  <script src="[invalid url, do not cite]
+  <style>
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      max-width: 500px;
+      width: 90%;
+      position: relative;
+    }
+    .modal-content .close {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+    .error-message {
+      color: #e53e3e;
+      text-align: center;
+      margin-bottom: 1rem;
+      font-weight: 500;
+    }
+    .loading-spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #0052cc;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body class="p-6 bg-gray-100">
+  <div id="loading" class="loading-spinner" style="display: none"></div>
+  <div id="error-message" class="error-message"></div>
+  <header class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold" id="greeting">Dr.</h1>
+    <button id="logoutBtn" class="bg-red-500 text-white px-4 py-2 rounded">Logout</button>
+  </header>
+  <nav class="bg-gray-800 text-white p-4 rounded mb-6">
+    <ul class="flex space-x-6">
+      <li><a href="doctor.html" class="hover:underline">Dashboard</a></li>
+      <li><a href="appointments.html" class="hover:underline">Appointments</a></li>
+      <li><a href="records.html" class="underline">Records</a></li>
+      <li><a href="note.html" class="hover:underline">Clinical Notes</a></li>
+      <li><a href="prescriptions.html" class="hover:underline">Prescriptions</a></li>
+    </ul>
+  </nav>
+  <main class="bg-white p-6 rounded shadow">
+    <h2 class="text-xl font-semibold mb-4">Records for <span id="patientName">Loading...</span></h2>
+    <button id="newRecordBtn" class="bg-blue-500 text-white px-4 py-2 rounded mb-4">New Record</button>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="bg-gray-200">
+            <th class="p-2">Date</th>
+            <th class="p-2">Description</th>
+            <th class="p-2">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="recordsList"></tbody>
+      </table>
+    </div>
+  </main>
+  <div id="recordModal" class="modal">
+    <div class="modal-content">
+      <span class="close" id="closeRecordModal">×</span>
+      <h3 id="recordModalTitle">New Record</h3>
+      <form id="recordForm">
+        <input type="hidden" id="recordId" />
         <div class="mb-4">
-          <label class="block text-sm font-medium">Medication Name</label>
-          <input
-            id="medicationName"
-            type="text"
-            class="w-full p-2 border rounded"
-          />
+          <label class="block text-sm font-medium">Description</label>
+          <textarea id="description" class="w-full p-2 border rounded" rows="4" required></textarea>
         </div>
         <div class="mb-4">
-          <label class="block text-sm font-medium">Dosage</label>
-          <input id="dosage" type="text" class="w-full p-2 border rounded" />
-        </div>
-        <div class="mb-4">
-          <label class="block text-sm font-medium">Frequency</label>
-          <input id="frequency" type="text" class="w-full p-2 border rounded" />
-        </div>
-        <div class="mb-4">
-          <label class="block text-sm font-medium">Duration</label>
-          <input id="duration" type="text" class="w-full p-2 border rounded" />
-        </div>
-        <div class="mb-4">
-          <label class="block text-sm font-medium">Notes</label>
-          <textarea id="notes" class="w-full p-2 border rounded"></textarea>
-        </div>
-        <div class="mb-4">
-          <label class="block text-sm font-medium">Valid Until</label>
-          <input
-            id="validUntil"
-            type="date"
-            class="w-full p-2 border rounded"
-          />
-        </div>
-        <div class="mb-4">
-          <label class="block text-sm font-medium">Status</label>
-          <select id="status" class="w-full p-2 border rounded">
-            <option value="active">Active</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
+          <label class="block text-sm font-medium">Date</label>
+          <input id="recordDate" type="date" class="w-full p-2 border rounded" required />
         </div>
         <div class="flex justify-end space-x-2">
-          <button
-            id="savePrescriptionBtn"
-            class="bg-green-500 text-white px-4 py-2 rounded"
-          >
-            Save
-          </button>
-          <button
-            id="closeModalBtn"
-            class="bg-gray-500 text-white px-4 py-2 rounded"
-          >
-            Close
-          </button>
+          <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded">Save</button>
+          <button type="button" id="cancelRecordBtn" class="bg-gray-500 text-white px-4 py-2 rounded">Cancel</button>
         </div>
-      </div>
+      </form>
     </div>
+  </div>
+  <script type="module">
+    import { initializeApp } from "[invalid url, do not cite]
+    import { getAuth, onAuthStateChanged, signOut } from "[invalid url, do not cite]
+    import { getFirestore, collection, query, where, onSnapshot, doc, getDoc, addDoc, updateDoc, deleteDoc, Timestamp, enableIndexedDbPersistence } from "[invalid url, do not cite]
 
-    <script>
-      // Firebase Configuration (Replace with your own config)
-      const firebaseConfig = {
-        apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
-        authDomain: "hospitalmanagtsystem.firebaseapp.com",
-        databaseURL:
-          "https://hospitalmanagtsystem-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "hospitalmanagtsystem",
-        storageBucket: "hospitalmanagtsystem.firebasestorage.app",
-        messagingSenderId: "771158568788",
-        appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
-      };
-      const app = initializeApp(firebaseConfig);
-      const auth = getAuth(app);
-      const db = getFirestore(app);
-      const storage = getStorage(app);
+    const firebaseConfig = {
+      apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
+      authDomain: "hospitalmanagtsystem.firebaseapp.com",
+      projectId: "hospitalmanagtsystem",
+      storageBucket: "hospitalmanagtsystem.firebasestorage.app",
+      messagingSenderId: "771158568788",
+      appId: "1:771158568788:web:e47f16ea2577fa1e8762c1"
+    };
 
-      // DOM Elements
-      const patientNameEl = document.getElementById("patientName");
-      const prescriptionListEl = document.getElementById("prescriptionList");
-      const newPrescriptionBtn = document.getElementById("newPrescriptionBtn");
-      const prescriptionModal = document.getElementById("prescriptionModal");
-      const savePrescriptionBtn = document.getElementById(
-        "savePrescriptionBtn"
-      );
-      const closeModalBtn = document.getElementById("closeModalBtn");
-      const logoutBtn = document.getElementById("logoutBtn");
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-      // Prescription Form Fields
-      const prescriptionIdEl = document.getElementById("prescriptionId");
-      const medicationNameEl = document.getElementById("medicationName");
-      const dosageEl = document.getElementById("dosage");
-      const frequencyEl = document.getElementById("frequency");
-      const durationEl = document.getElementById("duration");
-      const notesEl = document.getElementById("notes");
-      const validUntilEl = document.getElementById("validUntil");
-      const statusEl = document.getElementById("status");
+    enableIndexedDbPersistence(db).catch(err => console.warn("Offline persistence failed:", err));
 
-      let currentPatientId = null;
+    let currentPatientId = null;
+    let currentUserRole = null;
 
-      // Authentication Check
-      auth.onAuthStateChanged((user) => {
-        if (!user) window.location.href = "login.html"; // Redirect to login if not authenticated
-      });
+    function showLoading() {
+      document.getElementById("loading").style.display = "block";
+    }
+    function hideLoading() {
+      document.getElementById("loading").style.display = "none";
+    }
+    function showError(message) {
+      document.getElementById("error-message").textContent = message;
+      document.getElementById("error-message").className = "text-red-500 text-center mb-4";
+      setTimeout(() => document.getElementById("error-message").textContent = "", 5000);
+    }
+    function showSuccess(message) {
+      document.getElementById("error-message").textContent = message;
+      document.getElementById("error-message").className = "text-green-500 text-center mb-4";
+      setTimeout(() => document.getElementById("error-message").textContent = "", 5000);
+    }
 
-      // Fetch Current Patient (assuming from an appointment system)
-      async function fetchCurrentPatient() {
-        // Simulate fetching the patient currently being seen (replace with actual logic)
-        const appointmentRef = db
-          .collection("appointments")
-          .where("doctorId", "==", auth.currentUser.uid)
-          .where("status", "==", "active")
-          .limit(1);
-        const snapshot = await appointmentRef.get();
-        if (!snapshot.empty) {
-          const appointment = snapshot.docs[0].data();
-          currentPatientId = appointment.patientId;
-          const patientRef = await db
-            .collection("patients")
-            .doc(currentPatientId)
-            .get();
-          patientNameEl.textContent = patientRef.data().name;
-          loadPrescriptions();
-        } else {
-          patientNameEl.textContent = "No active appointment";
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = "/index.html";
+        return;
+      }
+      try {
+        const idTokenResult = await user.getIdTokenResult();
+        currentUserRole = idTokenResult.claims.role;
+        if (!["doctor", "patient", "recordClerk"].includes(currentUserRole)) {
+          await signOut(auth);
+          window.location.href = "/unauthorized.html";
+          return;
         }
-      }
-
-      // Load Prescriptions for the Current Patient
-      async function loadPrescriptions() {
-        if (!currentPatientId) return;
-        prescriptionListEl.innerHTML = "";
-        const prescriptionsRef = db
-          .collection("prescriptions")
-          .where("patientId", "==", currentPatientId);
-        const snapshot = await prescriptionsRef.get();
-        snapshot.forEach((doc) => {
-          const data = doc.data();
-          const row = document.createElement("tr");
-          row.innerHTML = `
-          <td class="p-2">${data.medicationName}</td>
-          <td class="p-2">${data.dosage}</td>
-          <td class="p-2">${data.status}</td>
-          <td class="p-2">
-            <button onclick="editPrescription('${doc.id}')" class="bg-yellow-500 text-white px-2 py-1 rounded">Edit</button>
-            <button onclick="deletePrescription('${doc.id}')" class="bg-red-500 text-white px-2 py-1 rounded">Delete</button>
-          </td>
-        `;
-          prescriptionListEl.appendChild(row);
-        });
-      }
-
-      // Open Modal for New Prescription
-      newPrescriptionBtn.addEventListener("click", () => {
-        prescriptionIdEl.value = "";
-        medicationNameEl.value = "";
-        dosageEl.value = "";
-        frequencyEl.value = "";
-        durationEl.value = "";
-        notesEl.value = "";
-        validUntilEl.value = "";
-        statusEl.value = "active";
-        prescriptionModal.style.display = "block";
-      });
-
-      // Close Modal
-      closeModalBtn.addEventListener("click", () => {
-        prescriptionModal.style.display = "none";
-      });
-
-      // Save Prescription
-      savePrescriptionBtn.addEventListener("click", async () => {
-        const prescriptionData = {
-          patientId: currentPatientId,
-          doctorId: auth.currentUser.uid,
-          medicationName: medicationNameEl.value,
-          dosage: dosageEl.value,
-          frequency: frequencyEl.value,
-          duration: durationEl.value,
-          notes: notesEl.value,
-          validUntil: validUntilEl.value,
-          status: statusEl.value,
-          createdAt: new Date().toISOString(),
-        };
-
-        try {
-          if (prescriptionIdEl.value) {
-            await db
-              .collection("prescriptions")
-              .doc(prescriptionIdEl.value)
-              .update(prescriptionData);
-          } else {
-            await db.collection("prescriptions").add(prescriptionData);
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          if (currentUserRole === "doctor") {
+            const doctorDoc = await getDoc(doc(db, "doctors", user.uid));
+            if (doctorDoc.exists()) {
+              const doctor = doctorDoc.data();
+              document.getElementById("greeting").textContent = `Dr. ${doctor.firstName} ${doctor.lastName}`;
+            } else {
+              document.getElementById("greeting").textContent = "Dr.";
+            }
+          } else if (currentUserRole === "recordClerk") {
+            document.getElementById("greeting").textContent = "Record Clerk";
+          } else if (currentUserRole === "patient") {
+            document.getElementById("greeting").textContent = `Patient: ${userData.firstName} ${userData.lastName}`;
           }
-          prescriptionModal.style.display = "none";
-          loadPrescriptions();
+        } else {
+          document.getElementById("greeting").textContent = "User";
+        }
+        const urlParams = new URLSearchParams(window.location.search);
+        currentPatientId = urlParams.get('patientId');
+        if (!currentPatientId && currentUserRole === "patient") {
+          currentPatientId = user.uid;
+        }
+        if (currentPatientId) {
+          const patientDoc = await getDoc(doc(db, "users", currentPatientId));
+          if (patientDoc.exists()) {
+            const patient = patientDoc.data();
+            document.getElementById("patientName").textContent = `${patient.firstName} ${patient.lastName}`;
+            loadRecords();
+          } else {
+            showError("Patient not found");
+          }
+        } else {
+          showError("No patient selected");
+        }
+      } catch (error) {
+        showError("Failed to load user profile: " + error.message);
+      }
+    });
+
+    function loadRecords() {
+      if (!currentPatientId) return;
+      showLoading();
+      const recordsQuery = query(
+        collection(db, "medicalRecords"),
+        where("patientId", "==", currentPatientId),
+        orderBy("createdAt", "desc")
+      );
+      onSnapshot(recordsQuery, (snapshot) => {
+        const recordsList = document.getElementById("recordsList");
+        recordsList.innerHTML = "";
+        if (snapshot.empty) {
+          recordsList.innerHTML = "<tr><td colspan='3'>No records found for this patient</td></tr>";
+        } else {
+          snapshot.forEach((doc) => {
+            const record = doc.data();
+            const row = document.createElement("tr");
+            row.innerHTML = `
+              <td class="p-2">${record.date.toDate().toLocaleDateString()}</td>
+              <td class="p-2">${record.description}</td>
+              <td class="p-2">
+                ${currentUserRole === "patient" ? '' : `
+                  <button onclick="editRecord('${doc.id}')" class="bg-yellow-500 text-white px-2 py-1 rounded">Edit</button>
+                  <button onclick="deleteRecord('${doc.id}')" class="bg-red-500 text-white px-2 py-1 rounded">Delete</button>
+                `}
+              </td>
+            `;
+            recordsList.appendChild(row);
+          });
+        }
+        hideLoading();
+      }, (error) => {
+        showError("Failed to load records: " + error.message);
+        hideLoading();
+      });
+    }
+
+    async function editRecord(id) {
+      if (currentUserRole !== "doctor" && currentUserRole !== "recordClerk") {
+        showError("You do not have permission to edit records");
+        return;
+      }
+      showLoading();
+      try {
+        const docRef = doc(db, "medicalRecords", id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const record = docSnap.data();
+          document.getElementById("recordId").value = id;
+          document.getElementById("description").value = record.description;
+          document.getElementById("recordDate").value = record.date.toDate().toISOString().split('T')[0];
+          document.getElementById("recordModalTitle").textContent = "Edit Record";
+          document.getElementById("recordModal").style.display = "block";
+        } else {
+          showError("Record not found");
+        }
+      } catch (error) {
+        showError("Failed to load record: " + error.message);
+      } finally {
+        hideLoading();
+      }
+    }
+
+    async function deleteRecord(id) {
+      if (currentUserRole !== "doctor" && currentUserRole !== "recordClerk") {
+        showError("You do not have permission to delete records");
+        return;
+      }
+      if (confirm("Are you sure you want to delete this record?")) {
+        showLoading();
+        try {
+          await deleteDoc(doc(db, "medicalRecords", id));
+          showSuccess("Record deleted successfully");
+          loadRecords();
         } catch (error) {
-          alert("Error saving prescription: " + error.message);
+          showError("Failed to delete record: " + error.message);
+        } finally {
+          hideLoading();
         }
-      });
+      }
+    }
 
-      // Edit Prescription
-      window.editPrescription = async function (id) {
-        const doc = await db.collection("prescriptions").doc(id).get();
-        const data = doc.data();
-        prescriptionIdEl.value = id;
-        medicationNameEl.value = data.medicationName;
-        dosageEl.value = data.dosage;
-        frequencyEl.value = data.frequency;
-        durationEl.value = data.duration;
-        notesEl.value = data.notes;
-        validUntilEl.value = data.validUntil;
-        statusEl.value = data.status;
-        prescriptionModal.style.display = "block";
+    document.getElementById("newRecordBtn").addEventListener("click", () => {
+      if (currentUserRole !== "doctor" && currentUserRole !== "recordClerk") {
+        showError("You do not have permission to add records");
+        return;
+      }
+      document.getElementById("recordId").value = "";
+      document.getElementById("description").value = "";
+      document.getElementById("recordDate").value = "";
+      document.getElementById("recordModalTitle").textContent = "New Record";
+      document.getElementById("recordModal").style.display = "block";
+    });
+
+    document.getElementById("closeRecordModal").addEventListener("click", () => {
+      document.getElementById("recordModal").style.display = "none";
+    });
+
+    document.getElementById("cancelRecordBtn").addEventListener("click", () => {
+      document.getElementById("recordModal").style.display = "none";
+    });
+
+    document.getElementById("recordForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (currentUserRole !== "doctor" && currentUserRole !== "recordClerk") {
+        showError("You do not have permission to save records");
+        return;
+      }
+      showLoading();
+      const recordData = {
+        patientId: currentPatientId,
+        doctorId: currentUserRole === "doctor" ? currentDoctorId : null,
+        description: document.getElementById("description").value,
+        date: Timestamp.fromDate(new Date(document.getElementById("recordDate").value)),
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now()
       };
-
-      // Delete Prescription
-      window.deletePrescription = async function (id) {
-        if (confirm("Are you sure you want to delete this prescription?")) {
-          await db.collection("prescriptions").doc(id).delete();
-          loadPrescriptions();
+      try {
+        if (document.getElementById("recordId").value) {
+          await updateDoc(doc(db, "medicalRecords", document.getElementById("recordId").value), recordData);
+          showSuccess("Record updated successfully");
+        } else {
+          await addDoc(collection(db, "medicalRecords"), recordData);
+          showSuccess("Record created successfully");
         }
-      };
+        document.getElementById("recordModal").style.display = "none";
+        loadRecords();
+      } catch (error) {
+        showError("Failed to save record: " + error.message);
+      } finally {
+        hideLoading();
+      }
+    });
 
-      // Logout
-      logoutBtn.addEventListener("click", () => {
-        auth.signOut();
-      });
-
-      // Initialize
-      fetchCurrentPatient();
-    </script>
-  </body>
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      showLoading();
+      try {
+        await signOut(auth);
+        window.location.href = "/index.html";
+      } catch (error) {
+        showError("Failed to sign out: " + error.message);
+      } finally {
+        hideLoading();
+      }
+    });
+  </script>
+</body>
 </html>
