@@ -156,6 +156,47 @@
       <button class="modal-close is-large" aria-label="close"></button>
     </div>
 
+    <!-- Communication Modal -->
+    <div class="modal" id="communicationModal">
+      <div class="modal-background"></div>
+      <div class="modal-content">
+        <div class="box">
+          <h2 class="title is-4">Send Message to Doctor</h2>
+          <form id="communicationForm">
+            <input type="hidden" id="prescriptionId" />
+            <input type="hidden" id="doctorId" />
+            <div class="field">
+              <label class="label">Message</label>
+              <div class="control">
+                <textarea
+                  class="textarea"
+                  id="communicationMessage"
+                  rows="4"
+                  required
+                  placeholder="e.g., Drug unavailable, suggest alternative?"
+                ></textarea>
+              </div>
+            </div>
+            <div class="field is-grouped">
+              <div class="control">
+                <button class="button is-primary" type="submit">Send</button>
+              </div>
+              <div class="control">
+                <button
+                  class="button is-light"
+                  type="button"
+                  id="cancelCommunicationBtn"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+      <button class="modal-close is-large" aria-label="close"></button>
+    </div>
+
     <script type="module" src="pham.js"></script>
     <script type="madule" src="pham/pham.html"></script>
   </body>

@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HMS – Records</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-firestore-compat.js"></script>
+    <style>
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      }
+      .modal-content {
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        max-width: 500px;
+        width: 90%;
+        position: relative;
+      }
+      .modal-content .close {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        font-size: 1.5rem;
+        cursor: pointer;
+      }
+      .error-message {
+        color: #e53e3e;
+        text-align: center;
+        margin-bottom: 1rem;
+        font-weight: 500;
+      }
+      .success-message {
+        color: #38a169;
+        text-align: center;
+        margin-bottom: 1rem;
+        font-weight: 500;
+      }
+      .loading-spinner {
+        width: 24px;
+        height: 24px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #0052cc;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: auto;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    </style>
+  </head>
+  <body class="p-6 bg-gray-100">
+    <div id="loading" class="loading-spinner" style="display: none"></div>
+    <div id="message" class="error-message"></div>
+    <header class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-bold" id="greeting">Dr.</h1>
+      <button
+        id="logoutBtn"
+        class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+      >
+        Logout
+      </button>
+    </header>
+    <nav class="bg-gray-800 text-white p-4 rounded mb-6">
+      <ul class="flex space-x-6">
+        <li><a href="doctor.html" class="hover:underline">Dashboard</a></li>
+        <li>
+          <a href="appointments.html" class="hover:underline">Appointments</a>
+        </li>
+        <li><a href="records.html" class="underline">Records</a></li>
+        <li><a href="note.html" class="hover:underline">Clinical Notes</a></li>
+        <li>
+          <a href="prescriptions.html" class="hover:underline">Prescriptions</a>
+        </li>
+      </ul>
+    </nav>
+    <main class="bg-white p-6 rounded shadow">
+      <h2 class="text-xl font-semibold mb-4">
+        Records for <span id="patientName">Loading...</span>
+      </h2>
+      <button
+        id="newRecordBtn"
+        class="bg-blue-500 text-white px-4 py-2 rounded mb-4 hover:bg-blue-600"
+      >
+        New Record
+      </button>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-gray-200">
+              <th class="p-2">Date</th>
+              <th class="p-2">Description</th>
+              <th class="p-2">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="recordsList"></tbody>
+        </table>
+      </div>
+    </main>
+    <div id="recordModal" class="modal">
+      <div class="modal-content">
+        <span class="close" id="closeRecordModal">×</span>
+        <h3 id="recordModalTitle" class="text-xl font-semibold mb-4">
+          New Record
+        </h3>
+        <form id="recordForm" class="space-y-4">
+          <input type="hidden" id="recordId" />
+          <div>
+            <label class="block text-sm font-medium mb-1">Description</label>
+            <textarea
+              id="description"
+              class="w-full p-2 border rounded"
+              rows="4"
+              required
+              minlength="10"
+              maxlength="1000"
+            ></textarea>
+            <span class="text-sm text-gray-500"
+              >Minimum 10 characters, maximum 1000 characters</span
+            >
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Date</label>
+            <input
+              id="recordDate"
+              type="date"
+              class="w-full p-2 border rounded"
+              required
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1"
+              >Request Lab Test (Optional)</label
+            >
+            <select id="labTestType" class="w-full p-2 border rounded">
+              <option value="">None</option>
+              <option value="Blood Test">Blood Test</option>
+              <option value="X-Ray">X-Ray</option>
+              <option value="Urine Test">Urine Test</option>
+              <option value="MRI Scan">MRI Scan</option>
+              <option value="CT Scan">CT Scan</option>
+            </select>
+          </div>
+          <div class="flex justify-end space-x-2">
+            <button
+              type="submit"
+              class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              id="cancelRecordBtn"
+              class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.x.x/firebase-app.js";
+      import {
+        getAuth,
+        onAuthStateChanged,
+        signOut,
+      } from "https://www.gstatic.com/firebasejs/9.x.x/firebase-auth.js";
+      import {
+        getFirestore,
+        collection,
+        query,
+        where,
+        onSnapshot,
+        doc,
+        getDoc,
+        addDoc,
+        updateDoc,
+        deleteDoc,
+        Timestamp,
+        enableIndexedDbPersistence,
+        orderBy,
+      } from "https://www.gstatic.com/firebasejs/9.x.x/firebase-firestore.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
+        authDomain: "hospitalmanagtsystem.firebaseapp.com",
+        projectId: "hospitalmanagtsystem",
+        storageBucket: "hospitalmanagtsystem.firebasestorage.app",
+        messagingSenderId: "771158568788",
+        appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+
+      let currentPatientId = null;
+      let currentUserRole = null;
+      let currentDoctorId = null;
+
+      // Enable offline persistence with error handling
+      enableIndexedDbPersistence(db).catch((err) => {
+        if (err.code === "failed-precondition") {
+          console.warn(
+            "Multiple tabs open, persistence can only be enabled in one tab at a time."
+          );
+        } else if (err.code === "unimplemented") {
+          console.warn("The current browser does not support persistence.");
+        }
+      });
+
+      function showLoading() {
+        document.getElementById("loading").style.display = "block";
+      }
+
+      function hideLoading() {
+        document.getElementById("loading").style.display = "none";
+      }
+
+      function showMessage(message, type = "error") {
+        const messageElement = document.getElementById("message");
+        messageElement.textContent = message;
+        messageElement.className =
+          type === "error" ? "error-message" : "success-message";
+        setTimeout(() => (messageElement.textContent = ""), 5000);
+      }
+
+      function validateRecordForm() {
+        const description = document.getElementById("description").value;
+        const date = document.getElementById("recordDate").value;
+
+        if (description.length < 10) {
+          showMessage("Description must be at least 10 characters long");
+          return false;
+        }
+
+        if (description.length > 1000) {
+          showMessage("Description must not exceed 1000 characters");
+          return false;
+        }
+
+        if (!date) {
+          showMessage("Please select a date");
+          return false;
+        }
+
+        return true;
+      }
+
+      async function requestLabTest() {
+        const labTestType = document.getElementById("labTestType").value;
+        if (!labTestType) return; // No test selected, skip
+
+        try {
+          const doctorDoc = await getDoc(doc(db, "doctors", currentDoctorId));
+          const doctor = doctorDoc.exists() ? doctorDoc.data() : {};
+          const patientDoc = await getDoc(doc(db, "users", currentPatientId));
+          const patient = patientDoc.exists() ? patientDoc.data() : {};
+
+          const testRequestData = {
+            patientId: currentPatientId,
+            doctorId: currentDoctorId,
+            patientFirstName: patient.firstName || "Unknown",
+            patientLastName: patient.lastName || "Patient",
+            doctorFirstName: doctor.firstName || "Unknown",
+            doctorLastName: doctor.lastName || "Doctor",
+            testType: labTestType,
+            date: Timestamp.fromDate(
+              new Date(document.getElementById("recordDate").value)
+            ),
+            status: "pending",
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now(),
+          };
+
+          await addDoc(collection(db, "testRequests"), testRequestData);
+          showMessage("Lab test request sent successfully", "success");
+        } catch (error) {
+          showMessage("Failed to send lab test request: " + error.message);
+        }
+      }
+
+      function addRecordEventListeners() {
+        document.querySelectorAll(".edit-record-btn").forEach((button) => {
+          button.addEventListener("click", (e) => {
+            const id = e.target.dataset.id;
+            editRecord(id);
+          });
+        });
+
+        document.querySelectorAll(".delete-record-btn").forEach((button) => {
+          button.addEventListener("click", (e) => {
+            const id = e.target.dataset.id;
+            if (
+              confirm(
+                "Are you sure you want to delete this record? This action cannot be undone."
+              )
+            ) {
+              deleteRecord(id);
+            }
+          });
+        });
+      }
+
+      onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+          window.location.href = "/index.html";
+          return;
+        }
+        try {
+          const idTokenResult = await user.getIdTokenResult();
+          currentUserRole = idTokenResult.claims.role;
+
+          if (!["doctor", "patient", "recordClerk"].includes(currentUserRole)) {
+            await signOut(auth);
+            window.location.href = "/unauthorized.html";
+            return;
+          }
+
+          const userDoc = await getDoc(doc(db, "users", user.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            if (currentUserRole === "doctor") {
+              currentDoctorId = user.uid;
+              const doctorDoc = await getDoc(doc(db, "doctors", user.uid));
+              if (doctorDoc.exists()) {
+                const doctor = doctorDoc.data();
+                document.getElementById(
+                  "greeting"
+                ).textContent = `Dr. ${doctor.firstName} ${doctor.lastName}`;
+              }
+            } else if (currentUserRole === "recordClerk") {
+              document.getElementById("greeting").textContent = "Record Clerk";
+            } else if (currentUserRole === "patient") {
+              document.getElementById(
+                "greeting"
+              ).textContent = `Patient: ${userData.firstName} ${userData.lastName}`;
+            }
+          }
+
+          const urlParams = new URLSearchParams(window.location.search);
+          currentPatientId = urlParams.get("patientId");
+          if (!currentPatientId && currentUserRole === "patient") {
+            currentPatientId = user.uid;
+          }
+
+          if (currentPatientId) {
+            const patientDoc = await getDoc(doc(db, "users", currentPatientId));
+            if (patientDoc.exists()) {
+              const patient = patientDoc.data();
+              document.getElementById(
+                "patientName"
+              ).textContent = `${patient.firstName} ${patient.lastName}`;
+              loadRecords();
+            } else {
+              showMessage("Patient not found");
+            }
+          } else {
+            showMessage("No patient selected");
+          }
+        } catch (error) {
+          showMessage("Failed to load user profile: " + error.message);
+        }
+      });
+
+      function loadRecords() {
+        if (!currentPatientId) return;
+        showLoading();
+        const recordsQuery = query(
+          collection(db, "medicalRecords"),
+          where("patientId", "==", currentPatientId),
+          orderBy("createdAt", "desc")
+        );
+
+        onSnapshot(
+          recordsQuery,
+          (snapshot) => {
+            const recordsList = document.getElementById("recordsList");
+            recordsList.innerHTML = "";
+
+            if (snapshot.empty) {
+              recordsList.innerHTML =
+                "<tr><td colspan='3' class='p-2 text-center'>No records found for this patient</td></tr>";
+            } else {
+              snapshot.forEach((doc) => {
+                const record = doc.data();
+                const row = document.createElement("tr");
+                row.innerHTML = `
+              <td class="p-2">${record.date.toDate().toLocaleDateString()}</td>
+              <td class="p-2">${record.description}</td>
+              <td class="p-2">
+                ${
+                  currentUserRole === "patient"
+                    ? ""
+                    : `
+                  <button class="edit-record-btn bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600" data-id="${doc.id}">Edit</button>
+                  <button class="delete-record-btn bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600" data-id="${doc.id}">Delete</button>
+                `
+                }
+              </td>
+            `;
+                recordsList.appendChild(row);
+              });
+              addRecordEventListeners();
+            }
+            hideLoading();
+          },
+          (error) => {
+            showMessage("Failed to load records: " + error.message);
+            hideLoading();
+          }
+        );
+      }
+
+      async function editRecord(id) {
+        if (currentUserRole !== "doctor" && currentUserRole !== "recordClerk") {
+          showMessage("You do not have permission to edit records");
+          return;
+        }
+        showLoading();
+        try {
+          const docRef = doc(db, "medicalRecords", id);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            const record = docSnap.data();
+            document.getElementById("recordId").value = id;
+            document.getElementById("description").value = record.description;
+            document.getElementById("recordDate").value = record.date
+              .toDate()
+              .toISOString()
+              .split("T")[0];
+            document.getElementById("labTestType").value = ""; // Reset lab test field on edit
+            document.getElementById("recordModalTitle").textContent =
+              "Edit Record";
+            document.getElementById("recordModal").style.display = "flex";
+          } else {
+            showMessage("Record not found");
+          }
+        } catch (error) {
+          showMessage("Failed to load record: " + error.message);
+        } finally {
+          hideLoading();
+        }
+      }
+
+      async function deleteRecord(id) {
+        if (currentUserRole !== "doctor" && currentUserRole !== "recordClerk") {
+          showMessage("You do not have permission to delete records");
+          return;
+        }
+        showLoading();
+        try {
+          await deleteDoc(doc(db, "medicalRecords", id));
+          showMessage("Record deleted successfully", "success");
+          loadRecords();
+        } catch (error) {
+          showMessage("Failed to delete record: " + error.message);
+        } finally {
+          hideLoading();
+        }
+      }
+
+      document.getElementById("newRecordBtn").addEventListener("click", () => {
+        if (currentUserRole !== "doctor" && currentUserRole !== "recordClerk") {
+          showMessage("You do not have permission to add records");
+          return;
+        }
+        document.getElementById("recordId").value = "";
+        document.getElementById("description").value = "";
+        document.getElementById("recordDate").value = new Date()
+          .toISOString()
+          .split("T")[0];
+        document.getElementById("labTestType").value = "";
+        document.getElementById("recordModalTitle").textContent = "New Record";
+        document.getElementById("recordModal").style.display = "flex";
+      });
+
+      document
+        .getElementById("closeRecordModal")
+        .addEventListener("click", () => {
+          document.getElementById("recordModal").style.display = "none";
+        });
+
+      document
+        .getElementById("cancelRecordBtn")
+        .addEventListener("click", () => {
+          document.getElementById("recordModal").style.display = "none";
+        });
+
+      document
+        .getElementById("recordForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          if (
+            currentUserRole !== "doctor" &&
+            currentUserRole !== "recordClerk"
+          ) {
+            showMessage("You do not have permission to save records");
+            return;
+          }
+
+          if (!validateRecordForm()) {
+            return;
+          }
+
+          showLoading();
+          const recordData = {
+            patientId: currentPatientId,
+            doctorId: currentUserRole === "doctor" ? currentDoctorId : null,
+            description: document.getElementById("description").value,
+            date: Timestamp.fromDate(
+              new Date(document.getElementById("recordDate").value)
+            ),
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now(),
+          };
+
+          try {
+            if (document.getElementById("recordId").value) {
+              await updateDoc(
+                doc(
+                  db,
+                  "medicalRecords",
+                  document.getElementById("recordId").value
+                ),
+                recordData
+              );
+              showMessage("Record updated successfully", "success");
+            } else {
+              await addDoc(collection(db, "medicalRecords"), recordData);
+              showMessage("Record created successfully", "success");
+            }
+
+            // Send lab test request if a test type is selected (only for doctors)
+            if (currentUserRole === "doctor") {
+              await requestLabTest();
+            }
+
+            document.getElementById("recordModal").style.display = "none";
+            loadRecords();
+          } catch (error) {
+            showMessage("Failed to save record: " + error.message);
+          } finally {
+            hideLoading();
+          }
+        });
+
+      document
+        .getElementById("logoutBtn")
+        .addEventListener("click", async () => {
+          showLoading();
+          try {
+            await signOut(auth);
+            window.location.href = "/index.html";
+          } catch (error) {
+            showMessage("Failed to sign out: " + error.message);
+          } finally {
+            hideLoading();
+          }
+        });
+    </script>
+  </body>
+</html>

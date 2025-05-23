@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HMS – Lab Test Requests</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+    />
+    <style>
+      :root {
+        --primary: #0052cc;
+        --bg: #f9fbfd;
+        --card-bg: #fff;
+        --transition: 0.3s ease;
+      }
+      .container {
+        padding: 2rem;
+      }
+      .test-item {
+        margin-bottom: 1rem;
+        padding: 1rem;
+        border: 1px solid #dbdbdb;
+        border-radius: 4px;
+        transition: box-shadow var(--transition);
+      }
+      .test-item:hover {
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .loading {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+      }
+      .loading .spinner {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+      }
+      .error-message,
+      .success-message {
+        display: none;
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        padding: 1rem;
+        border-radius: 4px;
+        z-index: 1001;
+        animation: fadeIn 0.3s ease;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      .error-message {
+        background: #f14668;
+        color: white;
+      }
+      .success-message {
+        background: #48c774;
+        color: white;
+      }
+      nav.navbar {
+        background: var(--primary);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      nav.navbar a.navbar-item {
+        color: white;
+        transition: background var(--transition);
+      }
+      nav.navbar a.navbar-item:hover,
+      nav.navbar a.navbar-item.is-active {
+        background: rgba(255, 255, 255, 0.2);
+      }
+      .status-badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+      .status-badge.pending {
+        background: #fff3cd;
+        color: #856404;
+      }
+      .status-badge.completed {
+        background: #cce5ff;
+        color: #004085;
+      }
+      .status-badge.cancelled {
+        background: #f8d7da;
+        color: #721c24;
+      }
+      .status-indicator {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-left: 0.5rem;
+      }
+      .status-indicator.online {
+        background: #48c774;
+      }
+      .status-indicator.offline {
+        background: #f14668;
+      }
+      .file-upload {
+        margin-top: 1rem;
+        display: none;
+      }
+      .file-upload label {
+        cursor: pointer;
+      }
+      .profile-preview {
+        max-width: 150px;
+        max-height: 150px;
+        object-fit: cover;
+        border-radius: 50%;
+        margin-bottom: 1rem;
+      }
+      .tab-content {
+        display: none;
+        padding: 1.5rem;
+        border: 1px solid #dbdbdb;
+        border-top: none;
+        border-radius: 0 0 4px 4px;
+        transition: opacity var(--transition);
+      }
+      .tab-content.active {
+        display: block;
+      }
+      .tabs {
+        margin-bottom: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="loading" id="loading">
+      <span class="spinner is-size-3 has-text-white"
+        ><i class="fas fa-spinner fa-spin"></i
+      ></span>
+    </div>
+    <div class="error-message" id="error-message"></div>
+    <div class="success-message" id="success-message"></div>
+
+    <nav class="navbar" role="navigation" aria-label="main navigation">
+      <div class="navbar-menu">
+        <div class="navbar-start">
+          <!-- <a class="navbar-item is-active" href="test-requests.html"
+            >Test Requests</a
+          > -->
+        </div>
+        <div class="navbar-end">
+          <a class="navbar-item" id="logoutBtn">Logout</a>
+        </div>
+      </div>
+    </nav>
+
+    <section class="section">
+      <div class="container">
+        <div class="columns is-vcentered">
+          <div class="column">
+            <h1 class="title">Lab Test Requests</h1>
+            <p class="subtitle" id="greeting">
+              Good Morning,
+              <span
+                id="statusIndicator"
+                class="status-indicator offline"
+              ></span>
+            </p>
+          </div>
+        </div>
+
+        <div class="tabs is-boxed">
+          <ul>
+            <li class="is-active" data-tab="test-requests"><a>Test Requests</a></li>
+            <li data-tab="profile"><a>Profile</a></li>
+          </ul>
+        </div>
+
+        <div id="test-requests-content" class="tab-content active">
+          <div class="box">
+            <h2 class="subtitle">Test Requests</h2>
+            <div id="tests-list"></div>
+          </div>
+        </div>
+
+        <div id="profile-content" class="tab-content">
+          <div class="box">
+            <h2 class="subtitle">My Profile</h2>
+            <form id="profileForm">
+              <div class="field">
+                <label class="label">Profile Picture</label>
+                <div class="control">
+                  <div class="file has-name is-fullwidth">
+                    <label class="file-label">
+                      <input
+                        class="file-input"
+                        type="file"
+                        id="profilePicture"
+                        accept="image/*"
+                      />
+                      <span class="file-cta">
+                        <span class="file-icon">
+                          <i class="fas fa-upload"></i>
+                        </span>
+                        <span class="file-label">Choose a file…</span>
+                      </span>
+                      <span class="file-name" id="profilePictureName"></span>
+                    </label>
+                  </div>
+                  <img id="profilePreview" class="profile-preview mt-2" src="" alt="Profile Preview" style="display: none;" />
+                </div>
+              </div>
+              <div class="field">
+                <label class="label">First Name</label>
+                <div class="control">
+                  <input
+                    class="input"
+                    type="text"
+                    id="firstName"
+                    required
+                    pattern="[A-Za-z]+"
+                    title="First name should contain only letters"
+                  />
+                </div>
+              </div>
+              <div class="field">
+                <label class="label">Last Name</label>
+                <div class="control">
+                  <input
+                    class="input"
+                    type="text"
+                    id="lastName"
+                    required
+                    pattern="[A-Za-z]+"
+                    title="Last name should contain only letters"
+                  />
+                </div>
+              </div>
+              <div class="field">
+                <label class="label">Email</label>
+                <div class="control">
+                  <input
+                    class="input"
+                    type="email"
+                    id="email"
+                    required
+                    pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
+                    title="Please enter a valid email address"
+                  />
+                </div>
+              </div>
+              <div class="field">
+                <label class="label">Phone</label>
+                <div class="control">
+                  <input
+                    class="input"
+                    type="tel"
+                    id="phone"
+                    pattern="[0-9]{10}"
+                    title="Phone number should be 10 digits"
+                  />
+                </div>
+              </div>
+              <div class="field">
+                <label class="label">Role</label>
+                <div class="control">
+                  <input
+                    class="input"
+                    type="text"
+                    id="role"
+                    value="lab attendant"
+                    disabled
+                  />
+                </div>
+              </div>
+              <div class="field is-grouped">
+                <div class="control">
+                  <button class="button is-primary" type="submit">Save Changes</button>
+                </div>
+                <div class="control">
+                  <button class="button is-light" type="button" id="cancelProfileBtn">Cancel</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Test Update Modal -->
+        <div class="modal" id="testModal">
+          <div class="modal-background"></div>
+          <div class="modal-content">
+            <div class="box">
+              <h2 class="title is-4">Update Test Request</h2>
+              <form id="testForm">
+                <div class="field">
+                  <label class="label">Patient</label>
+                  <div class="control">
+                    <input class="input" type="text" id="patientName" disabled />
+                  </div>
+                </div>
+                <div class="field">
+                  <label class="label">Doctor</label>
+                  <div class="control">
+                    <input class="input" type="text" id="doctorName" disabled />
+                  </div>
+                </div>
+                <div class="field">
+                  <label class="label">Test Type</label>
+                  <div class="control">
+                    <input class="input" type="text" id="testType" disabled />
+                  </div>
+                </div>
+                <div class="field">
+                  <label class="label">Status</label>
+                  <div class="control">
+                    <div class="select is-fullwidth">
+                      <select id="testStatus" required>
+                        <option value="pending">Pending</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <div class="field">
+                  <label class="label">Results</label>
+                  <div class="control">
+                    <textarea
+                      class="textarea"
+                      id="testResults"
+                      rows="4"
+                      placeholder="Enter test results or upload file"
+                    ></textarea>
+                  </div>
+                </div>
+                <div class="field file-upload">
+                  <label class="label">Upload Result File</label>
+                  <div class="control">
+                    <input
+                      class="input"
+                      type="file"
+                      id="resultFile"
+                      accept=".pdf,image/*"
+                    />
+                  </div>
+                </div>
+                <div class="field is-grouped">
+                  <div class="control">
+                    <button class="button is-primary" type="submit">Save</button>
+                  </div>
+                  <div class="control">
+                    <button
+                      class="button is-light"
+                      type="button"
+                      id="cancelTestBtn"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+          <button class="modal-close is-large" aria-label="close"></button>
+        </div>
+
+    <script type="module" src="lab/lab.js"></script>
+  </body>
+</html>
