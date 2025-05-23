@@ -260,13 +260,13 @@
           </div>
         </div>
         <h3>Upcoming Appointments</h3>
-        <div id="upcoming-appointments"><p>Loading...</p></div>
+        <div id="upcoming-appointments"><p>Loading.............</p></div>
         <h3>Patients</h3>
         <div>
           <button id="showMyPatients" class="btn">My Patients</button>
           <button id="showAllPatients" class="btn">All Patients</button>
         </div>
-        <div id="recent-patients"><p>Loading...</p></div>
+        <div id="recent-patients"><p>Loading...............</p></div>
         <div id="pagination" class="pagination"></div>
       </section>
       <section id="patients" class="card" style="display: none">
@@ -318,12 +318,24 @@
           <label
             >License Number: <input type="text" id="licenseNumber" required
           /></label>
-          <label
-            >Office Address: <textarea id="officeAddress"></textarea>
-          </label>
+          <label>Office Address: <textarea id="address"></textarea></label>
           <label>Phone: <input type="tel" id="phone" /></label>
           <label>Bio: <textarea id="bio"></textarea></label>
-          <label>Availability: <textarea id="availability"></textarea></label>
+          <label
+            >Appointment Type:
+            <select id="appointmentType">
+              <option value="physical">Physical</option>
+              <option value="virtual">Virtual</option>
+              <option value="both">Both</option>
+            </select>
+          </label>
+          <label
+            >Availability:
+            <textarea
+              id="availability"
+              placeholder="e.g., Monday 9AM-5PM, Wednesday 1PM-4PM"
+            ></textarea>
+          </label>
           <button type="submit" class="btn">Save Profile</button>
         </form>
       </section>
@@ -581,10 +593,12 @@
                 profile.specialty || "";
               document.getElementById("licenseNumber").value =
                 profile.licenseNumber || "";
-              document.getElementById("officeAddress").value =
+              document.getElementById("address").value =
                 profile.officeAddress || "";
               document.getElementById("phone").value = profile.phone || "";
               document.getElementById("bio").value = profile.bio || "";
+              document.getElementById("appointmentType").value =
+                profile.appointmentType || "both";
               document.getElementById("availability").value =
                 profile.availability || "";
             } else {
@@ -599,9 +613,10 @@
               document.getElementById("hospital").value = "";
               document.getElementById("specialty").value = "";
               document.getElementById("licenseNumber").value = "";
-              document.getElementById("officeAddress").value = "";
+              document.getElementById("address").value = "";
               document.getElementById("phone").value = "";
               document.getElementById("bio").value = "";
+              document.getElementById("appointmentType").value = "both";
               document.getElementById("availability").value = "";
             }
             document.getElementById("doctorId").value = doctorIdValue;
@@ -634,9 +649,10 @@
           hospital: document.getElementById("hospital").value.trim(),
           specialty: document.getElementById("specialty").value.trim(),
           licenseNumber: document.getElementById("licenseNumber").value.trim(),
-          officeAddress: document.getElementById("officeAddress").value.trim(),
+          officeAddress: document.getElementById("address").value.trim(),
           phone: document.getElementById("phone").value.trim(),
           bio: document.getElementById("bio").value.trim(),
+          appointmentType: document.getElementById("appointmentType").value,
           availability: document.getElementById("availability").value.trim(),
           updatedAt: serverTimestamp(),
         };
@@ -1509,7 +1525,7 @@
           try {
             cleanupListeners();
             await signOut(auth);
-            window.location.href = "/login.html";
+            window.location.href = "../index.html";
           } catch (error) {
             console.error("Logout error:", error);
             showError("Failed to sign out: " + error.message);
