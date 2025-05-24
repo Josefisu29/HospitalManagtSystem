@@ -291,6 +291,17 @@
           stroke-dashoffset: 0;
         }
       }
+      .pagination {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 1rem;
+      }
+      .filter-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+      }
     </style>
   </head>
   <body>
@@ -345,9 +356,128 @@
           </div>
         </div>
 
-        <!-- User Management -->
+        <!-- Role-Specific Cards -->
+        <div class="card">
+          <h2>Doctors</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Specialty</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="doctor-table"></tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h2>Nurses</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="nurse-table"></tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h2>Pharmacists</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="pharmacist-table"></tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h2>Lab Attendants</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="lab-attendant-table"></tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h2>Record Clerks</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="record-clerk-table"></tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h2>First Responders</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="first-responder-table"></tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h2>Patients</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="patient-table"></tbody>
+          </table>
+        </div>
+
+        <!-- User Management with Pagination and Filter -->
         <div class="card">
           <h2>User Management</h2>
+          <div class="filter-group">
+            <label for="roleFilter">Filter by Role:</label>
+            <select id="roleFilter">
+              <option value="">All Roles</option>
+              <option value="doctor">Doctor</option>
+              <option value="nurse">Nurse</option>
+              <option value="pharmacist">Pharmacist</option>
+              <option value="labAttendant">Lab Attendant</option>
+              <option value="recordClerk">Record Clerk</option>
+              <option value="firstResponder">First Responder</option>
+              <option value="patient">Patient</option>
+            </select>
+          </div>
           <input type="text" id="searchInput" placeholder="Search users..." />
           <table>
             <thead>
@@ -360,6 +490,11 @@
             </thead>
             <tbody id="user-table"></tbody>
           </table>
+          <div class="pagination">
+            <button id="prevPage" disabled>Previous</button>
+            <span id="pageInfo"></span>
+            <button id="nextPage">Next</button>
+          </div>
         </div>
 
         <!-- Register New User -->
@@ -400,27 +535,6 @@
             </div>
             <button type="submit">Register</button>
           </form>
-        </div>
-
-        <!-- Doctor Management -->
-        <div class="card">
-          <h2>Doctor Management</h2>
-          <input
-            type="text"
-            id="doctorSearchInput"
-            placeholder="Search doctors..."
-          />
-          <table>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Specialty</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="doctor-table"></tbody>
-          </table>
         </div>
 
         <!-- Appointment Management -->
@@ -570,6 +684,7 @@
         query,
         orderBy,
         limit,
+        startAfter,
         onSnapshot,
         setDoc,
         doc,
@@ -601,6 +716,11 @@
       const assignRoleClaim = httpsCallable(functions, "assignRoleClaim");
       const sendResetEmail = httpsCallable(functions, "sendResetEmail");
 
+      // Pagination Variables
+      const PAGE_SIZE = 5;
+      let lastDoc = null;
+      let usersSnapshot = [];
+
       // Authentication State
       onAuthStateChanged(auth, async (user) => {
         const loginBox = document.getElementById("login-box");
@@ -608,7 +728,6 @@
         const errorMsg = document.getElementById("error-msg");
 
         if (!user) {
-          console.log("No user authenticated, showing login");
           loginBox.style.display = "flex";
           dashboard.style.display = "none";
           return;
@@ -617,19 +736,16 @@
         try {
           const userDoc = await getDoc(doc(db, "users", user.uid));
           if (userDoc.exists() && userDoc.data().role === "admin") {
-            console.log("Authenticated as admin:", user.uid);
             loginBox.style.display = "none";
             dashboard.style.display = "block";
             loadDashboard();
           } else {
-            console.warn("User lacks admin role:", user.uid);
             errorMsg.textContent = "Unauthorized: Admin access required.";
             await signOut(auth);
             loginBox.style.display = "flex";
             dashboard.style.display = "none";
           }
         } catch (error) {
-          console.error("Auth error:", error, "Code:", error.code);
           errorMsg.textContent =
             "Failed to verify admin status: " + error.message;
           await signOut(auth);
@@ -653,9 +769,7 @@
 
           try {
             await signInWithEmailAndPassword(auth, email, password);
-            console.log("Login attempted for:", email);
           } catch (error) {
-            console.error("Login error:", error, "Code:", error.code);
             switch (error.code) {
               case "auth/user-not-found":
                 errorMsg.textContent = "No account found with this email.";
@@ -687,15 +801,8 @@
           if (email) {
             try {
               await sendPasswordResetEmail(auth, email);
-              console.log("Password reset email sent to:", email);
               alert("Password reset email sent successfully.");
             } catch (error) {
-              console.error(
-                "Password reset error:",
-                error,
-                "Code:",
-                error.code
-              );
               alert("Error sending reset email: " + error.message);
             }
           }
@@ -706,30 +813,35 @@
         .getElementById("logoutBtn")
         .addEventListener("click", async () => {
           try {
-            console.log("Signing out user");
             await signOut(auth);
             window.location.href = "/index.html";
           } catch (error) {
-            console.error("Logout error:", error, "Code:", error.code);
             alert("Failed to log out: " + error.message);
           }
         });
 
       // Load Dashboard with Real-Time Data
       function loadDashboard() {
-        // Users
-        onSnapshot(
-          collection(db, "users"),
-          (snapshot) => {
-            document.getElementById("stat-users").textContent = snapshot.size;
-            const userTable = document.getElementById("user-table");
-            userTable.innerHTML = "";
-            snapshot.forEach((docSnap) => {
-              const u = docSnap.data();
-              const row = `<tr>
+        // Role-Specific Tables
+        const roleTables = {
+          doctor: document.getElementById("doctor-table"),
+          nurse: document.getElementById("nurse-table"),
+          pharmacist: document.getElementById("pharmacist-table"),
+          labAttendant: document.getElementById("lab-attendant-table"),
+          recordClerk: document.getElementById("record-clerk-table"),
+          firstResponder: document.getElementById("first-responder-table"),
+          patient: document.getElementById("patient-table"),
+        };
+
+        onSnapshot(collection(db, "users"), (snapshot) => {
+          document.getElementById("stat-users").textContent = snapshot.size;
+          Object.values(roleTables).forEach((table) => (table.innerHTML = ""));
+          snapshot.forEach((docSnap) => {
+            const u = docSnap.data();
+            const row = `<tr>
                           <td>${u.firstName || "N/A"} ${
-                u.lastName || "N/A"
-              }</td>
+              u.lastName || "N/A"
+            }</td>
                           <td>${u.email || "N/A"}</td>
                           <td>${u.role || "N/A"}</td>
                           <td>
@@ -744,25 +856,20 @@
                             }">Reset Password</button>
                           </td>
                         </tr>`;
-              userTable.insertAdjacentHTML("beforeend", row);
-            });
-          },
-          (error) => {
-            console.error("Users snapshot error:", error, "Code:", error.code);
-            alert("Failed to load users: " + error.message);
-          }
-        );
+            if (roleTables[u.role]) {
+              roleTables[u.role].insertAdjacentHTML("beforeend", row);
+            }
+          });
+        });
 
-        // Doctors
-        onSnapshot(
-          collection(db, "doctors"),
-          (snapshot) => {
-            document.getElementById("stat-doctors").textContent = snapshot.size;
-            const doctorTable = document.getElementById("doctor-table");
-            doctorTable.innerHTML = "";
-            snapshot.forEach((docSnap) => {
-              const d = docSnap.data();
-              const row = `<tr>
+        // Doctors (from doctors collection)
+        onSnapshot(collection(db, "doctors"), (snapshot) => {
+          document.getElementById("stat-doctors").textContent = snapshot.size;
+          const doctorTable = document.getElementById("doctor-table");
+          doctorTable.innerHTML = "";
+          snapshot.forEach((docSnap) => {
+            const d = docSnap.data();
+            const row = `<tr>
                           <td>${d.name || "N/A"}</td>
                           <td>${d.email || "N/A"}</td>
                           <td>${d.specialty || "N/A"}</td>
@@ -775,43 +882,33 @@
                             }" data-type="doctor">Delete</button>
                           </td>
                         </tr>`;
-              doctorTable.insertAdjacentHTML("beforeend", row);
-            });
-          },
-          (error) => {
-            console.error(
-              "Doctors snapshot error:",
-              error,
-              "Code:",
-              error.code
-            );
-            alert("Failed to load doctors: " + error.message);
-          }
-        );
+            doctorTable.insertAdjacentHTML("beforeend", row);
+          });
+        });
+
+        // Paginated Users
+        loadUsersPage();
 
         // Appointments
-        onSnapshot(
-          collection(db, "appointments"),
-          async (snapshot) => {
-            document.getElementById("stat-appointments").textContent =
-              snapshot.size;
-            const appointmentTable =
-              document.getElementById("appointment-table");
-            appointmentTable.innerHTML = "";
-            for (const docSnap of snapshot.docs) {
-              const a = docSnap.data();
-              const patientDoc = await getDoc(doc(db, "users", a.patientId));
-              const doctorDoc = await getDoc(doc(db, "doctors", a.doctorId));
-              const patientName = patientDoc.exists()
-                ? `${patientDoc.data().firstName || "N/A"} ${
-                    patientDoc.data().lastName || "N/A"
-                  }`
-                : "Unknown";
-              const doctorName = doctorDoc.exists()
-                ? doctorDoc.data().name || "N/A"
-                : "Unknown";
-              const dateStr = a.date?.toDate()?.toLocaleString() || "N/A";
-              const row = `<tr>
+        onSnapshot(collection(db, "appointments"), async (snapshot) => {
+          document.getElementById("stat-appointments").textContent =
+            snapshot.size;
+          const appointmentTable = document.getElementById("appointment-table");
+          appointmentTable.innerHTML = "";
+          for (const docSnap of snapshot.docs) {
+            const a = docSnap.data();
+            const patientDoc = await getDoc(doc(db, "users", a.patientId));
+            const doctorDoc = await getDoc(doc(db, "doctors", a.doctorId));
+            const patientName = patientDoc.exists()
+              ? `${patientDoc.data().firstName || "N/A"} ${
+                  patientDoc.data().lastName || "N/A"
+                }`
+              : "Unknown";
+            const doctorName = doctorDoc.exists()
+              ? doctorDoc.data().name || "N/A"
+              : "Unknown";
+            const dateStr = a.date?.toDate()?.toLocaleString() || "N/A";
+            const row = `<tr>
                           <td>${patientName}</td>
                           <td>${doctorName}</td>
                           <td>${dateStr}</td>
@@ -825,19 +922,9 @@
                             }" data-type="appointment">Delete</button>
                           </td>
                         </tr>`;
-              appointmentTable.insertAdjacentHTML("beforeend", row);
-            }
-          },
-          (error) => {
-            console.error(
-              "Appointments snapshot error:",
-              error,
-              "Code:",
-              error.code
-            );
-            alert("Failed to load appointments: " + error.message);
+            appointmentTable.insertAdjacentHTML("beforeend", row);
           }
-        );
+        });
 
         // System Logs
         onSnapshot(
@@ -857,13 +944,73 @@
               }] ${log.message || "N/A"}`;
               logsList.appendChild(li);
             });
-          },
-          (error) => {
-            console.error("Logs snapshot error:", error, "Code:", error.code);
-            alert("Failed to load logs: " + error.message);
           }
         );
       }
+
+      // Load Users with Pagination and Filter
+      function loadUsersPage() {
+        const userTable = document.getElementById("user-table");
+        const roleFilter = document.getElementById("roleFilter").value;
+        const prevButton = document.getElementById("prevPage");
+        const nextButton = document.getElementById("nextPage");
+        const pageInfo = document.getElementById("pageInfo");
+
+        let q = query(
+          collection(db, "users"),
+          orderBy("email"),
+          limit(PAGE_SIZE)
+        );
+        if (lastDoc) q = query(q, startAfter(lastDoc));
+        if (roleFilter) q = query(q, where("role", "==", roleFilter));
+
+        onSnapshot(q, (snapshot) => {
+          usersSnapshot = snapshot.docs;
+          userTable.innerHTML = "";
+          snapshot.forEach((docSnap) => {
+            const u = docSnap.data();
+            const row = `<tr>
+                          <td>${u_CLUSTER_NAME || "N/A"} ${
+              u.lastName || "N/A"
+            }</td>
+                          <td>${u.email || "N/A"}</td>
+                          <td>${u.role || "N/A"}</td>
+                          <td>
+                            <button class="action-btn edit-btn" data-id="${
+                              docSnap.id
+                            }">Edit</button>
+                            <button class="action-btn delete-btn" data-id="${
+                              docSnap.id
+                            }">Delete</button>
+                            <button class="action-btn reset-btn" data-email="${
+                              u.email || ""
+                            }">Reset Password</button>
+                          </td>
+                        </tr>`;
+            userTable.insertAdjacentHTML("beforeend", row);
+          });
+          lastDoc = snapshot.docs[snapshot.docs.length - 1];
+          pageInfo.textContent = `Page ${
+            Math.floor(snapshot.docs.length / PAGE_SIZE) + 1
+          }`;
+          prevButton.disabled = !lastDoc;
+          nextButton.disabled = snapshot.docs.length < PAGE_SIZE;
+        });
+      }
+
+      document.getElementById("nextPage").addEventListener("click", () => {
+        if (lastDoc) loadUsersPage();
+      });
+
+      document.getElementById("prevPage").addEventListener("click", () => {
+        lastDoc = null;
+        loadUsersPage();
+      });
+
+      document.getElementById("roleFilter").addEventListener("change", () => {
+        lastDoc = null;
+        loadUsersPage();
+      });
 
       // Register New User
       document
@@ -883,9 +1030,7 @@
               password
             );
             const user = userCredential.user;
-            console.log("User created:", user.uid);
 
-            // Save user data to Firestore
             await setDoc(doc(db, "users", user.uid), {
               firstName,
               lastName,
@@ -893,28 +1038,9 @@
               role,
               createdAt: serverTimestamp(),
             });
-            console.log("User data saved to Firestore:", {
-              firstName,
-              lastName,
-              email,
-              role,
-            });
 
-            // Assign role claim
-            try {
-              await assignRoleClaim({ uid: user.uid, role });
-              console.log("Role claim assigned:", role);
-            } catch (error) {
-              console.warn(
-                "Failed to assign role claim:",
-                error,
-                "Code:",
-                error.code
-              );
-              alert("User registered but role claim failed: " + error.message);
-            }
+            await assignRoleClaim({ uid: user.uid, role });
 
-            // Log action
             await setDoc(doc(collection(db, "logs")), {
               message: `New user registered: ${email} with role ${role}`,
               timestamp: serverTimestamp(),
@@ -923,7 +1049,6 @@
             alert("User registered successfully!");
             document.getElementById("registerForm").reset();
           } catch (error) {
-            console.error("Registration error:", error, "Code:", error.code);
             alert(`Error registering user: ${error.message}`);
           }
         });
@@ -963,193 +1088,88 @@
           const id = e.target.dataset.id;
           const type = e.target.dataset.type;
 
-          try {
-            if (!type) {
-              // Edit User
-              document.getElementById("editUserId").value = id;
-              const userUnsubscribe = onSnapshot(
-                doc(db, "users", id),
-                (docSnap) => {
-                  if (docSnap.exists()) {
-                    const userData = docSnap.data();
-                    document.getElementById("editFirstName").value =
-                      userData.firstName || "";
-                    document.getElementById("editLastName").value =
-                      userData.lastName || "";
-                    document.getElementById("editEmail").value =
-                      userData.email || "";
-                    document.getElementById("editRole").value =
-                      userData.role || "";
-                    document.getElementById("editUserModal").style.display =
-                      "flex";
-                  } else {
-                    alert("User data not found.");
-                    document.getElementById("editUserModal").style.display =
-                      "none";
-                  }
-                },
-                (error) => {
-                  console.error(
-                    "Error fetching user data:",
-                    error,
-                    "Code:",
-                    error.code
-                  );
-                  alert("Error loading user data: " + error.message);
-                }
-              );
-              document.getElementById("editUserModal").dataset.unsubscribe =
-                userUnsubscribe;
-            } else if (type === "doctor") {
-              // Edit Doctor
-              document.getElementById("editDoctorId").value = id;
-              const doctorUnsubscribe = onSnapshot(
-                doc(db, "doctors", id),
-                (docSnap) => {
-                  if (docSnap.exists()) {
-                    const doctorData = docSnap.data();
-                    document.getElementById("editDoctorName").value =
-                      doctorData.name || "";
-                    document.getElementById("editDoctorEmail").value =
-                      doctorData.email || "";
-                    document.getElementById("editDoctorSpecialty").value =
-                      doctorData.specialty || "";
-                    document.getElementById("editDoctorModal").style.display =
-                      "flex";
-                  } else {
-                    alert("Doctor data not found.");
-                    document.getElementById("editDoctorModal").style.display =
-                      "none";
-                  }
-                },
-                (error) => {
-                  console.error(
-                    "Error fetching doctor data:",
-                    error,
-                    "Code:",
-                    error.code
-                  );
-                  alert("Error loading doctor data: " + error.message);
-                }
-              );
-              document.getElementById("editDoctorModal").dataset.unsubscribe =
-                doctorUnsubscribe;
-            } else if (type === "appointment") {
-              // Edit Appointment
-              document.getElementById("editAppointmentId").value = id;
-              const appointmentUnsubscribe = onSnapshot(
-                doc(db, "appointments", id),
-                async (docSnap) => {
-                  if (docSnap.exists()) {
-                    const appointmentData = docSnap.data();
+          if (!type) {
+            // Edit User
+            document.getElementById("editUserId").value = id;
+            onSnapshot(doc(db, "users", id), (docSnap) => {
+              if (docSnap.exists()) {
+                const userData = docSnap.data();
+                document.getElementById("editFirstName").value =
+                  userData.firstName || "";
+                document.getElementById("editLastName").value =
+                  userData.lastName || "";
+                document.getElementById("editEmail").value =
+                  userData.email || "";
+                document.getElementById("editRole").value = userData.role || "";
+                document.getElementById("editUserModal").style.display = "flex";
+              }
+            });
+          } else if (type === "doctor") {
+            document.getElementById("editDoctorId").value = id;
+            onSnapshot(doc(db, "doctors", id), (docSnap) => {
+              if (docSnap.exists()) {
+                const doctorData = docSnap.data();
+                document.getElementById("editDoctorName").value =
+                  doctorData.name || "";
+                document.getElementById("editDoctorEmail").value =
+                  doctorData.email || "";
+                document.getElementById("editDoctorSpecialty").value =
+                  doctorData.specialty || "";
+                document.getElementById("editDoctorModal").style.display =
+                  "flex";
+              }
+            });
+          } else if (type === "appointment") {
+            document.getElementById("editAppointmentId").value = id;
+            onSnapshot(doc(db, "appointments", id), async (docSnap) => {
+              if (docSnap.exists()) {
+                const appointmentData = docSnap.data();
+                const patientSelect = document.getElementById(
+                  "editAppointmentPatient"
+                );
+                const doctorSelect = document.getElementById(
+                  "editAppointmentDoctor"
+                );
+                patientSelect.innerHTML =
+                  '<option value="">Select Patient</option>';
+                doctorSelect.innerHTML =
+                  '<option value="">Select Doctor</option>';
 
-                    // Populate patient dropdown
-                    const patientSelect = document.getElementById(
-                      "editAppointmentPatient"
-                    );
-                    patientSelect.innerHTML =
-                      '<option value="">Select Patient</option>';
-                    const patientUnsubscribe = onSnapshot(
-                      collection(db, "users"),
-                      (snapshot) => {
-                        patientSelect.innerHTML =
-                          '<option value="">Select Patient</option>';
-                        snapshot.forEach((doc) => {
-                          const user = doc.data();
-                          const option = document.createElement("option");
-                          option.value = doc.id;
-                          option.textContent = `${user.firstName || "N/A"} ${
-                            user.lastName || "N/A"
-                          }`;
-                          if (doc.id === appointmentData.patientId)
-                            option.selected = true;
-                          patientSelect.appendChild(option);
-                        });
-                      },
-                      (error) => {
-                        console.error(
-                          "Error fetching patients:",
-                          error,
-                          "Code:",
-                          error.code
-                        );
-                        alert("Error loading patient list: " + error.message);
-                      }
-                    );
+                onSnapshot(collection(db, "users"), (snapshot) => {
+                  snapshot.forEach((doc) => {
+                    const user = doc.data();
+                    const option = document.createElement("option");
+                    option.value = doc.id;
+                    option.textContent = `${user.firstName || "N/A"} ${
+                      user.lastName || "N/A"
+                    }`;
+                    if (doc.id === appointmentData.patientId)
+                      option.selected = true;
+                    patientSelect.appendChild(option);
+                  });
+                });
 
-                    // Populate doctor dropdown
-                    const doctorSelect = document.getElementById(
-                      "editAppointmentDoctor"
-                    );
-                    doctorSelect.innerHTML =
-                      '<option value="">Select Doctor</option>';
-                    const doctorUnsubscribe = onSnapshot(
-                      collection(db, "doctors"),
-                      (snapshot) => {
-                        doctorSelect.innerHTML =
-                          '<option value="">Select Doctor</option>';
-                        snapshot.forEach((doc) => {
-                          const doctor = doc.data();
-                          const option = document.createElement("option");
-                          option.value = doc.id;
-                          option.textContent = doctor.name || "N/A";
-                          if (doc.id === appointmentData.doctorId)
-                            option.selected = true;
-                          doctorSelect.appendChild(option);
-                        });
-                      },
-                      (error) => {
-                        console.error(
-                          "Error fetching doctors:",
-                          error,
-                          "Code:",
-                          error.code
-                        );
-                        alert("Error loading doctor list: " + error.message);
-                      }
-                    );
+                onSnapshot(collection(db, "doctors"), (snapshot) => {
+                  snapshot.forEach((doc) => {
+                    const doctor = doc.data();
+                    const option = document.createElement("option");
+                    option.value = doc.id;
+                    option.textContent = doctor.name || "N/A";
+                    if (doc.id === appointmentData.doctorId)
+                      option.selected = true;
+                    doctorSelect.appendChild(option);
+                  });
+                });
 
-                    document.getElementById("editAppointmentDate").value =
-                      appointmentData.date
-                        ?.toDate()
-                        ?.toISOString()
-                        .split("T")[0] || "";
-                    document.getElementById("editAppointmentStatus").value =
-                      appointmentData.status || "";
-                    document.getElementById(
-                      "editAppointmentModal"
-                    ).style.display = "flex";
-
-                    document.getElementById(
-                      "editAppointmentModal"
-                    ).dataset.appointmentUnsubscribe = appointmentUnsubscribe;
-                    document.getElementById(
-                      "editAppointmentModal"
-                    ).dataset.patientUnsubscribe = patientUnsubscribe;
-                    document.getElementById(
-                      "editAppointmentModal"
-                    ).dataset.doctorUnsubscribe = doctorUnsubscribe;
-                  } else {
-                    alert("Appointment data not found.");
-                    document.getElementById(
-                      "editAppointmentModal"
-                    ).style.display = "none";
-                  }
-                },
-                (error) => {
-                  console.error(
-                    "Error fetching appointment data:",
-                    error,
-                    "Code:",
-                    error.code
-                  );
-                  alert("Error loading appointment data: " + error.message);
-                }
-              );
-            }
-          } catch (error) {
-            console.error("Error opening modal:", error, "Code:", error.code);
-            alert("Error opening edit modal: " + error.message);
+                document.getElementById("editAppointmentDate").value =
+                  appointmentData.date?.toDate()?.toISOString().split("T")[0] ||
+                  "";
+                document.getElementById("editAppointmentStatus").value =
+                  appointmentData.status || "";
+                document.getElementById("editAppointmentModal").style.display =
+                  "flex";
+              }
+            });
           }
         } else if (e.target.classList.contains("delete-btn")) {
           const id = e.target.dataset.id;
@@ -1177,7 +1197,6 @@
               }
               alert("Item deleted successfully!");
             } catch (error) {
-              console.error("Delete error:", error, "Code:", error.code);
               alert("Error deleting item: " + error.message);
             }
           }
@@ -1192,12 +1211,6 @@
               });
               alert("Password reset email sent!");
             } catch (error) {
-              console.error(
-                "Reset password error:",
-                error,
-                "Code:",
-                error.code
-              );
               alert("Error sending reset email: " + error.message);
             }
           }
@@ -1215,30 +1228,12 @@
         const closeBtn = document.getElementById(
           `close${modalId.charAt(0).toUpperCase() + modalId.slice(1)}`
         );
-        const cleanup = () => {
-          if (modal.dataset.unsubscribe) {
-            modal.dataset.unsubscribe();
-            delete modal.dataset.unsubscribe;
-          }
-          if (modalId === "editAppointmentModal") {
-            if (modal.dataset.appointmentUnsubscribe) {
-              modal.dataset.appointmentUnsubscribe();
-              delete modal.dataset.appointmentUnsubscribe;
-            }
-            if (modal.dataset.patientUnsubscribe) {
-              modal.dataset.patientUnsubscribe();
-              delete modal.dataset.patientUnsubscribe;
-            }
-            if (modal.dataset.doctorUnsubscribe) {
-              modal.dataset.doctorUnsubscribe();
-              delete modal.dataset.doctorUnsubscribe;
-            }
-          }
-          modal.style.display = "none";
-        };
-        closeBtn.addEventListener("click", cleanup);
+        closeBtn.addEventListener(
+          "click",
+          () => (modal.style.display = "none")
+        );
         window.addEventListener("click", (e) => {
-          if (e.target === modal) cleanup();
+          if (e.target === modal) modal.style.display = "none";
         });
       });
 
@@ -1261,18 +1256,7 @@
               role,
               updatedAt: serverTimestamp(),
             });
-            try {
-              await assignRoleClaim({ uid: id, role });
-              console.log("Role claim updated:", role);
-            } catch (error) {
-              console.warn(
-                "Failed to update role claim:",
-                error,
-                "Code:",
-                error.code
-              );
-              alert("User updated but role claim failed: " + error.message);
-            }
+            await assignRoleClaim({ uid: id, role });
             await setDoc(doc(collection(db, "logs")), {
               message: `User updated: ${email} with role ${role}`,
               timestamp: serverTimestamp(),
@@ -1280,7 +1264,6 @@
             alert("User updated successfully!");
             document.getElementById("editUserModal").style.display = "none";
           } catch (error) {
-            console.error("Update user error:", error, "Code:", error.code);
             alert("Error updating user: " + error.message);
           }
         });
@@ -1311,7 +1294,6 @@
             alert("Doctor updated successfully!");
             document.getElementById("editDoctorModal").style.display = "none";
           } catch (error) {
-            console.error("Update doctor error:", error, "Code:", error.code);
             alert("Error updating doctor: " + error.message);
           }
         });
@@ -1349,16 +1331,9 @@
             document.getElementById("editAppointmentModal").style.display =
               "none";
           } catch (error) {
-            console.error(
-              "Update appointment error:",
-              error,
-              "Code:",
-              error.code
-            );
             alert("Error updating appointment: " + error.message);
           }
         });
-      // welll.........
     </script>
   </body>
 </html>
