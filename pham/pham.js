@@ -7,21 +7,14 @@ import {
 import {
   getFirestore,
   collection,
-  query,
-  where,
-  onSnapshot,
   doc,
-  updateDoc,
+  onSnapshot,
   getDoc,
-  setDoc,
+  addDoc,
+  updateDoc,
 } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
-import {
-  showLoading,
-  hideLoading,
-  showError,
-  showSuccess,
-} from "../js/common.js";
 
+// Firebase Configuration
 const firebaseConfig = {
   apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
   authDomain: "hospitalmanagtsystem.firebaseapp.com",
@@ -29,248 +22,207 @@ const firebaseConfig = {
   storageBucket: "hospitalmanagtsystem.firebasestorage.app",
   messagingSenderId: "771158568788",
   appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
+  databaseURL: "https://hospitalmanagtsystem-default-rtdb.firebaseio.com",
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// UI Elements
-const loadingEl = document.getElementById("loading");
-const errorEl = document.getElementById("error-message");
-const successEl = document.getElementById("success-message");
-const profileModal = document.getElementById("profileModal");
-const profileForm = document.getElementById("profileForm");
+// DOM Elements
+const loading = document.getElementById("loading");
+const errorMessage = document.getElementById("error-message");
+const successMessage = document.getElementById("success-message");
+const greeting = document.getElementById("greeting");
+const prescriptionsList = document.getElementById("prescriptions-list");
 const profileBtn = document.getElementById("profileBtn");
-const cancelProfileBtn = document.getElementById("cancelProfileBtn");
-const modalCloseBtn = document.querySelector(".modal-close");
+const logoutBtn = document.getElementById("logoutBtn");
+const profileForm = document.getElementById("profileForm");
+const communicationForm = document.getElementById("communicationForm");
 
-// Utility Functions
-function showLoading() {
-  loadingEl.style.display = "block";
-}
-
-function hideLoading() {
-  loadingEl.style.display = "none";
-}
-
-function showError(message) {
-  errorEl.textContent = message;
-  errorEl.style.display = "block";
+// Show Messages
+function showMessage(element, message) {
+  element.textContent = message;
+  element.style.display = "block";
   setTimeout(() => {
-    errorEl.style.display = "none";
+    element.style.display = "none";
+    element.textContent = "";
   }, 5000);
 }
 
-function showSuccess(message) {
-  successEl.textContent = message;
-  successEl.style.display = "block";
-  setTimeout(() => {
-    successEl.style.display = "none";
-  }, 5000);
-}
-
-function openProfileModal() {
-  profileModal.classList.add("is-active");
-}
-
-function closeProfileModal() {
-  profileModal.classList.remove("is-active");
-  profileForm.reset();
-}
-
-// Auth state listener
-let currentUser = null;
+// Authentication Check
 onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    window.location.href = "/index.html";
-    return;
-  }
-  showLoading();
-  try {
-    const userDoc = await getDoc(doc(db, "users", user.uid));
-    if (userDoc.exists() && userDoc.data().role === "pharmacist") {
-      currentUser = { uid: user.uid, ...userDoc.data() };
-      const hour = new Date().getHours();
-      const sal =
-        hour < 12
-          ? "Good Morning"
-          : hour < 18
-          ? "Good Afternoon"
-          : "Good Evening";
-      document.getElementById(
-        "greeting"
-      ).textContent = `${sal}, ${currentUser.firstName}`;
-      loadPrescriptions();
-      loadProfile();
-    } else {
-      await signOut(auth);
-      window.location.href = "/unauthorized.html";
-    }
-  } catch (error) {
-    showError("Failed to verify pharmacist status: " + error.message);
-    window.location.href = "/index.html";
-  } finally {
-    hideLoading();
-  }
-});
-
-// Load profile data into form
-function loadProfile() {
-  if (currentUser) {
-    document.getElementById("firstName").value = currentUser.firstName || "";
-    document.getElementById("lastName").value = currentUser.lastName || "";
-    document.getElementById("email").value = currentUser.email || "";
-    document.getElementById("phone").value = currentUser.phone || "";
-    document.getElementById("role").value = currentUser.role || "pharmacist";
-  }
-}
-
-// Handle profile form submission
-profileForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  showLoading();
-  try {
-    const firstName = document.getElementById("firstName").value.trim();
-    const lastName = document.getElementById("lastName").value.trim();
-    const email = document.getElementById("email").value.trim();
-    const phone = document.getElementById("phone").value.trim();
-
-    // Basic validation
-    if (!firstName || !lastName || !email) {
-      throw new Error("First Name, Last Name, and Email are required.");
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      throw new Error("Invalid email format.");
-    }
-    if (phone && !/^\+?\d{10,15}$/.test(phone.replace(/\D/g, ""))) {
-      throw new Error("Invalid phone number format.");
-    }
-
-    // Update profile in Firestore
-    await setDoc(
-      doc(db, "users", currentUser.uid),
-      {
-        firstName,
-        lastName,
-        email,
-        phone: phone || null,
-        role: currentUser.role, // Preserve role
-      },
-      { merge: true }
-    );
-
-    // Update currentUser and greeting
-    currentUser = { ...currentUser, firstName, lastName, email, phone };
-    const hour = new Date().getHours();
-    const sal =
-      hour < 12
-        ? "Good Morning"
-        : hour < 18
-        ? "Good Afternoon"
-        : "Good Evening";
-    document.getElementById("greeting").textContent = `${sal}, ${firstName}`;
-
-    showSuccess("Profile updated successfully.");
-    closeProfileModal();
-  } catch (error) {
-    showError("Failed to update profile: " + error.message);
-  } finally {
-    hideLoading();
-  }
-});
-
-// Load prescriptions in real-time
-function loadPrescriptions() {
-  showLoading();
-  onSnapshot(
-    collection(db, "prescriptions"),
-    (snapshot) => {
-      const list = document.getElementById("prescriptions-list");
-      list.innerHTML = "";
-      if (snapshot.empty) {
-        list.innerHTML = "<p class='has-text-grey'>No prescriptions found.</p>";
-        hideLoading();
-        return;
+  if (user) {
+    try {
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if (userDoc.exists() && userDoc.data().role === "pharmacist") {
+        greeting.textContent = `Hello, ${userDoc.data().firstName}`;
+        loadPrescriptions();
+      } else {
+        showMessage(errorMessage, "Invalid user role. Please contact support.");
+        await signOut(auth);
+        window.location.href = "/index.html";
       }
-      snapshot.forEach((doc) => {
-        const prescription = doc.data();
-        const div = document.createElement("div");
-        div.className = "prescription-item";
-        div.innerHTML = `
-        <p><strong>Patient:</strong> ${prescription.patientName}</p>
-        <p><strong>Medications:</strong> ${
-          prescription.medications.length
-        } item(s)</p>
-        <p><strong>Status:</strong> ${prescription.status}</p>
-        <p><strong>Created:</strong> ${new Date(
-          prescription.createdAt.seconds * 1000
-        ).toLocaleString()}</p>
-        <div class="buttons">
-          <button class="button is-success approve-btn" data-id="${doc.id}" ${
-          prescription.status !== "active" ? "disabled" : ""
-        }>Approve</button>
-          <button class="button is-danger cancel-btn" data-id="${doc.id}" ${
-          prescription.status !== "active" ? "disabled" : ""
-        }>Cancel</button>
-        </div>
-      `;
-        list.appendChild(div);
-      });
-      // Add event listeners for buttons
-      document.querySelectorAll(".approve-btn").forEach((btn) => {
-        btn.addEventListener("click", () =>
-          updatePrescriptionStatus(btn.dataset.id, "completed")
-        );
-      });
-      document.querySelectorAll(".cancel-btn").forEach((btn) => {
-        btn.addEventListener("click", () =>
-          updatePrescriptionStatus(btn.dataset.id, "cancelled")
-        );
-      });
-      hideLoading();
-    },
-    (error) => {
-      showError("Failed to load prescriptions: " + error.message);
-      hideLoading();
+    } catch (error) {
+      showMessage(errorMessage, "Error verifying user: " + error.message);
+      await signOut(auth);
     }
-  );
-}
-
-// Update prescription status
-async function updatePrescriptionStatus(prescriptionId, status) {
-  showLoading();
-  try {
-    await updateDoc(doc(db, "prescriptions", prescriptionId), {
-      status,
-      updatedAt: new Date(),
-    });
-    showSuccess(`Prescription ${status} successfully.`);
-  } catch (error) {
-    showError("Failed to update prescription: " + error.message);
-  } finally {
-    hideLoading();
+  } else {
+    window.location.href = "/index.html";
   }
-}
-
-// Modal open/close handlers
-profileBtn.addEventListener("click", () => {
-  loadProfile();
-  openProfileModal();
 });
 
-cancelProfileBtn.addEventListener("click", closeProfileModal);
-modalCloseBtn.addEventListener("click", closeProfileModal);
-
-// Logout handler
-document.getElementById("logoutBtn").addEventListener("click", async () => {
-  showLoading();
+// Logout
+logoutBtn.addEventListener("click", async () => {
   try {
     await signOut(auth);
-    window.location.href = "/index.html";
+    window.location.href = "/";
   } catch (error) {
-    showError("Failed to sign out: " + error.message);
+    showMessage(errorMessage, "Failed to log out: " + error.message);
+  }
+});
+
+// Load Prescriptions
+async function loadPrescriptions() {
+  try {
+    onSnapshot(collection(db, "prescriptions"), async (snapshot) => {
+      prescriptionsList.innerHTML = "";
+      for (const doc of snapshot.docs) {
+        const p = doc.data();
+        const patientDoc = await getDoc(doc(db, "users", p.patientId));
+        const patientName = patientDoc.exists()
+          ? `${patientDoc.data().firstName || "N/A"} ${
+              patientDoc.data().lastName || "N/A"
+            }`
+          : "Unknown";
+        const doctorDoc = await getDoc(doc(db, "users", p.doctorId));
+        const doctorName = doctorDoc.exists()
+          ? `${doctorDoc.data().firstName || "N/A"} ${
+              doctorDoc.data().lastName || "N/A"
+            }`
+          : "Unknown";
+        const card = document.createElement("div");
+        card.className = "prescription-card";
+        card.innerHTML = `
+          <p><strong>Patient:</strong> ${patientName}</p>
+          <p><strong>Doctor:</strong> ${doctorName}</p>
+          <p><strong>Medication:</strong> ${p.medication}</p>
+          <p><strong>Dosage:</strong> ${p.dosage}</p>
+          <p><strong>Instructions:</strong> ${p.instructions || "N/A"}</p>
+          <p><strong>Status:</strong> ${p.status || "Pending"}</p>
+          <p><strong>Date:</strong> ${
+            p.timestamp?.toDate()?.toLocaleString() || "N/A"
+          }</p>
+          <button class="btn btn-primary action-btn fill-btn" data-id="${
+            doc.id
+          }" ${p.status === "filled" ? "disabled" : ""}>Mark as Filled</button>
+          <button class="btn btn-secondary action-btn message-btn" data-id="${
+            doc.id
+          }" data-doctor-id="${
+          p.doctorId
+        }" data-doctor-name="${doctorName}">Message Doctor</button>
+        `;
+        prescriptionsList.appendChild(card);
+      }
+    });
+  } catch (error) {
+    showMessage(errorMessage, "Failed to load prescriptions: " + error.message);
+  }
+}
+
+// Handle Prescription Actions
+prescriptionsList.addEventListener("click", async (e) => {
+  if (e.target.classList.contains("fill-btn")) {
+    const id = e.target.dataset.id;
+    try {
+      await updateDoc(doc(db, "prescriptions", id), {
+        status: "filled",
+        filledBy: auth.currentUser.uid,
+        filledAt: new Date(),
+      });
+      showMessage(successMessage, "Prescription marked as filled!");
+    } catch (error) {
+      showMessage(
+        errorMessage,
+        "Failed to update prescription: " + error.message
+      );
+    }
+  } else if (e.target.classList.contains("message-btn")) {
+    const id = e.target.dataset.id;
+    const doctorId = e.target.dataset.doctorId;
+    const doctorName = e.target.dataset.doctorName;
+    document.getElementById("prescriptionId").value = id;
+    document.getElementById("doctorId").value = doctorId;
+    document.getElementById("doctorName").value = doctorName;
+    new bootstrap.Modal(document.getElementById("communicationModal")).show();
+  }
+});
+
+// Send Message to Doctor
+communicationForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  loading.style.display = "block";
+  const prescriptionId = document.getElementById("prescriptionId").value;
+  const doctorId = document.getElementById("doctorId").value;
+  const message = document.getElementById("communicationMessage").value;
+
+  try {
+    await addDoc(collection(db, "communications"), {
+      prescriptionId,
+      doctorId,
+      pharmacistId: auth.currentUser.uid,
+      message,
+      timestamp: new Date(),
+      status: "sent",
+    });
+    showMessage(successMessage, "Message sent successfully!");
+    bootstrap.Modal.getInstance(
+      document.getElementById("communicationModal")
+    ).hide();
+    communicationForm.reset();
+  } catch (error) {
+    showMessage(errorMessage, "Failed to send message: " + error.message);
   } finally {
-    hideLoading();
+    loading.style.display = "none";
+  }
+});
+
+// Profile Management
+profileBtn.addEventListener("click", async () => {
+  try {
+    const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
+    if (userDoc.exists()) {
+      const user = userDoc.data();
+      document.getElementById("phamId").value = user.phamId || "";
+      document.getElementById("firstName").value = user.firstName || "";
+      document.getElementById("lastName").value = user.lastName || "";
+      document.getElementById("email").value = user.email || "";
+      document.getElementById("phone").value = user.phone || "";
+      new bootstrap.Modal(document.getElementById("profileModal")).show();
+    }
+  } catch (error) {
+    showMessage(errorMessage, "Failed to load profile: " + error.message);
+  }
+});
+
+profileForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  loading.style.display = "block";
+  const profileData = {
+    phamId: document.getElementById("phamId").value,
+    firstName: document.getElementById("firstName").value,
+    lastName: document.getElementById("lastName").value,
+    phone: document.getElementById("phone").value,
+    updatedAt: new Date(),
+  };
+
+  try {
+    await updateDoc(doc(db, "users", auth.currentUser.uid), profileData);
+    showMessage(successMessage, "Profile updated successfully!");
+    bootstrap.Modal.getInstance(document.getElementById("profileModal")).hide();
+  } catch (error) {
+    showMessage(errorMessage, "Failed to update profile: " + error.message);
+  } finally {
+    loading.style.display = "none";
   }
 });

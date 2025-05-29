@@ -1,12 +1,19 @@
 .container {
   padding: 2rem;
 }
-.prescription-item {
-  margin-bottom: 1rem;
-  padding: 1rem;
-  border: 1px solid #dbdbdb;
-  border-radius: 4px;
+
+.prescription-card {
+  margin-bottom: 1.5rem;
+  padding: 1.5rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #f9f9f9;
 }
+
+.prescription-card p {
+  margin-bottom: 0.5rem;
+}
+
 .loading {
   display: none;
   position: fixed;
@@ -15,13 +22,18 @@
   width: 100%;
   height: 100%;
   background: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
 }
+
 .loading .spinner {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  color: white;
+  font-size: 3rem;
 }
+
 .error-message,
 .success-message {
   display: none;
@@ -30,15 +42,40 @@
   right: 1rem;
   padding: 1rem;
   border-radius: 4px;
+  z-index: 10000;
 }
+
 .error-message {
   background: #f14668;
   color: white;
 }
+
 .success-message {
   background: #48c774;
   color: white;
 }
+
 .modal-content {
   max-width: 500px;
+  margin: auto;
+}
+
+.action-btn {
+  margin-right: 0.5rem;
+}
+
+.form-label {
+  font-weight: 500;
+}
+
+.form-control {
+  border-radius: 4px;
+}
+
+.btn {
+  border-radius: 4px;
+}
+
+#phamId {
+  margin-top: 0.5rem;
 }
