@@ -17,6 +17,7 @@ import {
   updateDoc,
   serverTimestamp,
   enableIndexedDbPersistence,
+  deleteDoc,
 } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 import {
   getStorage,
@@ -57,6 +58,15 @@ const tasksSection = document.getElementById("tasks");
 const profileSection = document.getElementById("profile");
 const profileForm = document.getElementById("profileForm");
 const vitalsForm = document.getElementById("vitalsForm");
+const greeting = document.getElementById("greeting");
+const statusIndicator = document.getElementById("statusIndicator");
+const logoutBtn = document.getElementById("logoutBtn");
+const patientIdSelect = document.getElementById("patientId");
+const tasksTable = document
+  .getElementById("tasks-table")
+  .querySelector("tbody");
+const vitalsFilter = document.getElementById("vitalsFilter");
+const tasksFilter = document.getElementById("tasksFilter");
 
 function checkNetworkAndLoad() {
   if (!navigator.onLine) {
@@ -80,192 +90,28 @@ window.addEventListener("hashchange", handleNavigation);
 handleNavigation();
 
 onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    cleanupListeners();
-    window.location.href = "/index.html";
-    return;
-  }
-
-  showLoading();
-  try {
-    const idTokenResult = await user.getIdTokenResult(true);
-    if (idTokenResult.claims.role !== "nurse") {
+  if (user) {
+    try {
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if (userDoc.exists() && userDoc.data().role === "nurse") {
+        greeting.textContent = `Good Morning, ${userDoc.data().firstName}`;
+        statusIndicator.classList.remove("disconnected");
+        statusIndicator.classList.add("online");
+        loadPatients();
+        loadVitals();
+        loadTasks();
+        loadProfile(user.uid);
+      } else {
+        showError("Invalid user role. Please contact support.");
+        await signOut(auth);
+        window.location.href = "/index.html";
+      }
+    } catch (error) {
+      showError("Error verifying user: " + error.message);
       await signOut(auth);
-      showError("Unauthorized access. Redirecting to login...");
-      setTimeout(() => (window.location.href = "/index.html"), 2000);
-      return;
     }
-
-    if (!checkNetworkAndLoad()) return;
-
-    const userDoc = doc(db, "users", user.uid);
-    const userSnap = await getDoc(userDoc);
-    const userData = userSnap.exists() ? userSnap.data() : {};
-
-    const greetEl = document.getElementById("greeting");
-    const hour = new Date().getHours();
-    const sal =
-      hour < 12
-        ? "Good Morning"
-        : hour < 18
-        ? "Good Afternoon"
-        : "Good Evening";
-    greetEl.textContent = `${sal}, ${userData.firstName || "Nurse"}`;
-
-    const assignedPatients = userData.assignedPatients || [];
-    if (assignedPatients.length === 0) {
-      showError("No patients assigned to you.");
-    } else {
-      // Populate patient dropdown
-      const patients = await Promise.all(
-        assignedPatients.map(async (id) => {
-          const doc = await getDoc(doc(db, "users", id));
-          return {
-            id,
-            name: doc.exists()
-              ? `${doc.data().firstName} ${doc.data().lastName}`
-              : id,
-          };
-        })
-      );
-      const select = document.getElementById("patientId");
-      select.innerHTML = '<option value="">Select Patient</option>';
-      patients.forEach(({ id, name }) => {
-        const option = document.createElement("option");
-        option.value = id;
-        option.textContent = `${name} (${id})`;
-        select.appendChild(option);
-      });
-
-      // Load vitals
-      const vitalsQuery = query(
-        collection(db, "vitals"),
-        where("patientId", "in", assignedPatients)
-      );
-      const vitalsUnsubscribe = onSnapshot(
-        vitalsQuery,
-        async (snapshot) => {
-          const tbody = document.querySelector("#vitals-table tbody");
-          tbody.innerHTML = "";
-          const vitalsData = [];
-          for (const doc of snapshot.docs) {
-            const vital = doc.data();
-            const creatorDoc = await getDoc(
-              doc(db, "nurses", vital.recordedBy)
-            );
-            const creatorName = creatorDoc.exists()
-              ? `${creatorDoc.data().firstName} ${creatorDoc.data().lastName}`
-              : "Unknown";
-            let downloadUrl = "";
-            if (vital.filePath) {
-              try {
-                downloadUrl = await getDownloadURL(
-                  ref(storage, vital.filePath)
-                );
-              } catch (error) {
-                console.error("Error fetching download URL:", error);
-              }
-            }
-            vitalsData.push({
-              id: doc.id,
-              patientId: vital.patientId,
-              heartRate: `${vital.heartRate} bpm`,
-              bloodPressure: vital.bloodPressure,
-              temperature: `${vital.temperature} °C`,
-              date: vital.timestamp?.toDate().toLocaleString() || "N/A",
-              recordedBy: creatorName,
-              file: downloadUrl
-                ? `<a href="${downloadUrl}" target="_blank" class="btn">Download</a>`
-                : "None",
-            });
-          }
-          vitalsData.forEach((data) => {
-            const row = document.createElement("tr");
-            row.innerHTML = `
-            <td class="patientId">${data.patientId}</td>
-            <td class="heartRate">${data.heartRate}</td>
-            <td class="bloodPressure">${data.bloodPressure}</td>
-            <td class="temperature">${data.temperature}</td>
-            <td class="date">${data.date}</td>
-            <td class="recordedBy">${data.recordedBy}</td>
-            <td>${data.file}</td>
-          `;
-            tbody.appendChild(row);
-          });
-          initVitalsTable();
-        },
-        (error) => {
-          console.error("Error fetching vitals:", error);
-          showError("Failed to load vitals: " + error.message);
-        }
-      );
-      vitalsSection.dataset.vitalsUnsubscribe = vitalsUnsubscribe;
-
-      // Load tasks
-      const tasksQuery = query(
-        collection(db, "tasks"),
-        where("assignedTo", "==", user.uid),
-        where("status", "==", "pending")
-      );
-      const tasksUnsubscribe = onSnapshot(
-        tasksQuery,
-        (snapshot) => {
-          const tbody = document.querySelector("#tasks-table tbody");
-          tbody.innerHTML = "";
-          const tasksData = [];
-          snapshot.forEach((doc) => {
-            const task = doc.data();
-            tasksData.push({
-              id: doc.id,
-              description: task.description,
-              patientId: task.patientId,
-              status: task.status,
-              actions: `<button class="btn complete-task" data-id="${doc.id}" ${
-                task.status === "pending" ? "" : "disabled"
-              }>Complete</button>`,
-            });
-          });
-          tasksData.forEach((data) => {
-            const row = document.createElement("tr");
-            row.innerHTML = `
-            <td class="description">${data.description}</td>
-            <td class="patientId">${data.patientId}</td>
-            <td class="status">${data.status}</td>
-            <td>${data.actions}</td>
-          `;
-            tbody.appendChild(row);
-          });
-          initTasksTable();
-          document.querySelectorAll(".complete-task").forEach((btn) => {
-            btn.addEventListener("click", async () => {
-              const id = btn.dataset.id;
-              try {
-                await updateDoc(doc(db, "tasks", id), {
-                  status: "completed",
-                  updatedAt: serverTimestamp(),
-                });
-                showSuccess("Task completed successfully!");
-              } catch (error) {
-                console.error("Error completing task:", error);
-                showError("Failed to complete task: " + error.message);
-              }
-            });
-          });
-        },
-        (error) => {
-          console.error("Error fetching tasks:", error);
-          showError("Failed to load tasks: " + error.message);
-        }
-      );
-      tasksSection.dataset.tasksUnsubscribe = tasksUnsubscribe;
-    }
-
-    loadNurseProfile(user.uid, user.email);
-  } catch (err) {
-    console.error("Error loading dashboard:", err);
-    showError("Failed to load dashboard: " + err.message);
-  } finally {
-    hideLoading();
+  } else {
+    window.location.href = "/index.html";
   }
 });
 
@@ -517,3 +363,274 @@ window.addEventListener("offline", () => {
 });
 setInterval(updateStatus, 15000);
 updateStatus();
+
+// Load Patients
+async function loadPatients() {
+  try {
+    const q = query(collection(db, "users"), where("role", "==", "patient"));
+    onSnapshot(q, (snapshot) => {
+      patientIdSelect.innerHTML = '<option value="">Select Patient</option>';
+      snapshot.forEach((doc) => {
+        const user = doc.data();
+        const option = document.createElement("option");
+        option.value = doc.id;
+        option.textContent = `${user.firstName || "N/A"} ${
+          user.lastName || "N/A"
+        }`;
+        option.dataset.name = `${user.firstName || "N/A"} ${
+          user.lastName || "N/A"
+        }`;
+        patientIdSelect.appendChild(option);
+      });
+    });
+  } catch (error) {
+    showError("Failed to load patients: " + error.message);
+  }
+}
+
+// Load Vitals History
+async function loadVitals() {
+  try {
+    onSnapshot(collection(db, "vitals"), async (snapshot) => {
+      const vitalsTable = document
+        .getElementById("vitals-table")
+        .querySelector("tbody");
+      vitalsTable.innerHTML = "";
+      for (const doc of snapshot.docs) {
+        const v = doc.data();
+        const patientDoc = await getDoc(doc(db, "users", v.patientId));
+        const patientName = patientDoc.exists()
+          ? `${patientDoc.data().firstName || "N/A"} ${
+              patientDoc.data().lastName || "N/A"
+            }`
+          : "Unknown";
+        const recordedByDoc = await getDoc(doc(db, "users", v.recordedBy));
+        const recordedByName = recordedByDoc.exists()
+          ? `${recordedByDoc.data().firstName || "N/A"} ${
+              recordedByDoc.data().lastName || "N/A"
+            }`
+          : "Unknown";
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td data-name="${patientName}">${patientName}</td>
+          <td>${v.heartRate}</td>
+          <td>${v.bloodPressure}</td>
+          <td>${v.temperature}</td>
+          <td>${v.date?.toDate()?.toLocaleString() || "N/A"}</td>
+          <td>${recordedByName}</td>
+          <td>${
+            v.filePath ? '<a href="' + v.filePath + '">Download</a>' : "N/A"
+          }</td>
+        `;
+        vitalsTable.appendChild(row);
+      }
+    });
+  } catch (error) {
+    showError("Failed to load vitals: " + error.message);
+  }
+}
+
+// Vitals Filter
+vitalsFilter.addEventListener("input", () => {
+  const filter = vitalsFilter.value.toLowerCase();
+  const rows = document
+    .getElementById("vitals-table")
+    .querySelector("tbody").rows;
+  for (let row of rows) {
+    const patientName = row.cells[0].dataset.name.toLowerCase();
+    const date = row.cells[4].textContent.toLowerCase();
+    row.style.display =
+      patientName.includes(filter) || date.includes(filter) ? "" : "none";
+  }
+});
+
+// Load Tasks
+async function loadTasks() {
+  try {
+    const q = query(
+      collection(db, "tasks"),
+      where("assignedTo", "==", auth.currentUser.uid)
+    );
+    onSnapshot(q, async (snapshot) => {
+      tasksTable.innerHTML = "";
+      for (const doc of snapshot.docs) {
+        const t = doc.data();
+        const patientDoc = await getDoc(doc(db, "users", t.patientId));
+        const patientName = patientDoc.exists()
+          ? `${patientDoc.data().firstName || "N/A"} ${
+              patientDoc.data().lastName || "N/A"
+            }`
+          : "Unknown";
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${t.description}</td>
+          <td data-name="${patientName}">${patientName}</td>
+          <td>
+            <select class="status-select" data-id="${doc.id}">
+              <option value="pending" ${
+                t.status === "pending" ? "selected" : ""
+              }>Pending</option>
+              <option value="completed" ${
+                t.status === "completed" ? "selected" : ""
+              }>Completed</option>
+            </select>
+          </td>
+          <td><button class="action-btn delete-btn" data-id="${
+            doc.id
+          }">Delete</button></td>
+        `;
+        tasksTable.appendChild(row);
+      }
+    });
+  } catch (error) {
+    showError("Failed to load tasks: " + error.message);
+  }
+}
+
+// Tasks Filter
+tasksFilter.addEventListener("input", () => {
+  const filter = tasksFilter.value.toLowerCase();
+  const rows = document
+    .getElementById("tasks-table")
+    .querySelector("tbody").rows;
+  for (let row of rows) {
+    const description = row.cells[0].textContent.toLowerCase();
+    const patientName = row.cells[1].dataset.name.toLowerCase();
+    row.style.display =
+      description.includes(filter) || patientName.includes(filter)
+        ? ""
+        : "none";
+  }
+});
+
+// Update Task Status
+tasksTable.addEventListener("change", async (e) => {
+  if (e.target.classList.contains("status-select")) {
+    const taskId = e.target.dataset.id;
+    const status = e.target.value;
+    try {
+      await updateDoc(doc(db, "tasks", taskId), { status });
+      showSuccess("Task status updated!");
+    } catch (error) {
+      showError("Failed to update task: " + error.message);
+    }
+  }
+});
+
+// Delete Task
+tasksTable.addEventListener("click", async (e) => {
+  if (e.target.classList.contains("delete-btn")) {
+    const taskId = e.target.dataset.id;
+    if (confirm("Are you sure you want to delete this task?")) {
+      try {
+        await deleteDoc(doc(db, "tasks", taskId));
+        showSuccess("Task deleted successfully!");
+      } catch (error) {
+        showError("Failed to delete task: " + error.message);
+      }
+    }
+  }
+});
+
+// Load Profile
+async function loadProfile(userId) {
+  try {
+    onSnapshot(doc(db, "users", userId), (docSnap) => {
+      if (docSnap.exists()) {
+        const user = docSnap.data();
+        document.getElementById("nurseId").value = userId;
+        document.getElementById("firstName").value = user.firstName || "";
+        document.getElementById("lastName").value = user.lastName || "";
+        document.getElementById("email").value = user.email || "";
+        document.getElementById("licenseNumber").value =
+          user.licenseNumber || "";
+        document.getElementById("hospital").value = user.hospital || "";
+        document.getElementById("phone").value = user.phone || "";
+        document.getElementById("bio").value = user.bio || "";
+      }
+    });
+  } catch (error) {
+    showError("Failed to load profile: " + error.message);
+  }
+}
+
+// Save Profile
+profileForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  loadingEl.style.display = "block";
+  const userId = document.getElementById("nurseId").value;
+  const profileData = {
+    firstName: document.getElementById("firstName").value,
+    lastName: document.getElementById("lastName").value,
+    licenseNumber: document.getElementById("licenseNumber").value,
+    hospital: document.getElementById("hospital").value,
+    phone: document.getElementById("phone").value,
+    bio: document.getElementById("bio").value,
+  };
+
+  try {
+    await updateDoc(doc(db, "users", userId), profileData);
+    showSuccess("Profile updated successfully!");
+  } catch (error) {
+    showError("Failed to update profile: " + error.message);
+  } finally {
+    loadingEl.style.display = "none";
+  }
+});
+
+// Navigation
+document.querySelectorAll("nav a").forEach((link) => {
+  link.addEventListener("click", (e) => {
+    e.preventDefault();
+    document
+      .querySelectorAll("nav a")
+      .forEach((l) => l.classList.remove("active"));
+    link.classList.add("active");
+    document.querySelectorAll("main section").forEach((section) => {
+      section.style.display =
+        section.id === link.getAttribute("href").slice(1) ? "block" : "none";
+    });
+  });
+});
+
+// Table Sorting
+document.querySelectorAll("th[data-sort]").forEach((header) => {
+  header.addEventListener("click", () => {
+    const table = header.closest("table");
+    const tbody = table.querySelector("tbody");
+    const index = Array.from(header.parentElement.children).indexOf(header);
+    const sortKey = header.dataset.sort;
+    const isAsc = header.classList.contains("sort-asc");
+
+    // Reset all headers
+    table.querySelectorAll("th").forEach((th) => {
+      th.classList.remove("sort-asc", "sort-desc");
+      th.classList.add("sort-icon");
+    });
+
+    // Set sort direction
+    header.classList.add(isAsc ? "sort-desc" : "sort-asc");
+
+    const rows = Array.from(tbody.rows);
+    rows.sort((a, b) => {
+      let aValue = a.cells[index].textContent.trim();
+      let bValue = b.cells[index].textContent.trim();
+
+      if (sortKey === "heartRate" || sortKey === "temperature") {
+        aValue = parseFloat(aValue) || 0;
+        bValue = parseFloat(bValue) || 0;
+      } else if (sortKey === "date") {
+        aValue = new Date(aValue).getTime();
+        bValue = new Date(bValue).getTime();
+      }
+
+      if (isAsc) {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+
+    rows.forEach((row) => tbody.appendChild(row));
+  });
+});
