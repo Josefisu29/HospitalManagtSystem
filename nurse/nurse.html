@@ -211,8 +211,15 @@
         background: #c82333;
       }
       .form-group input.invalid {
-        border-color: #dc3545;
-        background-color: #fff8f8;
+        border-color: red;
+      }
+      .form-group .error-text {
+        color: #f14668;
+        font-size: 0.9rem;
+        display: none;
+      }
+      .form-group .error-text.show {
+        display: block;
       }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/list.js@2.3.1/dist/list.min.js"></script>
@@ -255,14 +262,18 @@
             <input type="number" id="heartRate" min="30" max="200" required />
           </div>
           <div class="form-group">
-            <label for="bloodPressure">Blood Pressure (mmHg)</label>
-            <input
-              type="text"
-              id="bloodPressure"
-              placeholder="e.g., 120/80"
-              required
-              pattern="^\\d{2,3}/\\d{2,3}$"
-            />
+            <label for="systolic">Blood Pressure - Systolic (mmHg)</label>
+            <input type="number" id="systolic" min="50" max="250" required />
+            <span class="error-text" id="systolicError"
+              >Please enter a valid systolic pressure (50-250 mmHg).</span
+            >
+          </div>
+          <div class="form-group">
+            <label for="diastolic">Blood Pressure - Diastolic (mmHg)</label>
+            <input type="number" id="diastolic" min="30" max="150" required />
+            <span class="error-text" id="diastolicError"
+              >Please enter a valid diastolic pressure (30-150 mmHg).</span
+            >
           </div>
           <div class="form-group">
             <label for="temperature">Temperature (°C)</label>
@@ -508,19 +519,77 @@
         loading.style.display = "block";
         const patientId = patientIdSelect.value;
         const heartRate = document.getElementById("heartRate").value;
-        const bloodPressure = document.getElementById("bloodPressure").value;
+        const systolic = document.getElementById("systolic").value;
+        const diastolic = document.getElementById("diastolic").value;
         const temperature = document.getElementById("temperature").value;
         const vitalFile = document.getElementById("vitalFile").files[0];
+
+        const heartRateError = document.getElementById("heartRateError");
+        const systolicError = document.getElementById("systolicError");
+        const diastolicError = document.getElementById("diastolicError");
+        const temperatureError = document.getElementById("temperatureError");
+
+        let isValid = true;
+        if (!patientId) {
+          showMessage(errorMessage, "Please select a patient.");
+          isValid = false;
+        }
+        if (heartRate < 30 || heartRate > 200) {
+          heartRateError.classList.add("show");
+          document.getElementById("heartRate").classList.add("invalid");
+          isValid = false;
+        } else {
+          heartRateError.classList.remove("show");
+          document.getElementById("heartRate").classList.remove("invalid");
+        }
+        if (systolic < 50 || systolic > 250) {
+          systolicError.classList.add("show");
+          document.getElementById("systolic").classList.add("invalid");
+          isValid = false;
+        } else {
+          systolicError.classList.remove("show");
+          document.getElementById("systolic").classList.remove("invalid");
+        }
+        if (diastolic < 30 || diastolic > 150) {
+          diastolicError.classList.add("show");
+          document.getElementById("diastolic").classList.add("invalid");
+          isValid = false;
+        } else {
+          diastolicError.classList.remove("show");
+          document.getElementById("diastolic").classList.remove("invalid");
+        }
+        if (temperature < 35 || temperature > 42) {
+          temperatureError.classList.add("show");
+          document.getElementById("temperature").classList.add("invalid");
+          isValid = false;
+        } else {
+          temperatureError.classList.remove("show");
+          document.getElementById("temperature").classList.remove("invalid");
+        }
+        if (systolic <= diastolic) {
+          showMessage(
+            errorMessage,
+            "Systolic pressure must be greater than diastolic pressure."
+          );
+          document.getElementById("systolic").classList.add("invalid");
+          document.getElementById("diastolic").classList.add("invalid");
+          isValid = false;
+        }
+
+        if (!isValid) {
+          loading.style.display = "none";
+          return;
+        }
 
         try {
           const vitalData = {
             patientId,
             heartRate: parseInt(heartRate),
-            bloodPressure,
+            bloodPressure: `${systolic}/${diastolic}`,
             temperature: parseFloat(temperature),
             date: new Date(),
             recordedBy: auth.currentUser.uid,
-            fileUrl: vitalFile ? "placeholder_url" : null, // Replace with Firebase Storage logic if needed
+            fileUrl: vitalFile ? "placeholder_url" : null,
           };
           await addDoc(collection(db, "vitals"), vitalData);
           showMessage(successMessage, "Vitals recorded successfully!");
