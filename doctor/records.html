@@ -275,9 +275,10 @@
 
       async function requestLabTest() {
         const labTestType = document.getElementById("labTestType").value;
-        if (!labTestType) return; // No test selected, skip
+        if (!labTestType) return;
 
         try {
+          // Fetch doctor and patient details
           const doctorDoc = await getDoc(doc(db, "doctors", currentDoctorId));
           const doctor = doctorDoc.exists() ? doctorDoc.data() : {};
           const patientDoc = await getDoc(doc(db, "users", currentPatientId));
@@ -412,19 +413,21 @@
                 const record = doc.data();
                 const row = document.createElement("tr");
                 row.innerHTML = `
-              <td class="p-2">${record.date.toDate().toLocaleDateString()}</td>
-              <td class="p-2">${record.description}</td>
-              <td class="p-2">
-                ${
-                  currentUserRole === "patient"
-                    ? ""
-                    : `
-                  <button class="edit-record-btn bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600" data-id="${doc.id}">Edit</button>
-                  <button class="delete-record-btn bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600" data-id="${doc.id}">Delete</button>
-                `
-                }
-              </td>
-            `;
+                  <td class="p-2">${record.date
+                    .toDate()
+                    .toLocaleDateString()}</td>
+                  <td class="p-2">${record.description}</td>
+                  <td class="p-2">
+                    ${
+                      currentUserRole === "patient"
+                        ? ""
+                        : `
+                        <button class="edit-record-btn bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600" data-id="${doc.id}">Edit</button>
+                        <button class="delete-record-btn bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600" data-id="${doc.id}">Delete</button>
+                      `
+                    }
+                  </td>
+                `;
                 recordsList.appendChild(row);
               });
               addRecordEventListeners();

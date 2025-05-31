@@ -275,6 +275,8 @@
         onSnapshot,
         setDoc,
         enableIndexedDbPersistence,
+        orderBy,
+        addDoc,
       } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
       import {
         getStorage,
@@ -297,13 +299,21 @@
       const db = getFirestore(app);
       const storage = getStorage(app);
 
-      enableIndexedDbPersistence(db).catch((err) =>
-        console.warn("Offline persistence failed:", err)
-      );
+      enableIndexedDbPersistence(db).catch((err) => {
+        if (err.code === "failed-precondition") {
+          console.warn(
+            "Multiple tabs open, persistence can only be enabled in one tab at a time."
+          );
+        } else if (err.code === "unimplemented") {
+          console.warn("The current browser does not support persistence.");
+        }
+      });
 
       const loadingEl = document.getElementById("loading");
       const errorEl = document.getElementById("error-message");
       const successEl = document.getElementById("success-message");
+      const statusDot = document.getElementById("statusIndicator");
+      const statusTooltip = document.getElementById("statusTooltip");
 
       function showLoading() {
         loadingEl.style.display = "block";
@@ -516,8 +526,6 @@
           }
         });
 
-      const statusDot = document.getElementById("statusIndicator");
-      const statusTooltip = document.getElementById("statusTooltip");
       async function updateStatus() {
         try {
           const res = await fetch(
@@ -537,6 +545,8 @@
           statusTooltip.textContent = "Disconnected";
         }
       }
+
+      // Add status update event listeners
       window.addEventListener("online", () => updateStatus());
       window.addEventListener("offline", () => {
         statusDot.className = "status-indicator offline";
@@ -544,6 +554,91 @@
       });
       setInterval(updateStatus, 15000);
       updateStatus();
+
+      async function requestLabTest(recordId) {
+        const labTestType = document.getElementById("labTestType").value;
+        if (!labTestType) return;
+
+        try {
+          const doctorDoc = await getDoc(doc(db, "doctors", currentDoctorId));
+          const doctor = doctorDoc.exists() ? doctorDoc.data() : {};
+          const patientDoc = await getDoc(doc(db, "users", currentPatientId));
+          const patient = patientDoc.exists() ? patientDoc.data() : {};
+
+          const testRequestData = {
+            patientId: currentPatientId,
+            doctorId: currentDoctorId,
+            patientFirstName: patient.firstName || "Unknown",
+            patientLastName: patient.lastName || "Patient",
+            doctorFirstName: doctor.firstName || "Unknown",
+            doctorLastName: doctor.lastName || "Doctor",
+            testType: labTestType,
+            date: Timestamp.fromDate(
+              new Date(document.getElementById("recordDate").value)
+            ),
+            status: "pending",
+            createdAt: Timestamp.now(),
+            updatedAt: Timestamp.now(),
+            medicalRecordId: recordId,
+          };
+
+          await addDoc(collection(db, "testRequests"), testRequestData);
+          showSuccess("Lab test request sent successfully");
+        } catch (error) {
+          showError("Failed to send lab test request: " + error.message);
+        }
+      }
+
+      function loadRecords() {
+        if (!currentPatientId) return;
+        showLoading();
+        const recordsQuery = query(
+          collection(db, "medicalRecords"),
+          where("patientId", "==", currentPatientId),
+          orderBy("createdAt", "desc")
+        );
+
+        onSnapshot(
+          recordsQuery,
+          (snapshot) => {
+            const recordsList = document.getElementById("recordsList");
+            recordsList.innerHTML = "";
+
+            if (snapshot.empty) {
+              recordsList.innerHTML =
+                "<tr><td colspan='3' class='p-2 text-center'>No records found for this patient</td></tr>";
+            } else {
+              snapshot.forEach((doc) => {
+                const record = doc.data();
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                  <td class="p-2">${record.date
+                    .toDate()
+                    .toLocaleDateString()}</td>
+                  <td class="p-2">${record.description}</td>
+                  <td class="p-2">
+                    ${
+                      currentUserRole === "patient"
+                        ? ""
+                        : `
+                        <button class="edit-record-btn bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600" data-id="${doc.id}">Edit</button>
+                        <button class="delete-record-btn bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600" data-id="${doc.id}">Delete</button>
+                      `
+                    }
+                  </td>
+                `;
+                recordsList.appendChild(row);
+              });
+              addRecordEventListeners();
+            }
+            hideLoading();
+          },
+          (error) => {
+            showError("Failed to load records: " + error.message);
+            hideLoading();
+          }
+        );
+      }
 
       document.getElementById("navToggle").addEventListener("click", () => {
         document.getElementById("navMenu").classList.toggle("active");
