@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0052cc" />
+    <title>Emergency Help - HMS</title>
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/png" href="/icon-192x192.png" />
+    <style>
+      :root {
+        --primary: #0052cc;
+        --accent: #28a745;
+        --bg: #f0f4f8;
+        --text: #1a1a1a;
+        --card-bg: #ffffff;
+        --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --transition: 0.3s ease;
+      }
+      body {
+        font-family: Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        margin: 0;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: 100vh;
+      }
+      header {
+        background: var(--card-bg);
+        box-shadow: var(--shadow);
+        padding: 1rem;
+        width: 100%;
+        text-align: center;
+      }
+      main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        max-width: 600px;
+      }
+      .card {
+        background: var(--card-bg);
+        border-radius: 8px;
+        padding: 2rem;
+        box-shadow: var(--shadow);
+        margin-bottom: 1.5rem;
+        width: 100%;
+        text-align: center;
+      }
+      .btn {
+        padding: 1rem 2rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: background var(--transition);
+        margin: 0.5rem;
+      }
+      .btn-primary {
+        background: var(--primary);
+        color: #fff;
+      }
+      .btn-primary:hover {
+        background: #003d99;
+      }
+      .btn-call {
+        background: var(--accent);
+        color: #fff;
+      }
+      .btn-call:hover {
+        background: #1f8c3a;
+      }
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        justify-content: center;
+        align-items: center;
+      }
+      .modal.show {
+        display: flex;
+      }
+      .modal-content {
+        background: var(--card-bg);
+        padding: 2rem;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 400px;
+        position: relative;
+        box-shadow: var(--shadow);
+      }
+      .close {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: #aaa;
+      }
+      .close:hover {
+        color: var(--text);
+      }
+      .modal-content select {
+        width: 100%;
+        padding: 0.5rem;
+        margin: 0.5rem 0;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      #notifications {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        z-index: 1100;
+      }
+      .notification {
+        background: var(--card-bg);
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        border-radius: 4px;
+        box-shadow: var(--shadow);
+        animation: slideIn 0.3s ease-out;
+      }
+      @keyframes slideIn {
+        from {
+          transform: translateX(100%);
+        }
+        to {
+          transform: translateX(0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Emergency Help</h1>
+      <button id="logoutBtn" class="btn btn-primary">Logout</button>
+    </header>
+    <main>
+      <div class="card">
+        <h2>Need Help?</h2>
+        <button id="shareLocationBtn" class="btn btn-primary">
+          Share Location
+        </button>
+        <button id="callForHelpBtn" class="btn btn-call">Call for Help</button>
+      </div>
+      <div id="emergencyModal" class="modal">
+        <div class="modal-content">
+          <span class="close" aria-label="Close modal">×</span>
+          <h2>Emergency Numbers</h2>
+          <select
+            id="emergencyNumbers"
+            aria-label="Select emergency number to call"
+          ></select>
+          <button id="callButton" class="btn btn-call">Call</button>
+        </div>
+      </div>
+      <div id="notifications"></div>
+    </main>
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+      import {
+        getAuth,
+        onAuthStateChanged,
+        signOut,
+      } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+      import {
+        getFirestore,
+        collection,
+        addDoc,
+        getDocs,
+      } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
+        authDomain: "hospitalmanagtsystem.firebaseapp.com",
+        projectId: "hospitalmanagtsystem",
+        storageBucket: "hospitalmanagtsystem.firebasestorage.app",
+        messagingSenderId: "771158568788",
+        appId: "1:771158568788:web:e47f16ea2577fa1e8762c1",
+        databaseURL: "https://hospitalmanagtsystem-default-rtdb.firebaseio.com",
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+
+      onAuthStateChanged(auth, (user) => {
+        if (!user) {
+          window.location.href = "/index.html";
+          return;
+        }
+        if (user && user.role !== "patient") {
+          showNotification("Access restricted to patients only.");
+          signOut(auth);
+          return;
+        }
+      });
+
+      document
+        .getElementById("logoutBtn")
+        .addEventListener("click", async () => {
+          try {
+            await signOut(auth);
+            window.location.href = "/index.html";
+          } catch (error) {
+            showNotification("Failed to log out: " + error.message);
+          }
+        });
+
+      document
+        .getElementById("shareLocationBtn")
+        .addEventListener("click", () => {
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              async (position) => {
+                const { latitude, longitude } = position.coords;
+                try {
+                  await addDoc(collection(db, "helpRequests"), {
+                    patientId: auth.currentUser.uid,
+                    latitude,
+                    longitude,
+                    status: "Pending",
+                    assignedTo: "unassigned",
+                    type: "Emergency",
+                    priority: "High",
+                    createdAt: new Date(),
+                    notes: "",
+                  });
+                  showNotification(
+                    "Location shared successfully! Help is on the way."
+                  );
+                } catch (error) {
+                  showNotification(
+                    "Failed to share location: " + error.message
+                  );
+                }
+              },
+              (error) => {
+                showNotification("Unable to get location: " + error.message);
+              }
+            );
+          } else {
+            showNotification("Geolocation is not supported by this browser.");
+          }
+        });
+
+      document
+        .getElementById("callForHelpBtn")
+        .addEventListener("click", async () => {
+          try {
+            const snapshot = await getDocs(collection(db, "config"));
+            const emergencyNumbers = [];
+            snapshot.forEach((doc) => {
+              if (doc.id === "emergencyNumbers") {
+                emergencyNumbers.push(...doc.data().numbers);
+              }
+            });
+            const select = document.getElementById("emergencyNumbers");
+            select.innerHTML = emergencyNumbers
+              .map((num) => `<option value="${num}">${num}</option>`)
+              .join("");
+            document.getElementById("emergencyModal").classList.add("show");
+          } catch (error) {
+            showNotification(
+              "Failed to load emergency numbers: " + error.message
+            );
+          }
+        });
+
+      document.getElementById("callButton").addEventListener("click", () => {
+        const number = document.getElementById("emergencyNumbers").value;
+        window.location.href = `tel:${number}`;
+      });
+
+      document.querySelector(".close").addEventListener("click", () => {
+        document.getElementById("emergencyModal").classList.remove("show");
+      });
+
+      function showNotification(message) {
+        const notifications = document.getElementById("notifications");
+        const notification = document.createElement("div");
+        notification.className = "notification";
+        notification.textContent = message;
+        notifications.appendChild(notification);
+        setTimeout(() => notification.remove(), 5000);
+      }
+
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker
+          .register("/service-worker.js")
+          .then((reg) => {
+            console.log("Service Worker registered:", reg);
+          })
+          .catch((error) => {
+            console.error("Service Worker registration failed:", error);
+          });
+      }
+    </script>
+  </body>
+</html>
