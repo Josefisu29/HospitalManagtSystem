@@ -273,7 +273,7 @@
         return true;
       }
 
-      async function requestLabTest() {
+      async function requestLabTest(recordId) {
         const labTestType = document.getElementById("labTestType").value;
         if (!labTestType) return;
 
@@ -546,23 +546,22 @@
 
           try {
             if (document.getElementById("recordId").value) {
-              await updateDoc(
-                doc(
-                  db,
-                  "medicalRecords",
-                  document.getElementById("recordId").value
-                ),
+              const recordId = document.getElementById("recordId").value;
+              await updateDoc(doc(db, "medicalRecords", recordId), recordData);
+              showMessage("Record updated successfully", "success");
+              if (currentUserRole === "doctor") {
+                await requestLabTest(recordId);
+              }
+            } else {
+              const docRef = await addDoc(
+                collection(db, "medicalRecords"),
                 recordData
               );
-              showMessage("Record updated successfully", "success");
-            } else {
-              await addDoc(collection(db, "medicalRecords"), recordData);
+              const recordId = docRef.id;
               showMessage("Record created successfully", "success");
-            }
-
-            // Send lab test request if a test type is selected (only for doctors)
-            if (currentUserRole === "doctor") {
-              await requestLabTest();
+              if (currentUserRole === "doctor") {
+                await requestLabTest(recordId);
+              }
             }
 
             document.getElementById("recordModal").style.display = "none";
