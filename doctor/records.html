@@ -11,6 +11,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.x.x/firebase-storage-compat.js"></script>
     <style>
       .modal {
         display: none;
@@ -206,6 +207,12 @@
         enableIndexedDbPersistence,
         orderBy,
       } from "https://www.gstatic.com/firebasejs/9.x.x/firebase-firestore.js";
+      import {
+        getStorage,
+        ref,
+        getDownloadURL,
+        uploadBytes,
+      } from "https://www.gstatic.com/firebasejs/9.x.x/firebase-storage.js";
 
       const firebaseConfig = {
         apiKey: "AIzaSyCpMkpU9YeB3HNpzk0_fwswSf9TQwb_Xdg",
@@ -219,10 +226,16 @@
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app);
       const db = getFirestore(app);
+      const storage = getStorage(app);
 
       let currentPatientId = null;
       let currentUserRole = null;
       let currentDoctorId = null;
+
+      const loadingEl = document.getElementById("loading");
+      const errorEl = document.getElementById("message");
+      const statusDot = document.getElementById("statusIndicator");
+      const statusTooltip = document.getElementById("statusTooltip");
 
       // Enable offline persistence with error handling
       enableIndexedDbPersistence(db).catch((err) => {
@@ -236,19 +249,18 @@
       });
 
       function showLoading() {
-        document.getElementById("loading").style.display = "block";
+        loadingEl.style.display = "block";
       }
 
       function hideLoading() {
-        document.getElementById("loading").style.display = "none";
+        loadingEl.style.display = "none";
       }
 
       function showMessage(message, type = "error") {
-        const messageElement = document.getElementById("message");
-        messageElement.textContent = message;
-        messageElement.className =
+        errorEl.textContent = message;
+        errorEl.className =
           type === "error" ? "error-message" : "success-message";
-        setTimeout(() => (messageElement.textContent = ""), 5000);
+        setTimeout(() => (errorEl.textContent = ""), 5000);
       }
 
       function validateRecordForm() {
@@ -273,12 +285,31 @@
         return true;
       }
 
+      async function updateStatus() {
+        try {
+          const res = await fetch(
+            "https://us-central1-hospitalmanagtsystem.cloudfunctions.net/systemStatus"
+          );
+          if (res.ok) {
+            const { status } = await res.json();
+            statusDot.className = `status-indicator ${status || "offline"}`;
+            statusTooltip.textContent =
+              status.charAt(0).toUpperCase() + status.slice(1);
+          } else {
+            statusDot.className = "status-indicator disconnected";
+            statusTooltip.textContent = "Disconnected";
+          }
+        } catch {
+          statusDot.className = "status-indicator disconnected";
+          statusTooltip.textContent = "Disconnected";
+        }
+      }
+
       async function requestLabTest(recordId) {
         const labTestType = document.getElementById("labTestType").value;
         if (!labTestType) return;
 
         try {
-          // Fetch doctor and patient details
           const doctorDoc = await getDoc(doc(db, "doctors", currentDoctorId));
           const doctor = doctorDoc.exists() ? doctorDoc.data() : {};
           const patientDoc = await getDoc(doc(db, "users", currentPatientId));
@@ -298,6 +329,7 @@
             status: "pending",
             createdAt: Timestamp.now(),
             updatedAt: Timestamp.now(),
+            medicalRecordId: recordId,
           };
 
           await addDoc(collection(db, "testRequests"), testRequestData);
@@ -378,7 +410,7 @@
               document.getElementById(
                 "patientName"
               ).textContent = `${patient.firstName} ${patient.lastName}`;
-              loadRecords();
+              loadMedicalRecords(currentPatientId);
             } else {
               showMessage("Patient not found");
             }
@@ -390,33 +422,88 @@
         }
       });
 
-      function loadRecords() {
-        if (!currentPatientId) return;
-        showLoading();
-        const recordsQuery = query(
-          collection(db, "medicalRecords"),
-          where("patientId", "==", currentPatientId),
-          orderBy("createdAt", "desc")
-        );
-
-        onSnapshot(
-          recordsQuery,
-          (snapshot) => {
-            const recordsList = document.getElementById("recordsList");
-            recordsList.innerHTML = "";
-
-            if (snapshot.empty) {
-              recordsList.innerHTML =
-                "<tr><td colspan='3' class='p-2 text-center'>No records found for this patient</td></tr>";
-            } else {
-              snapshot.forEach((doc) => {
+      async function loadMedicalRecords(userId) {
+        try {
+          showLoading();
+          const recordsRef = collection(db, "medicalRecords");
+          const q = query(
+            recordsRef,
+            where("patientId", "==", userId),
+            orderBy("createdAt", "desc")
+          );
+          onSnapshot(
+            q,
+            async (querySnapshot) => {
+              const tbody = document.querySelector("#recordsList");
+              const container = document.getElementById(
+                "recordsTableContainer"
+              );
+              tbody.innerHTML = "";
+              if (querySnapshot.empty) {
+                container.innerHTML = `
+                  <div class="empty-state">
+                    <i class="fas fa-file-medical"></i>
+                    <p>No medical records found.</p>
+                  </div>`;
+                return;
+              }
+              container.innerHTML = `
+                <table id="recordsTable">
+                  <thead>
+                    <tr>
+                      <th>Record ID</th>
+                      <th>Date</th>
+                      <th>Description</th>
+                      <th>Created By</th>
+                      <th>Download</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>`;
+              const newTbody = document.querySelector("#recordsTable tbody");
+              for (const doc of querySnapshot.docs) {
                 const record = doc.data();
+                let creatorName = "Unknown";
+                if (record.createdBy) {
+                  const creatorDoc = await getDoc(
+                    doc(
+                      db,
+                      record.createdBy.includes("doctor") ? "doctors" : "users",
+                      record.createdBy
+                    )
+                  );
+                  if (creatorDoc.exists()) {
+                    const creatorData = creatorDoc.data();
+                    creatorName = record.createdBy.includes("doctor")
+                      ? `Dr. ${creatorData.firstName} ${creatorData.lastName}`
+                      : `${creatorData.firstName} ${creatorData.lastName} (Clerk)`;
+                  }
+                }
+                let downloadUrl = "";
+                if (record.filePath) {
+                  try {
+                    downloadUrl = await getDownloadURL(
+                      ref(storage, record.filePath)
+                    );
+                  } catch (error) {
+                    console.error("Error fetching download URL:", error);
+                    downloadUrl = "";
+                  }
+                }
                 const row = document.createElement("tr");
                 row.innerHTML = `
+                  <td class="p-2">${record.recordId || doc.id}</td>
                   <td class="p-2">${record.date
                     .toDate()
                     .toLocaleDateString()}</td>
                   <td class="p-2">${record.description}</td>
+                  <td class="p-2">${creatorName}</td>
+                  <td class="p-2">${
+                    downloadUrl
+                      ? `<a href="${downloadUrl}" class="btn" target="_blank">Download</a>`
+                      : `<span class="btn disabled">No File</span>`
+                  }</td>
                   <td class="p-2">
                     ${
                       currentUserRole === "patient"
@@ -428,17 +515,22 @@
                     }
                   </td>
                 `;
-                recordsList.appendChild(row);
-              });
+                newTbody.appendChild(row);
+              }
               addRecordEventListeners();
+              hideLoading();
+            },
+            (error) => {
+              console.error("Error loading medical records:", error);
+              showMessage("Failed to load medical records.");
+              hideLoading();
             }
-            hideLoading();
-          },
-          (error) => {
-            showMessage("Failed to load records: " + error.message);
-            hideLoading();
-          }
-        );
+          );
+        } catch (error) {
+          console.error("Error loading medical records:", error);
+          showMessage("Failed to load medical records. Please try again.");
+          hideLoading();
+        }
       }
 
       async function editRecord(id) {
@@ -481,7 +573,7 @@
         try {
           await deleteDoc(doc(db, "medicalRecords", id));
           showMessage("Record deleted successfully", "success");
-          loadRecords();
+          loadMedicalRecords(currentPatientId);
         } catch (error) {
           showMessage("Failed to delete record: " + error.message);
         } finally {
@@ -565,7 +657,7 @@
             }
 
             document.getElementById("recordModal").style.display = "none";
-            loadRecords();
+            loadMedicalRecords(currentPatientId);
           } catch (error) {
             showMessage("Failed to save record: " + error.message);
           } finally {
@@ -586,6 +678,15 @@
             hideLoading();
           }
         });
+
+      // Add status update event listeners
+      window.addEventListener("online", () => updateStatus());
+      window.addEventListener("offline", () => {
+        statusDot.className = "status-indicator offline";
+        statusTooltip.textContent = "Offline";
+      });
+      setInterval(updateStatus, 15000);
+      updateStatus();
     </script>
   </body>
 </html>
