@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>HMS – Records</title>
+    <title>HMS – Doctor Prescriptions</title>
     <link
       href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
       rel="stylesheet"
@@ -92,66 +92,81 @@
         <li>
           <a href="appointments.html" class="hover:underline">Appointments</a>
         </li>
-        <li><a href="records.html" class="underline">Records</a></li>
+        <li><a href="records.html" class="hover:underline">Records</a></li>
         <li><a href="note.html" class="hover:underline">Clinical Notes</a></li>
         <li>
-          <a href="prescriptions.html" class="hover:underline">Prescriptions</a>
+          <a href="prescriptions.html" class="underline">Prescriptions</a>
         </li>
       </ul>
     </nav>
     <main class="bg-white p-6 rounded shadow">
       <h2 class="text-xl font-semibold mb-4">
-        Records for <span id="patientName">Loading...</span>
+        Prescriptions for <span id="patientName">All Patients</span>
       </h2>
       <button
-        id="newRecordBtn"
+        id="newPrescriptionBtn"
         class="bg-blue-500 text-white px-4 py-2 rounded mb-4 hover:bg-blue-600"
       >
-        New Record
+        New Prescription
       </button>
       <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="bg-gray-200">
+              <th class="p-2">Patient</th>
+              <th class="p-2">Medication</th>
+              <th class="p-2">Dosage</th>
+              <th class="p-2">Status</th>
               <th class="p-2">Date</th>
-              <th class="p-2">Description</th>
               <th class="p-2">Actions</th>
             </tr>
           </thead>
-          <tbody id="recordsList"></tbody>
+          <tbody id="prescriptionsList"></tbody>
         </table>
       </div>
     </main>
-    <div id="recordModal" class="modal">
+    <div id="prescriptionModal" class="modal">
       <div class="modal-content">
-        <span class="close" id="closeRecordModal">×</span>
-        <h3 id="recordModalTitle" class="text-xl font-semibold mb-4">
-          New Record
+        <span class="close" id="closePrescriptionModal">×</span>
+        <h3 id="prescriptionModalTitle" class="text-xl font-semibold mb-4">
+          New Prescription
         </h3>
-        <form id="recordForm" class="space-y-4">
-          <input type="hidden" id="recordId" />
+        <form id="prescriptionForm" class="space-y-4">
+          <input type="hidden" id="prescriptionId" />
           <div>
-            <label class="block text-sm font-medium mb-1">Description</label>
-            <textarea
-              id="description"
-              class="w-full p-2 border rounded"
-              rows="4"
-              required
-              minlength="10"
-              maxlength="1000"
-            ></textarea>
-            <span class="text-sm text-gray-500"
-              >Minimum 10 characters, maximum 1000 characters</span
-            >
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Date</label>
+            <label class="block text-sm font-medium mb-1">Patient ID</label>
             <input
-              id="recordDate"
-              type="date"
+              id="patientId"
+              type="text"
               class="w-full p-2 border rounded"
               required
             />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Medication</label>
+            <input
+              id="medication"
+              type="text"
+              class="w-full p-2 border rounded"
+              required
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Dosage</label>
+            <input
+              id="dosage"
+              type="text"
+              class="w-full p-2 border rounded"
+              required
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Instructions</label>
+            <textarea
+              id="instructions"
+              class="w-full p-2 border rounded"
+              rows="4"
+            ></textarea>
           </div>
           <div class="flex justify-end space-x-2">
             <button
@@ -162,7 +177,7 @@
             </button>
             <button
               type="button"
-              id="cancelRecordBtn"
+              id="cancelPrescriptionBtn"
               class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
             >
               Cancel
@@ -188,7 +203,6 @@
         getDoc,
         addDoc,
         updateDoc,
-        deleteDoc,
         Timestamp,
         enableIndexedDbPersistence,
         orderBy,
@@ -207,11 +221,9 @@
       const auth = getAuth(app);
       const db = getFirestore(app);
 
-      let currentPatientId = null;
-      let currentUserRole = null;
       let currentDoctorId = null;
+      let currentUserRole = null;
 
-      // Enable offline persistence with error handling
       enableIndexedDbPersistence(db).catch((err) => {
         if (err.code === "failed-precondition") {
           console.warn(
@@ -238,48 +250,24 @@
         setTimeout(() => (messageElement.textContent = ""), 5000);
       }
 
-      function validateRecordForm() {
-        const description = document.getElementById("description").value;
-        const date = document.getElementById("recordDate").value;
+      function validatePrescriptionForm() {
+        const patientId = document.getElementById("patientId").value;
+        const medication = document.getElementById("medication").value;
+        const dosage = document.getElementById("dosage").value;
 
-        if (description.length < 10) {
-          showMessage("Description must be at least 10 characters long");
+        if (!patientId) {
+          showMessage("Patient ID is required");
           return false;
         }
-
-        if (description.length > 1000) {
-          showMessage("Description must not exceed 1000 characters");
+        if (!medication) {
+          showMessage("Medication is required");
           return false;
         }
-
-        if (!date) {
-          showMessage("Please select a date");
+        if (!dosage) {
+          showMessage("Dosage is required");
           return false;
         }
-
         return true;
-      }
-
-      function addRecordEventListeners() {
-        document.querySelectorAll(".edit-record-btn").forEach((button) => {
-          button.addEventListener("click", (e) => {
-            const id = e.target.dataset.id;
-            editRecord(id);
-          });
-        });
-
-        document.querySelectorAll(".delete-record-btn").forEach((button) => {
-          button.addEventListener("click", (e) => {
-            const id = e.target.dataset.id;
-            if (
-              confirm(
-                "Are you sure you want to delete this record? This action cannot be undone."
-              )
-            ) {
-              deleteRecord(id);
-            }
-          });
-        });
       }
 
       onAuthStateChanged(auth, async (user) => {
@@ -290,228 +278,198 @@
         try {
           const idTokenResult = await user.getIdTokenResult();
           currentUserRole = idTokenResult.claims.role;
-
-          if (!["doctor", "patient", "recordClerk"].includes(currentUserRole)) {
+          if (currentUserRole !== "doctor") {
             await signOut(auth);
             window.location.href = "/unauthorized.html";
             return;
           }
-
-          const userDoc = await getDoc(doc(db, "users", user.uid));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            if (currentUserRole === "doctor") {
-              currentDoctorId = user.uid;
-              const doctorDoc = await getDoc(doc(db, "doctors", user.uid));
-              if (doctorDoc.exists()) {
-                const doctor = doctorDoc.data();
-                document.getElementById(
-                  "greeting"
-                ).textContent = `Dr. ${doctor.firstName} ${doctor.lastName}`;
-              }
-            } else if (currentUserRole === "recordClerk") {
-              document.getElementById("greeting").textContent = "Record Clerk";
-            } else if (currentUserRole === "patient") {
-              document.getElementById(
-                "greeting"
-              ).textContent = `Patient: ${userData.firstName} ${userData.lastName}`;
-            }
-          }
-
-          const urlParams = new URLSearchParams(window.location.search);
-          currentPatientId = urlParams.get("patientId");
-          if (!currentPatientId && currentUserRole === "patient") {
-            currentPatientId = user.uid;
-          }
-
-          if (currentPatientId) {
-            const patientDoc = await getDoc(doc(db, "users", currentPatientId));
-            if (patientDoc.exists()) {
-              const patient = patientDoc.data();
-              document.getElementById(
-                "patientName"
-              ).textContent = `${patient.firstName} ${patient.lastName}`;
-              loadRecords();
-            } else {
-              showMessage("Patient not found");
-            }
+          currentDoctorId = user.uid;
+          const doctorDoc = await getDoc(doc(db, "doctors", user.uid));
+          if (doctorDoc.exists()) {
+            const doctor = doctorDoc.data();
+            document.getElementById(
+              "greeting"
+            ).textContent = `Dr. ${doctor.firstName} ${doctor.lastName}`;
+            loadPrescriptions();
           } else {
-            showMessage("No patient selected");
+            showMessage("Doctor profile not found");
           }
         } catch (error) {
           showMessage("Failed to load user profile: " + error.message);
         }
       });
 
-      function loadRecords() {
-        if (!currentPatientId) return;
+      function loadPrescriptions() {
         showLoading();
-        const recordsQuery = query(
-          collection(db, "medicalRecords"),
-          where("patientId", "==", currentPatientId),
+        const prescriptionsQuery = query(
+          collection(db, "prescriptions"),
+          where("doctorId", "==", currentDoctorId),
           orderBy("createdAt", "desc")
         );
 
         onSnapshot(
-          recordsQuery,
-          (snapshot) => {
-            const recordsList = document.getElementById("recordsList");
-            recordsList.innerHTML = "";
+          prescriptionsQuery,
+          async (snapshot) => {
+            const prescriptionsList =
+              document.getElementById("prescriptionsList");
+            prescriptionsList.innerHTML = "";
 
             if (snapshot.empty) {
-              recordsList.innerHTML =
-                "<tr><td colspan='3' class='p-2 text-center'>No records found for this patient</td></tr>";
+              prescriptionsList.innerHTML =
+                "<tr><td colspan='6' class='p-2 text-center'>No prescriptions found</td></tr>";
             } else {
-              snapshot.forEach((doc) => {
-                const record = doc.data();
+              for (const doc of snapshot.docs) {
+                const prescription = doc.data();
+                const patientDoc = await getDoc(
+                  doc(db, "users", prescription.patientId)
+                );
+                const patientName = patientDoc.exists()
+                  ? `${patientDoc.data().firstName} ${
+                      patientDoc.data().lastName
+                    }`
+                  : "Unknown";
                 const row = document.createElement("tr");
                 row.innerHTML = `
-              <td class="p-2">${record.date.toDate().toLocaleDateString()}</td>
-              <td class="p-2">${record.description}</td>
-              <td class="p-2">
-                ${
-                  currentUserRole === "patient"
-                    ? ""
-                    : `
-                  <button class="edit-record-btn bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600" data-id="${doc.id}">Edit</button>
-                  <button class="delete-record-btn bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600" data-id="${doc.id}">Delete</button>
-                `
-                }
-              </td>
-            `;
-                recordsList.appendChild(row);
-              });
-              addRecordEventListeners();
+                  <td class="p-2">${patientName}</td>
+                  <td class="p-2">${prescription.medication}</td>
+                  <td class="p-2">${prescription.dosage}</td>
+                  <td class="p-2">${prescription.status || "Pending"}</td>
+                  <td class="p-2">${prescription.createdAt
+                    .toDate()
+                    .toLocaleDateString()}</td>
+                  <td class="p-2">
+                    <button class="edit-prescription-btn bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600" data-id="${
+                      doc.id
+                    }">Edit</button>
+                  </td>
+                `;
+                prescriptionsList.appendChild(row);
+              }
+              addPrescriptionEventListeners();
             }
             hideLoading();
           },
           (error) => {
-            showMessage("Failed to load records: " + error.message);
+            showMessage("Failed to load prescriptions: " + error.message);
             hideLoading();
           }
         );
       }
 
-      async function editRecord(id) {
-        if (currentUserRole !== "doctor" && currentUserRole !== "recordClerk") {
-          showMessage("You do not have permission to edit records");
-          return;
-        }
+      function addPrescriptionEventListeners() {
+        document
+          .querySelectorAll(".edit-prescription-btn")
+          .forEach((button) => {
+            button.addEventListener("click", (e) => {
+              const id = e.target.dataset.id;
+              editPrescription(id);
+            });
+          });
+      }
+
+      async function editPrescription(id) {
         showLoading();
         try {
-          const docRef = doc(db, "medicalRecords", id);
+          const docRef = doc(db, "prescriptions", id);
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
-            const record = docSnap.data();
-            document.getElementById("recordId").value = id;
-            document.getElementById("description").value = record.description;
-            document.getElementById("recordDate").value = record.date
-              .toDate()
-              .toISOString()
-              .split("T")[0];
-            document.getElementById("recordModalTitle").textContent =
-              "Edit Record";
-            document.getElementById("recordModal").style.display = "flex";
+            const prescription = docSnap.data();
+            document.getElementById("prescriptionId").value = id;
+            document.getElementById("patientId").value = prescription.patientId;
+            document.getElementById("medication").value =
+              prescription.medication;
+            document.getElementById("dosage").value = prescription.dosage;
+            document.getElementById("instructions").value =
+              prescription.instructions || "";
+            document.getElementById("prescriptionModalTitle").textContent =
+              "Edit Prescription";
+            document.getElementById("prescriptionModal").style.display = "flex";
           } else {
-            showMessage("Record not found");
+            showMessage("Prescription not found");
           }
         } catch (error) {
-          showMessage("Failed to load record: " + error.message);
+          showMessage("Failed to load prescription: " + error.message);
         } finally {
           hideLoading();
         }
       }
 
-      async function deleteRecord(id) {
-        if (currentUserRole !== "doctor" && currentUserRole !== "recordClerk") {
-          showMessage("You do not have permission to delete records");
-          return;
-        }
-        showLoading();
-        try {
-          await deleteDoc(doc(db, "medicalRecords", id));
-          showMessage("Record deleted successfully", "success");
-          loadRecords();
-        } catch (error) {
-          showMessage("Failed to delete record: " + error.message);
-        } finally {
-          hideLoading();
-        }
-      }
-
-      document.getElementById("newRecordBtn").addEventListener("click", () => {
-        if (currentUserRole !== "doctor" && currentUserRole !== "recordClerk") {
-          showMessage("You do not have permission to add records");
-          return;
-        }
-        document.getElementById("recordId").value = "";
-        document.getElementById("description").value = "";
-        document.getElementById("recordDate").value = new Date()
-          .toISOString()
-          .split("T")[0];
-        document.getElementById("recordModalTitle").textContent = "New Record";
-        document.getElementById("recordModal").style.display = "flex";
-      });
-
       document
-        .getElementById("closeRecordModal")
+        .getElementById("newPrescriptionBtn")
         .addEventListener("click", () => {
-          document.getElementById("recordModal").style.display = "none";
+          document.getElementById("prescriptionId").value = "";
+          document.getElementById("patientId").value = "";
+          document.getElementById("medication").value = "";
+          document.getElementById("dosage").value = "";
+          document.getElementById("instructions").value = "";
+          document.getElementById("prescriptionModalTitle").textContent =
+            "New Prescription";
+          document.getElementById("prescriptionModal").style.display = "flex";
         });
 
       document
-        .getElementById("cancelRecordBtn")
+        .getElementById("closePrescriptionModal")
         .addEventListener("click", () => {
-          document.getElementById("recordModal").style.display = "none";
+          document.getElementById("prescriptionModal").style.display = "none";
         });
 
       document
-        .getElementById("recordForm")
+        .getElementById("cancelPrescriptionBtn")
+        .addEventListener("click", () => {
+          document.getElementById("prescriptionModal").style.display = "none";
+        });
+
+      document
+        .getElementById("prescriptionForm")
         .addEventListener("submit", async (e) => {
           e.preventDefault();
-          if (
-            currentUserRole !== "doctor" &&
-            currentUserRole !== "recordClerk"
-          ) {
-            showMessage("You do not have permission to save records");
-            return;
-          }
-
-          if (!validateRecordForm()) {
+          if (!validatePrescriptionForm()) {
             return;
           }
 
           showLoading();
-          const recordData = {
-            patientId: currentPatientId,
-            doctorId: currentUserRole === "doctor" ? currentDoctorId : null,
-            description: document.getElementById("description").value,
-            date: Timestamp.fromDate(
-              new Date(document.getElementById("recordDate").value)
-            ),
+          const prescriptionData = {
+            patientId: document.getElementById("patientId").value,
+            doctorId: currentDoctorId,
+            medication: document.getElementById("medication").value,
+            dosage: document.getElementById("dosage").value,
+            instructions: document.getElementById("instructions").value || null,
+            status: "pending",
             createdAt: Timestamp.now(),
             updatedAt: Timestamp.now(),
           };
 
           try {
-            if (document.getElementById("recordId").value) {
+            const patientDoc = await getDoc(
+              doc(db, "users", prescriptionData.patientId)
+            );
+            if (!patientDoc.exists()) {
+              showMessage("Invalid patient ID");
+              hideLoading();
+              return;
+            }
+            prescriptionData.patientName = `${patientDoc.data().firstName} ${
+              patientDoc.data().lastName
+            }`;
+
+            if (document.getElementById("prescriptionId").value) {
               await updateDoc(
                 doc(
                   db,
-                  "medicalRecords",
-                  document.getElementById("recordId").value
+                  "prescriptions",
+                  document.getElementById("prescriptionId").value
                 ),
-                recordData
+                prescriptionData
               );
-              showMessage("Record updated successfully", "success");
+              showMessage("Prescription updated successfully", "success");
             } else {
-              await addDoc(collection(db, "medicalRecords"), recordData);
-              showMessage("Record created successfully", "success");
+              await addDoc(collection(db, "prescriptions"), prescriptionData);
+              showMessage("Prescription created successfully", "success");
             }
-            document.getElementById("recordModal").style.display = "none";
-            loadRecords();
+            document.getElementById("prescriptionModal").style.display = "none";
+            loadPrescriptions();
           } catch (error) {
-            showMessage("Failed to save record: " + error.message);
+            showMessage("Failed to save prescription: " + error.message);
           } finally {
             hideLoading();
           }

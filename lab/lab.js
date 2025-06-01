@@ -176,7 +176,7 @@ function loadTestRequests() {
 
   onSnapshot(
     q,
-    (snapshot) => {
+    async (snapshot) => {
       testsList.innerHTML = "";
       if (snapshot.empty) {
         testsList.innerHTML =
@@ -185,32 +185,79 @@ function loadTestRequests() {
         return;
       }
 
-      snapshot.forEach((doc) => {
+      for (const doc of snapshot.docs) {
         const test = doc.data();
+        let clinicalNote = null;
+
+        // Fetch associated clinical note if available
+        if (test.medicalRecordId) {
+          try {
+            const noteDoc = await getDoc(
+              doc(db, "clinicalNotes", test.medicalRecordId)
+            );
+            if (noteDoc.exists()) {
+              clinicalNote = noteDoc.data();
+            }
+          } catch (error) {
+            console.error("Error fetching clinical note:", error);
+          }
+        }
+
         const li = document.createElement("div");
         li.className = "test-item box";
         li.innerHTML = `
-          <p><strong>Patient:</strong> ${test.patientName}</p>
-          <p><strong>Doctor:</strong> ${test.doctorName}</p>
-          <p><strong>Test Type:</strong> ${test.testType}</p>
-          <p><strong>Status:</strong> <span class="status-badge ${
-            test.status
-          }">${test.status}</span></p>
-          <p><strong>Created:</strong> ${new Date(
-            test.createdAt.seconds * 1000
-          ).toLocaleString()}</p>
-          <div class="buttons">
-            <button class="button is-primary is-small update-btn" data-id="${
-              doc.id
-            }" ${test.status !== "pending" ? "disabled" : ""}>Update</button>
+          <div class="columns">
+            <div class="column">
+              <p><strong>Patient:</strong> ${test.patientName}</p>
+              <p><strong>Doctor:</strong> ${test.doctorName}</p>
+              <p><strong>Test Type:</strong> ${test.testType}</p>
+              <p><strong>Status:</strong> <span class="status-badge ${
+                test.status
+              }">${test.status}</span></p>
+              <p><strong>Created:</strong> ${new Date(
+                test.createdAt.seconds * 1000
+              ).toLocaleString()}</p>
+              ${
+                clinicalNote
+                  ? `
+                <div class="mt-3">
+                  <p><strong>Clinical Context:</strong></p>
+                  <p><em>Chief Complaint:</em> ${clinicalNote.chiefComplaint}</p>
+                  <p><em>Assessment:</em> ${clinicalNote.assessment}</p>
+                </div>
+              `
+                  : ""
+              }
+            </div>
+            <div class="column is-narrow">
+              <div class="buttons">
+                <button class="button is-primary is-small update-btn" data-id="${
+                  doc.id
+                }" ${test.status !== "pending" ? "disabled" : ""}>
+                  Update
+                </button>
+                ${
+                  test.results
+                    ? `
+                  <button class="button is-info is-small view-results-btn" data-id="${doc.id}">
+                    View Results
+                  </button>
+                `
+                    : ""
+                }
+              </div>
+            </div>
           </div>
         `;
         testsList.appendChild(li);
-      });
+      }
 
-      // Add event listeners to update buttons
+      // Add event listeners
       document.querySelectorAll(".update-btn").forEach((btn) => {
         btn.addEventListener("click", () => updateTestRequest(btn.dataset.id));
+      });
+      document.querySelectorAll(".view-results-btn").forEach((btn) => {
+        btn.addEventListener("click", () => viewTestResults(btn.dataset.id));
       });
       hideLoading();
     },
@@ -367,3 +414,58 @@ window.addEventListener("offline", () => {
   statusDot.className = "status-indicator offline";
   statusDot.title = "Offline";
 });
+
+// Add function to view test results
+async function viewTestResults(testId) {
+  showLoading();
+  try {
+    const docSnap = await getDoc(doc(db, "testRequests", testId));
+    if (docSnap.exists()) {
+      const test = docSnap.data();
+      const modal = document.createElement("div");
+      modal.className = "modal is-active";
+      modal.innerHTML = `
+        <div class="modal-background"></div>
+        <div class="modal-card">
+          <header class="modal-card-head">
+            <p class="modal-card-title">Test Results</p>
+            <button class="delete" aria-label="close"></button>
+          </header>
+          <section class="modal-card-body">
+            <div class="content">
+              <p><strong>Patient:</strong> ${test.patientName}</p>
+              <p><strong>Test Type:</strong> ${test.testType}</p>
+              <p><strong>Date:</strong> ${new Date(
+                test.createdAt.seconds * 1000
+              ).toLocaleString()}</p>
+              <hr>
+              <p><strong>Results:</strong></p>
+              <p>${test.results}</p>
+            </div>
+          </section>
+          <footer class="modal-card-foot">
+            <button class="button" id="closeResultsModal">Close</button>
+          </footer>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      // Add event listeners for closing the modal
+      modal.querySelector(".delete").addEventListener("click", () => {
+        modal.remove();
+      });
+      modal
+        .querySelector("#closeResultsModal")
+        .addEventListener("click", () => {
+          modal.remove();
+        });
+      modal.querySelector(".modal-background").addEventListener("click", () => {
+        modal.remove();
+      });
+    }
+  } catch (error) {
+    showError("Failed to load test results: " + error.message);
+  } finally {
+    hideLoading();
+  }
+}
